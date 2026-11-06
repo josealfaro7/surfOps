@@ -82,6 +82,10 @@ export const INITIAL_DAILY_CLASSES = [
     instructorId: 'inst-diego',
     wasSuggestedByQueue: true,
     studentName: 'Martín Echeverría',
+    studentPhone: '+56 9 8421 1102',
+    studentEmail: 'martin.echeverria@correo.cl',
+    emergencyContactName: 'Carolina Soto',
+    emergencyContactPhone: '+56 9 7112 3344',
     instructorPay: 7000,
   },
   {
@@ -98,6 +102,10 @@ export const INITIAL_DAILY_CLASSES = [
     instructorId: 'inst-diego',
     wasSuggestedByQueue: true,
     studentName: 'Familia Aguirre',
+    studentPhone: '+56 9 7612 9088',
+    studentEmail: 'contacto@familiaaguirre.cl',
+    emergencyContactName: 'Roberto Aguirre',
+    emergencyContactPhone: '+56 9 6554 1122',
     instructorPay: 11000,
   },
   {
@@ -114,6 +122,10 @@ export const INITIAL_DAILY_CLASSES = [
     instructorId: 'inst-jose',
     wasSuggestedByQueue: true,
     studentName: 'Sofía Larraín',
+    studentPhone: '+56 9 9231 4451',
+    studentEmail: 'sofia.larrain@correo.cl',
+    emergencyContactName: 'Elena Valdés',
+    emergencyContactPhone: '+56 9 8877 6655',
     instructorPay: 7000,
   },
   {
@@ -130,6 +142,10 @@ export const INITIAL_DAILY_CLASSES = [
     instructorId: 'inst-vitoco',
     wasSuggestedByQueue: true,
     studentName: 'Camila Orrego',
+    studentPhone: '+56 9 6332 1980',
+    studentEmail: 'camila.orrego@correo.cl',
+    emergencyContactName: 'Pablo Orrego',
+    emergencyContactPhone: '+56 9 5443 2211',
     instructorPay: 7000,
   },
   {
@@ -146,6 +162,10 @@ export const INITIAL_DAILY_CLASSES = [
     instructorId: 'inst-diego',
     wasSuggestedByQueue: true,
     studentName: 'Tomás Kunstmann',
+    studentPhone: '+56 9 6543 2210',
+    studentEmail: 'tomas.k@correo.cl',
+    emergencyContactName: 'Andrés Kunstmann',
+    emergencyContactPhone: '+56 9 9110 3322',
     instructorPay: 7000,
   },
   {
@@ -162,6 +182,10 @@ export const INITIAL_DAILY_CLASSES = [
     instructorId: 'inst-diego',
     wasSuggestedByQueue: false,
     studentName: 'Ignacio Zúñiga',
+    studentPhone: '+56 9 5119 8844',
+    studentEmail: 'ignacio.zuniga@correo.cl',
+    emergencyContactName: 'Marcela Ríos',
+    emergencyContactPhone: '+56 9 7788 9900',
     instructorPay: 6000,
   },
 ];
@@ -317,6 +341,10 @@ export function SurfSchoolProvider({ children }) {
       instructorId: classForm.instructorId,
       wasSuggestedByQueue: Boolean(classForm.wasSuggestedByQueue),
       studentName: classForm.studentName?.trim() || 'Alumno',
+      studentPhone: classForm.studentPhone?.trim() || '',
+      studentEmail: classForm.studentEmail?.trim() || '',
+      emergencyContactName: classForm.emergencyContactName?.trim() || '',
+      emergencyContactPhone: classForm.emergencyContactPhone?.trim() || '',
       instructorPay,
     };
 

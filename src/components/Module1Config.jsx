@@ -1,16 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Check, RotateCcw } from 'lucide-react';
+import { Check, RotateCcw, Lock, Unlock, AlertCircle } from 'lucide-react';
 import { useSurfSchool, INITIAL_SCHOOL_CONFIG } from '../context/SurfSchoolContext';
 import { formatCurrency } from '../utils/calculations';
+
+const ADMIN_PIN = '0000';
 
 export default function Module1Config() {
   const { schoolConfig, updateSchoolConfig } = useSurfSchool();
   const [formData, setFormData] = useState(schoolConfig);
   const [saved, setSaved] = useState(false);
 
+  // Estado de bloqueo por PIN (0000)
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+
   useEffect(() => {
     setFormData(schoolConfig);
   }, [schoolConfig]);
+
+  const handleUnlockSubmit = (e) => {
+    e.preventDefault();
+    if (pinInput.trim() === ADMIN_PIN) {
+      setIsUnlocked(true);
+      setPinError(false);
+      setPinInput('');
+    } else {
+      setPinError(true);
+      setPinInput('');
+    }
+  };
+
+  const handleLockPanel = () => {
+    setIsUnlocked(false);
+    setPinInput('');
+    setPinError(false);
+  };
 
   const handleNumberChange = (field, rawValue) => {
     const num = rawValue === '' ? 0 : Math.max(0, Number(rawValue));
@@ -31,6 +56,75 @@ export default function Module1Config() {
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
+
+  // Pantalla de bloqueo por PIN si aún no se ha desbloqueado
+  if (!isUnlocked) {
+    return (
+      <div className="max-w-md mx-auto my-12">
+        <div className="border border-slate-300 bg-white rounded-none">
+          <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-1.5 h-4 bg-pink-500 inline-block" />
+              <h2 className="text-xs font-semibold uppercase tracking-wider">
+                Acceso Restringido · Configuración
+              </h2>
+            </div>
+            <Lock className="w-4 h-4 text-sky-400" />
+          </div>
+
+          <form onSubmit={handleUnlockSubmit} className="p-6 space-y-5">
+            <div>
+              <h1 className="text-lg font-bold text-blue-950">
+                Ingresa el PIN de Administrador
+              </h1>
+              <p className="text-xs text-slate-500 mt-1">
+                Este módulo modifica los precios de venta y las tarifas de pago al staff.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="admin-pin-input"
+                className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+              >
+                PIN de Seguridad (4 dígitos)
+              </label>
+              <input
+                id="admin-pin-input"
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                autoFocus
+                required
+                placeholder="••••"
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value);
+                  if (pinError) setPinError(false);
+                }}
+                className="w-full h-14 px-4 rounded-sm border border-slate-300 bg-slate-50 text-center text-2xl font-mono font-bold tracking-[0.5em] text-blue-950 focus:bg-white focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+              />
+            </div>
+
+            {pinError && (
+              <div className="p-3 border border-pink-600 bg-pink-50 text-xs font-semibold text-pink-700 flex items-center gap-2 rounded-none">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>PIN incorrecto. Inténtalo nuevamente.</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full h-12 px-6 rounded-none bg-blue-950 hover:bg-blue-900 border-b-2 border-pink-600 text-white text-xs font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Unlock className="w-4 h-4 text-sky-400" />
+              Desbloquear Configuración
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   const renderField = (label, description, field) => (
     <div className="py-4 px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 last:border-b-0 bg-white">
@@ -78,14 +172,26 @@ export default function Module1Config() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleReset}
-          className="inline-flex items-center gap-2 h-11 px-4 rounded-sm border border-slate-300 bg-white hover:bg-sky-50 text-blue-950 text-sm font-medium transition self-start md:self-auto cursor-pointer"
-        >
-          <RotateCcw className="w-4 h-4 text-sky-600" />
-          Restaurar Valores Base
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-sm border border-slate-300 bg-white hover:bg-sky-50 text-blue-950 text-sm font-medium transition cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4 text-sky-600" />
+            Restaurar Valores Base
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLockPanel}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-sm border border-slate-300 bg-white hover:bg-pink-50 text-slate-700 hover:text-pink-600 text-sm font-medium transition cursor-pointer"
+            title="Bloquear panel con PIN"
+          >
+            <Lock className="w-4 h-4 text-pink-600" />
+            Bloquear
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">

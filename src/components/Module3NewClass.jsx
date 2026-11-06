@@ -13,6 +13,9 @@ import {
   ArrowRight,
   MessageSquare,
   X,
+  Phone,
+  Mail,
+  ShieldAlert,
 } from 'lucide-react';
 import { useSurfSchool } from '../context/SurfSchoolContext';
 import {
@@ -29,6 +32,23 @@ const PAYMENT_OPTIONS = [
 ];
 
 const QUICK_BLOCKS = ['09:00', '10:30', '12:00', '15:00', '16:30'];
+
+/**
+ * Normaliza un número de teléfono para usar en https://wa.me/<numero>
+ * Elimina espacios, guiones y signos '+'. Si tiene 9 dígitos (ej. 987654321), antepone 56.
+ * Si tiene 8 dígitos (ej. 87654321), antepone 569.
+ */
+function normalizeWhatsAppPhone(rawPhone) {
+  const digits = String(rawPhone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length === 9 && digits.startsWith('9')) {
+    return `56${digits}`;
+  }
+  if (digits.length === 8) {
+    return `569${digits}`;
+  }
+  return digits;
+}
 
 export default function Module3NewClass() {
   const {
@@ -56,7 +76,13 @@ export default function Module3NewClass() {
 
   const [selectedInstructorId, setSelectedInstructorId] = useState('');
   const [isManualOverride, setIsManualOverride] = useState(false);
+
+  // Datos del Alumno y Contacto de Emergencia
   const [studentName, setStudentName] = useState('');
+  const [studentPhone, setStudentPhone] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
+  const [emergencyContactName, setEmergencyContactName] = useState('');
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
 
   // Confirmación de registro para el Success Banner y WhatsApp
   const [lastSavedClass, setLastSavedClass] = useState(null);
@@ -117,6 +143,29 @@ export default function Module3NewClass() {
     }
   };
 
+  // Abre wa.me/<telefono_alumno>?text=<mensaje>
+  const openStudentWhatsApp = (classData) => {
+    if (!classData) return;
+
+    const cleanPhone = normalizeWhatsAppPhone(classData.studentPhone);
+    const formattedNumber = Math.round(Number(classData.total) || 0).toLocaleString('es-CL');
+
+    const mensajeConfirmacion = [
+      '🏄‍♂️ *Confirmación de Clase - Poisson Surf School*',
+      `👤 Alumno: ${classData.studentName}`,
+      `📅 Horario: ${classData.startTime} - ${classData.endTime}`,
+      `👨‍🏫 Instructor: ${classData.instructorName}`,
+      `💰 Total a pagar: $${formattedNumber}`,
+    ].join('\n');
+
+    const baseUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=`
+      : 'https://wa.me/?text=';
+
+    const url = baseUrl + encodeURIComponent(mensajeConfirmacion);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!selectedInstructorId) return;
@@ -137,18 +186,28 @@ export default function Module3NewClass() {
       instructorId: selectedInstructorId,
       wasSuggestedByQueue: wasSuggested,
       studentName: studentName.trim() || 'Alumno',
+      studentPhone: studentPhone.trim(),
+      studentEmail: studentEmail.trim(),
+      emergencyContactName: emergencyContactName.trim(),
+      emergencyContactPhone: emergencyContactPhone.trim(),
     });
 
     const assignedInst = instructors.find((i) => i.id === created.instructorId);
 
-    setLastSavedClass({
+    const savedPayload = {
       studentName: created.studentName,
+      studentPhone: created.studentPhone,
+      studentEmail: created.studentEmail,
+      emergencyContactName: created.emergencyContactName,
+      emergencyContactPhone: created.emergencyContactPhone,
       instructorName: assignedInst?.name || 'Instructor',
       startTime: created.startTime,
       endTime: created.endTime,
       total: created.finalTotal,
       method: created.paymentMethod,
-    });
+    };
+
+    setLastSavedClass(savedPayload);
 
     // Reiniciar el formulario tras guardar
     setModality('individual');
@@ -157,29 +216,13 @@ export default function Module3NewClass() {
     setDiscount('');
     setPaymentMethod('Transferencia');
     setStudentName('');
+    setStudentPhone('');
+    setStudentEmail('');
+    setEmergencyContactName('');
+    setEmergencyContactPhone('');
     setIsManualOverride(false);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Generador de Mensajes de WhatsApp con el formato exacto requerido
-  const handleSendWhatsApp = () => {
-    if (!lastSavedClass) return;
-
-    const formattedNumber = Math.round(Number(lastSavedClass.total) || 0).toLocaleString('es-CL');
-    const mensajeConfirmacion = [
-      '🏄‍♂️ *Confirmación de Clase - Poisson Surf School*',
-      `👤 Alumno: ${lastSavedClass.studentName}`,
-      `📅 Horario: ${lastSavedClass.startTime} - ${lastSavedClass.endTime}`,
-      `👨‍🏫 Instructor: ${lastSavedClass.instructorName}`,
-      `💰 Total a pagar: $${formattedNumber}`,
-    ].join('\n');
-
-    const url =
-      'https://wa.me/message/CWWCLIGEJSRLI1?text=' +
-      encodeURIComponent(mensajeConfirmacion);
-
-    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -198,7 +241,7 @@ export default function Module3NewClass() {
         </p>
       </div>
 
-      {/* SUCCESS BANNER CON BOTÓN DE CONFIRMACIÓN POR WHATSAPP */}
+      {/* SUCCESS BANNER CON BOTÓN DE CONFIRMACIÓN POR WHATSAPP AL NÚMERO DEL ALUMNO */}
       {lastSavedClass && (
         <div className="p-5 bg-emerald-50/90 border-2 border-pink-600 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
@@ -210,9 +253,17 @@ export default function Module3NewClass() {
                 Clase Registrada Exitosamente
               </div>
               <div className="text-sm text-slate-700 mt-0.5">
-                Alumno: <strong className="text-blue-950">{lastSavedClass.studentName}</strong> ·
-                Horario: <strong className="font-mono">{lastSavedClass.startTime} - {lastSavedClass.endTime}</strong> ·
-                Instructor: <strong className="text-blue-950">{lastSavedClass.instructorName}</strong> ·
+                Alumno: <strong className="text-blue-950">{lastSavedClass.studentName}</strong>{' '}
+                {lastSavedClass.studentPhone && (
+                  <span className="font-mono text-xs text-slate-600">
+                    ({lastSavedClass.studentPhone})
+                  </span>
+                )}{' '}
+                · Horario:{' '}
+                <strong className="font-mono">
+                  {lastSavedClass.startTime} - {lastSavedClass.endTime}
+                </strong>{' '}
+                · Instructor: <strong className="text-blue-950">{lastSavedClass.instructorName}</strong> ·
                 Total: <strong className="font-mono text-pink-600">{formatCurrency(lastSavedClass.total)}</strong>
               </div>
             </div>
@@ -221,7 +272,7 @@ export default function Module3NewClass() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={handleSendWhatsApp}
+              onClick={() => openStudentWhatsApp(lastSavedClass)}
               className="h-11 px-5 rounded-none bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
@@ -474,14 +525,14 @@ export default function Module3NewClass() {
         </section>
 
         {/* ==========================================
-            PASO 3: ASIGNACIÓN Y AGENDA
+            PASO 3: ASIGNACIÓN Y DATOS DEL ALUMNO
         ========================================== */}
         <section className="border border-slate-300 bg-white rounded-none">
           <div className="px-6 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="w-1.5 h-4 bg-pink-500 inline-block" />
               <span className="text-xs font-semibold uppercase tracking-wider">
-                Paso 03 · Asignación y Agenda
+                Paso 03 · Asignación, Ficha del Alumno y Emergencia
               </span>
             </div>
             <span className="text-xs font-mono text-sky-300">Duración fija 1h 15m</span>
@@ -635,20 +686,106 @@ export default function Module3NewClass() {
               )}
             </div>
 
-            {/* Nombre del Alumno */}
-            <div className="space-y-1.5">
-              <label htmlFor="student-name" className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                Nombre del Alumno
-              </label>
-              <input
-                id="student-name"
-                type="text"
-                required
-                placeholder="Ingresar nombre del alumno o responsable"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-base font-medium text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
-              />
+            {/* Ficha de Datos del Alumno */}
+            <div className="pt-4 border-t border-slate-200 space-y-4">
+              <div className="text-xs font-bold uppercase tracking-wider text-blue-950">
+                Datos del Alumno (Para envío de confirmación por WhatsApp)
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="student-name" className="block text-sm font-semibold text-blue-950">
+                  Nombre Completo del Alumno *
+                </label>
+                <input
+                  id="student-name"
+                  type="text"
+                  required
+                  placeholder="Ej. Matías González"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-base font-medium text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="student-phone" className="block text-sm font-semibold text-blue-950">
+                    Teléfono / WhatsApp del Alumno *
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-sky-500 absolute left-3.5 top-4 pointer-events-none" />
+                    <input
+                      id="student-phone"
+                      type="tel"
+                      required
+                      placeholder="+56 9 8765 4321"
+                      value={studentPhone}
+                      onChange={(e) => setStudentPhone(e.target.value)}
+                      className="w-full h-12 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-base font-mono text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="student-email" className="block text-sm font-semibold text-blue-950">
+                    Correo Electrónico
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-sky-500 absolute left-3.5 top-4 pointer-events-none" />
+                    <input
+                      id="student-email"
+                      type="email"
+                      placeholder="alumno@correo.cl"
+                      value={studentEmail}
+                      onChange={(e) => setStudentEmail(e.target.value)}
+                      className="w-full h-12 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-base text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contacto de Emergencia */}
+            <div className="p-4 bg-slate-50 border border-slate-300 rounded-none space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-950">
+                <ShieldAlert className="w-4 h-4 text-pink-600" />
+                <span>Contacto de Emergencia</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="emergency-name" className="block text-xs font-semibold uppercase text-slate-700">
+                    Nombre Contacto de Emergencia *
+                  </label>
+                  <input
+                    id="emergency-name"
+                    type="text"
+                    required
+                    placeholder="Ej. Carolina Soto (Madre / Pareja)"
+                    value={emergencyContactName}
+                    onChange={(e) => setEmergencyContactName(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-sm border border-slate-300 bg-white text-sm font-medium text-blue-950 focus:border-blue-950 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="emergency-phone" className="block text-xs font-semibold uppercase text-slate-700">
+                    Teléfono de Emergencia *
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-pink-600 absolute left-3.5 top-3.5 pointer-events-none" />
+                    <input
+                      id="emergency-phone"
+                      type="tel"
+                      required
+                      placeholder="+56 9 1234 5678"
+                      value={emergencyContactPhone}
+                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                      className="w-full h-11 pl-9 pr-3.5 rounded-sm border border-slate-300 bg-white text-sm font-mono text-blue-950 focus:border-blue-950 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -678,12 +815,12 @@ export default function Module3NewClass() {
               <thead>
                 <tr className="bg-blue-950 text-white text-xs font-semibold uppercase tracking-wider">
                   <th className="py-3 px-4">Horario</th>
-                  <th className="py-3 px-4">Alumno</th>
-                  <th className="py-3 px-4">Modalidad / Tipo</th>
+                  <th className="py-3 px-4">Alumno / Contacto</th>
+                  <th className="py-3 px-4">Emergencia</th>
+                  <th className="py-3 px-4">Modalidad</th>
                   <th className="py-3 px-4">Instructor</th>
-                  <th className="py-3 px-4">Medio Pago</th>
                   <th className="py-3 px-4 text-right">Total Caja</th>
-                  <th className="py-3 px-3 text-center">Acción</th>
+                  <th className="py-3 px-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-sm">
@@ -691,32 +828,74 @@ export default function Module3NewClass() {
                   const inst = instructors.find((i) => i.id === cls.instructorId);
                   return (
                     <tr key={cls.id} className="even:bg-slate-50/80">
-                      <td className="py-3 px-4 font-mono font-semibold text-blue-950">
+                      <td className="py-3 px-4 font-mono font-semibold text-blue-950 whitespace-nowrap">
                         {cls.startTime}–{cls.endTime}
                       </td>
-                      <td className="py-3 px-4 font-medium text-slate-900">
-                        {cls.studentName}
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-slate-900">{cls.studentName}</div>
+                        {cls.studentPhone && (
+                          <div className="text-xs font-mono text-slate-500">{cls.studentPhone}</div>
+                        )}
+                        {cls.studentEmail && (
+                          <div className="text-xs text-slate-400">{cls.studentEmail}</div>
+                        )}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">
+                      <td className="py-3 px-4">
+                        {cls.emergencyContactName ? (
+                          <div>
+                            <div className="text-xs font-semibold text-slate-800">
+                              {cls.emergencyContactName}
+                            </div>
+                            <div className="text-xs font-mono text-pink-600">
+                              {cls.emergencyContactPhone}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 text-xs">
                         {cls.modality === 'grupal' ? `Grupal (${cls.pax} pax)` : 'Individual'} ·{' '}
                         {cls.category === 'curso' ? 'Curso Pack 8' : 'Única'}
                       </td>
                       <td className="py-3 px-4 font-semibold text-blue-950">
                         {inst?.name}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{cls.paymentMethod}</td>
                       <td className="py-3 px-4 text-right font-mono font-semibold text-blue-950">
-                        {formatCurrency(cls.finalTotal)}
+                        <div>{formatCurrency(cls.finalTotal)}</div>
+                        <div className="text-[11px] font-sans font-normal text-slate-400">
+                          {cls.paymentMethod}
+                        </div>
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeDailyClass(cls.id)}
-                          className="p-1.5 text-slate-400 hover:text-pink-600 transition cursor-pointer"
-                          title="Eliminar registro"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openStudentWhatsApp({
+                                studentName: cls.studentName,
+                                studentPhone: cls.studentPhone,
+                                instructorName: inst?.name || 'Instructor',
+                                startTime: cls.startTime,
+                                endTime: cls.endTime,
+                                total: cls.finalTotal,
+                              })
+                            }
+                            className="p-1.5 text-sky-600 hover:text-blue-950 transition cursor-pointer"
+                            title="Enviar confirmación por WhatsApp al alumno"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => removeDailyClass(cls.id)}
+                            className="p-1.5 text-slate-400 hover:text-pink-600 transition cursor-pointer"
+                            title="Eliminar registro"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
