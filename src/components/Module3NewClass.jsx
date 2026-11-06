@@ -11,6 +11,8 @@ import {
   Smartphone,
   Clock,
   ArrowRight,
+  MessageSquare,
+  X,
 } from 'lucide-react';
 import { useSurfSchool } from '../context/SurfSchoolContext';
 import {
@@ -56,8 +58,8 @@ export default function Module3NewClass() {
   const [isManualOverride, setIsManualOverride] = useState(false);
   const [studentName, setStudentName] = useState('');
 
-  // Confirmación de registro
-  const [savedNotice, setSavedNotice] = useState(null);
+  // Confirmación de registro para el Success Banner y WhatsApp
+  const [lastSavedClass, setLastSavedClass] = useState(null);
 
   const effectivePax = modality === 'grupal' ? Math.max(2, Number(pax) || 2) : 1;
 
@@ -139,19 +141,45 @@ export default function Module3NewClass() {
 
     const assignedInst = instructors.find((i) => i.id === created.instructorId);
 
-    setSavedNotice({
+    setLastSavedClass({
       studentName: created.studentName,
-      instructorName: assignedInst?.name || '',
-      time: `${created.startTime}–${created.endTime}`,
+      instructorName: assignedInst?.name || 'Instructor',
+      startTime: created.startTime,
+      endTime: created.endTime,
       total: created.finalTotal,
       method: created.paymentMethod,
     });
 
-    setStudentName('');
+    // Reiniciar el formulario tras guardar
+    setModality('individual');
+    setPax(2);
+    setCategory('unica');
     setDiscount('');
+    setPaymentMethod('Transferencia');
+    setStudentName('');
     setIsManualOverride(false);
 
-    setTimeout(() => setSavedNotice(null), 5000);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Generador de Mensajes de WhatsApp con el formato exacto requerido
+  const handleSendWhatsApp = () => {
+    if (!lastSavedClass) return;
+
+    const formattedNumber = Math.round(Number(lastSavedClass.total) || 0).toLocaleString('es-CL');
+    const mensajeConfirmacion = [
+      '🏄‍♂️ *Confirmación de Clase - Poisson Surf School*',
+      `👤 Alumno: ${lastSavedClass.studentName}`,
+      `📅 Horario: ${lastSavedClass.startTime} - ${lastSavedClass.endTime}`,
+      `👨‍🏫 Instructor: ${lastSavedClass.instructorName}`,
+      `💰 Total a pagar: $${formattedNumber}`,
+    ].join('\n');
+
+    const url =
+      'https://wa.me/message/CWWCLIGEJSRLI1?text=' +
+      encodeURIComponent(mensajeConfirmacion);
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -170,15 +198,44 @@ export default function Module3NewClass() {
         </p>
       </div>
 
-      {/* Aviso de confirmación */}
-      {savedNotice && (
-        <div className="p-4 border border-sky-400 border-l-4 border-l-pink-600 bg-sky-50 text-blue-950 rounded-none flex items-center gap-3 text-sm">
-          <Check className="w-5 h-5 text-pink-600 shrink-0" />
-          <div>
-            <strong>Registro completado:</strong> Alumno{' '}
-            <span className="font-semibold text-blue-950">{savedNotice.studentName}</span> · Instructor{' '}
-            <span className="font-semibold text-sky-700">{savedNotice.instructorName}</span> ({savedNotice.time}) ·{' '}
-            <span className="font-mono font-bold text-blue-950">{formatCurrency(savedNotice.total)}</span> ({savedNotice.method})
+      {/* SUCCESS BANNER CON BOTÓN DE CONFIRMACIÓN POR WHATSAPP */}
+      {lastSavedClass && (
+        <div className="p-5 bg-emerald-50/90 border-2 border-pink-600 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-8 h-8 bg-pink-600 text-white flex items-center justify-center shrink-0 rounded-none mt-0.5">
+              <Check className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-blue-950 uppercase tracking-wide">
+                Clase Registrada Exitosamente
+              </div>
+              <div className="text-sm text-slate-700 mt-0.5">
+                Alumno: <strong className="text-blue-950">{lastSavedClass.studentName}</strong> ·
+                Horario: <strong className="font-mono">{lastSavedClass.startTime} - {lastSavedClass.endTime}</strong> ·
+                Instructor: <strong className="text-blue-950">{lastSavedClass.instructorName}</strong> ·
+                Total: <strong className="font-mono text-pink-600">{formatCurrency(lastSavedClass.total)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSendWhatsApp}
+              className="h-11 px-5 rounded-none bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Enviar Confirmación por WhatsApp
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setLastSavedClass(null)}
+              className="h-11 w-11 border border-slate-300 bg-white hover:bg-slate-100 text-slate-500 flex items-center justify-center rounded-none transition cursor-pointer"
+              title="Cerrar alerta"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}

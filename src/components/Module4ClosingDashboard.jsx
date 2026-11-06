@@ -156,20 +156,91 @@ export default function Module4ClosingDashboard() {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
+  // Exportación estructurada de DailyClasses a archivo CSV (caja_diaria_poisson.csv)
+  const handleExportCSV = () => {
+    const headers = [
+      'ID Clase',
+      'Modalidad',
+      'Instructor',
+      'Alumno',
+      'Horario',
+      'Medio de Pago',
+      'Subtotal',
+      'Descuento',
+      'Total Caja',
+      'Pago Instructor',
+    ];
+
+    const escapeCsvField = (value) => {
+      const str = String(value ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = dailyClasses.map((cls) => {
+      const inst = instructors.find((i) => i.id === cls.instructorId);
+      const modalityLabel =
+        cls.category === 'curso'
+          ? 'Curso'
+          : cls.modality === 'grupal'
+          ? `Grupal (${cls.pax} pax)`
+          : 'Individual';
+
+      return [
+        cls.id,
+        modalityLabel,
+        inst ? inst.name : 'Sin Instructor',
+        cls.studentName,
+        `${cls.startTime} - ${cls.endTime}`,
+        cls.paymentMethod || 'Transferencia',
+        cls.subtotal,
+        cls.discount,
+        cls.finalTotal,
+        cls.instructorPay,
+      ]
+        .map(escapeCsvField)
+        .join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'caja_diaria_poisson.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Cabecera */}
-      <div className="pb-5 border-b border-slate-300">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600">
-          <span className="w-2 h-2 bg-pink-600 inline-block" />
-          Módulo 04 · Liquidación y Reportes
-        </span>
-        <h1 className="text-2xl font-bold text-blue-950 mt-1">
-          Cierre Diario, Leaderboard de Instructores y Métricas
-        </h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Estado de resultados del día, tabla de liquidación por instructor y evolución semanal de ingresos.
-        </p>
+      {/* Cabecera con Botón de Exportar Caja (CSV) */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-slate-300">
+        <div>
+          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600">
+            <span className="w-2 h-2 bg-pink-600 inline-block" />
+            Módulo 04 · Liquidación y Reportes
+          </span>
+          <h1 className="text-2xl font-bold text-blue-950 mt-1">
+            Cierre Diario, Leaderboard de Instructores y Métricas
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Estado de resultados del día, tabla de liquidación por instructor y evolución semanal de ingresos.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExportCSV}
+          className="h-11 px-5 rounded-none border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 text-sm font-semibold transition self-start md:self-auto cursor-pointer shrink-0"
+        >
+          ⬇ Exportar Caja (CSV)
+        </button>
       </div>
 
       {/* 1. RESUMEN EJECUTIVO DEL DÍA */}
