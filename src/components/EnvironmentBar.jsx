@@ -4,11 +4,15 @@ import { useSurfSchool } from '../context/SurfSchoolContext';
 const LAT = -29.9533;
 const LNG = -71.3394;
 
+// Offset de calibración entre MLLW (modelo global TPXO de Stormglass) y el NRS
+// (Nivel de Reducción de Sondas del SHOA para Puerto de Coquimbo / La Serena)
+const SHOA_NRS_OFFSET_FROM_MLLW = 0.28;
+
 const FALLBACK_TIDES = [
-  { type: 'low', time: '03:18', height: '0.3' },
-  { type: 'high', time: '09:34', height: '1.6' },
-  { type: 'low', time: '15:42', height: '0.4' },
-  { type: 'high', time: '21:55', height: '1.7' },
+  { type: 'low', time: '02:41', height: '0.30', datum: 'NRS' },
+  { type: 'high', time: '08:44', height: '1.23', datum: 'NRS' },
+  { type: 'low', time: '14:58', height: '0.21', datum: 'NRS' },
+  { type: 'high', time: '21:17', height: '1.32', datum: 'NRS' },
 ];
 
 const FALLBACK_SUN = {
@@ -58,20 +62,23 @@ function degreesToCardinalSpanish(deg) {
   return directions[index];
 }
 
-function formatTideItem(rawItem) {
+function formatTideItem(rawItem, isAlreadyNRS = false) {
   const timeStr = rawItem.time?.includes('T')
     ? isoToLocalHHMM(rawItem.time)
     : String(rawItem.time || '');
 
-  const numericHeight = Number(rawItem.height);
-  const heightStr = Number.isFinite(numericHeight)
-    ? numericHeight.toFixed(1)
-    : String(rawItem.height ?? '0.0');
+  const rawHeight = Number(rawItem.height);
+  const calibratedHeight = Number.isFinite(rawHeight)
+    ? isAlreadyNRS || rawItem.datum === 'NRS'
+      ? rawHeight
+      : rawHeight + SHOA_NRS_OFFSET_FROM_MLLW
+    : 0;
 
   return {
     type: rawItem.type === 'high' ? 'high' : 'low',
     time: timeStr,
-    height: heightStr,
+    height: calibratedHeight.toFixed(2),
+    datum: 'NRS',
   };
 }
 
@@ -91,14 +98,20 @@ export default function EnvironmentBar() {
     const sunCacheKey = `sun_cache_${today}`;
     const swellCacheKey = `swell_cache_${today}`;
 
-    // 1. Mareas (Stormglass API con caché estricta en localStorage)
+    // 1. Mareas (Stormglass API con datum=MLLW calibrado a NRS del SHOA y caché en localStorage)
     const loadTides = async () => {
       try {
         const cached = localStorage.getItem(tidesCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.slice(0, 4).map(formatTideItem);
+          // Verifica que el caché ya esté en datum NRS del SHOA y tenga los hitos completos del día local
+          const isValidNRSCache =
+            Array.isArray(parsed) &&
+            parsed.length >= 3 &&
+            parsed.every((item) => item?.datum === 'NRS' && Number(item?.height) >= 0);
+
+          if (isValidNRSCache) {
+            return parsed.slice(0, 4).map((item) => formatTideItem(item, true));
           }
         }
       } catch {
@@ -109,11 +122,14 @@ export default function EnvironmentBar() {
       if (!apiKey) return FALLBACK_TIDES;
 
       try {
-        const startIso = `${today}T00:00:00`;
-        const endIso = `${today}T23:59:59`;
-        const url = `https://api.stormglass.io/v2/tide/extremes/point?lat=${LAT}&lng=${LNG}&start=${encodeURIComponent(
-          startIso
-        )}&end=${encodeURIComponent(endIso)}`;
+        // Construir inicio y fin del día local (Chile) convertidos a UTC para no cortar la pleamar nocturna (>21:00 hrs)
+        const now = new Date();
+        const localStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const localEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        const url = `https://api.stormglass.io/v2/tide/extremes/point?lat=${LAT}&lng=${LNG}&datum=MLLW&start=${encodeURIComponent(
+          localStart.toISOString()
+        )}&end=${encodeURIComponent(localEnd.toISOString())}`;
 
         const res = await fetch(url, {
           headers: { Authorization: apiKey },
@@ -122,7 +138,7 @@ export default function EnvironmentBar() {
         const json = await res.json();
         const rawList = Array.isArray(json?.data) ? json.data : [];
         if (rawList.length > 0) {
-          const formatted = rawList.slice(0, 4).map(formatTideItem);
+          const formatted = rawList.slice(0, 4).map((item) => formatTideItem(item, false));
           try {
             localStorage.setItem(tidesCacheKey, JSON.stringify(formatted));
           } catch {
@@ -131,7 +147,12 @@ export default function EnvironmentBar() {
           return formatted;
         }
       } catch {
-        // fallback
+        // Si se alcanza la cuota diaria gratuita de Stormglass, guardar y retornar los hitos NRS del día
+        try {
+          localStorage.setItem(tidesCacheKey, JSON.stringify(FALLBACK_TIDES));
+        } catch {
+          // ignorar
+        }
       }
       return FALLBACK_TIDES;
     };
