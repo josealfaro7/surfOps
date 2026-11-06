@@ -214,6 +214,9 @@ export function SurfSchoolProvider({ children }) {
   // 3. DailyClasses
   const [dailyClasses, setDailyClasses] = useState(INITIAL_DAILY_CLASSES);
 
+  // Hora del ocaso compartida desde EnvironmentBar para validación de luz en Módulo 3
+  const [sunsetTime, setSunsetTime] = useState('20:15');
+
   // Fila Virtual ordenada por hora de llegada (checkInTimestamp ascendente)
   const virtualQueue = useMemo(() => {
     return instructors
@@ -407,6 +410,8 @@ export function SurfSchoolProvider({ children }) {
     getSuggestedInstructorForSlot,
     resetDayEmpty,
     restoreDemoData,
+    sunsetTime,
+    setSunsetTime,
   };
 
   return (

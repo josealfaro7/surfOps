@@ -5,7 +5,7 @@ import Module1Config from './components/Module1Config';
 import Module2Attendance from './components/Module2Attendance';
 import Module3NewClass from './components/Module3NewClass';
 import Module4ClosingDashboard from './components/Module4ClosingDashboard';
-import TideBar from './components/TideBar';
+import EnvironmentBar from './components/EnvironmentBar';
 
 function SurfSchoolWorkspace() {
   const [activeTab, setActiveTab] = useState('mod3');
@@ -142,8 +142,8 @@ function SurfSchoolWorkspace() {
         </div>
       </header>
 
-      {/* Barra de Mareas Persistente (TideBar) debajo de la navegación y sobre el contenido del módulo */}
-      <TideBar />
+      {/* Barra de Condiciones Ambientales Persistente (EnvironmentBar) debajo de la navegación y sobre el contenido del módulo */}
+      <EnvironmentBar />
 
       {/* Inspector de los 3 Objetos Globales en Memoria */}
       {showStateInspector && (

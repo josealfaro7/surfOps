@@ -23,6 +23,7 @@ import {
   formatCurrency,
   getInstructorConflicts,
   addMinutesToTime,
+  timeToMinutes,
 } from '../utils/calculations';
 
 const PAYMENT_OPTIONS = [
@@ -59,6 +60,7 @@ export default function Module3NewClass() {
     addDailyClass,
     removeDailyClass,
     getSuggestedInstructorForSlot,
+    sunsetTime,
   } = useSurfSchool();
 
   // Paso 1: Naturaleza de la Clase
@@ -73,6 +75,12 @@ export default function Module3NewClass() {
   // Paso 3: Asignación y Agenda (Duración fija automática +1h 15m = 75 min)
   const [startTime, setStartTime] = useState('10:30');
   const endTime = useMemo(() => addMinutesToTime(startTime, 75), [startTime]);
+
+  // Validación de seguridad contra la hora del ocaso
+  const exceedsSunset = useMemo(() => {
+    if (!sunsetTime) return false;
+    return timeToMinutes(endTime) > timeToMinutes(sunsetTime);
+  }, [endTime, sunsetTime]);
 
   const [selectedInstructorId, setSelectedInstructorId] = useState('');
   const [isManualOverride, setIsManualOverride] = useState(false);
@@ -598,14 +606,35 @@ export default function Module3NewClass() {
                   <span className="block text-xs font-medium text-slate-500 mb-1">
                     Hora de Término (Automática +1h 15m)
                   </span>
-                  <div className="h-12 px-4 rounded-sm border border-slate-300 bg-slate-100 text-blue-950 flex items-center justify-between">
-                    <span className="text-lg font-mono font-bold text-blue-950">
+                  <div
+                    className={`h-12 px-4 rounded-sm border bg-slate-100 text-blue-950 flex items-center justify-between transition ${
+                      exceedsSunset
+                        ? 'border-2 border-red-600 bg-red-50/40'
+                        : 'border-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`text-lg font-mono font-bold ${
+                        exceedsSunset ? 'text-red-600' : 'text-blue-950'
+                      }`}
+                    >
                       {endTime} hrs
                     </span>
-                    <span className="px-2 py-0.5 bg-blue-950 text-sky-300 text-[10px] font-mono uppercase">
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-mono uppercase ${
+                        exceedsSunset
+                          ? 'bg-red-600 text-white'
+                          : 'bg-blue-950 text-sky-300'
+                      }`}
+                    >
                       +75 MIN
                     </span>
                   </div>
+                  {exceedsSunset && (
+                    <p className="mt-1.5 text-xs font-semibold text-red-600">
+                      ⚠️ Advertencia: La clase finalizará después de la última luz del día ({sunsetTime}).
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
