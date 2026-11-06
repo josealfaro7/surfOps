@@ -9,7 +9,7 @@ import {
   Trophy,
   Calendar,
 } from 'lucide-react';
-import { useSurfSchool } from '../context/SurfSchoolContext';
+import { useSurfSchool, getTodayDateString } from '../context/SurfSchoolContext';
 import {
   formatCurrency,
   buildInstructorBreakdownSummary,
@@ -158,8 +158,13 @@ export default function Module4ClosingDashboard() {
 
   // Exportación estructurada de DailyClasses a archivo CSV (caja_diaria_poisson.csv)
   const handleExportCSV = () => {
+    const todayStr = getTodayDateString();
     const headers = [
       'ID Clase',
+      'Fecha',
+      'Hora Inicio',
+      'Hora Término',
+      'Horario Clase',
       'Modalidad',
       'Instructor',
       'Alumno',
@@ -167,7 +172,6 @@ export default function Module4ClosingDashboard() {
       'Correo Alumno',
       'Contacto Emergencia',
       'Teléfono Emergencia',
-      'Horario',
       'Medio de Pago',
       'Subtotal',
       'Descuento',
@@ -194,6 +198,10 @@ export default function Module4ClosingDashboard() {
 
       return [
         cls.id,
+        cls.date || todayStr,
+        cls.startTime || '',
+        cls.endTime || '',
+        `${cls.startTime} - ${cls.endTime}`,
         modalityLabel,
         inst ? inst.name : 'Sin Instructor',
         cls.studentName,
@@ -201,7 +209,6 @@ export default function Module4ClosingDashboard() {
         cls.studentEmail || '',
         cls.emergencyContactName || '',
         cls.emergencyContactPhone || '',
-        `${cls.startTime} - ${cls.endTime}`,
         cls.paymentMethod || 'Transferencia',
         cls.subtotal,
         cls.discount,

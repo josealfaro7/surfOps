@@ -28,6 +28,14 @@ const getBaseTimestamp = (timeStr) => {
   return d.getTime();
 };
 
+export const getTodayDateString = () => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 // Lista predefinida de staff: Diego, Jose, Vitoco, Caco, Alfred
 export const INITIAL_INSTRUCTORS = [
   {
@@ -70,6 +78,7 @@ export const INITIAL_INSTRUCTORS = [
 export const INITIAL_DAILY_CLASSES = [
   {
     id: 'cls-1',
+    date: getTodayDateString(),
     modality: 'individual',
     pax: 1,
     category: 'unica',
@@ -90,6 +99,7 @@ export const INITIAL_DAILY_CLASSES = [
   },
   {
     id: 'cls-2',
+    date: getTodayDateString(),
     modality: 'grupal',
     pax: 3,
     category: 'unica',
@@ -110,6 +120,7 @@ export const INITIAL_DAILY_CLASSES = [
   },
   {
     id: 'cls-3',
+    date: getTodayDateString(),
     modality: 'individual',
     pax: 1,
     category: 'unica',
@@ -130,6 +141,7 @@ export const INITIAL_DAILY_CLASSES = [
   },
   {
     id: 'cls-4',
+    date: getTodayDateString(),
     modality: 'individual',
     pax: 1,
     category: 'unica',
@@ -150,6 +162,7 @@ export const INITIAL_DAILY_CLASSES = [
   },
   {
     id: 'cls-5',
+    date: getTodayDateString(),
     modality: 'individual',
     pax: 1,
     category: 'unica',
@@ -170,6 +183,7 @@ export const INITIAL_DAILY_CLASSES = [
   },
   {
     id: 'cls-6',
+    date: getTodayDateString(),
     modality: 'individual',
     pax: 1,
     category: 'curso',
@@ -329,6 +343,7 @@ export function SurfSchoolProvider({ children }) {
 
     const newClassRecord = {
       id: `cls-${Date.now()}`,
+      date: classForm.date || getTodayDateString(),
       modality,
       pax,
       category,
