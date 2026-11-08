@@ -150,3 +150,22 @@ export function buildInstructorBreakdownSummary(classes) {
 
   return parts.join(', ');
 }
+
+/**
+ * Calcula el Subtotal, Descuento y Total a Pagar para un arriendo de equipamiento.
+ * Función pura de negocio: Subtotal = Tarifa por Hora * Cantidad * Horas
+ */
+export function calculateRentalTotals(pricePerHour, quantity, hours, discount = 0) {
+  const unitRate = Math.max(0, Number(pricePerHour) || 0);
+  const qty = Math.max(1, Number(quantity) || 1);
+  const hrs = Math.max(1, Number(hours) || 1);
+  const subtotal = unitRate * qty * hrs;
+  const validDiscount = Math.max(0, Number(discount) || 0);
+  const finalTotal = Math.max(0, subtotal - validDiscount);
+
+  return {
+    subtotal,
+    discount: validDiscount,
+    finalTotal,
+  };
+}

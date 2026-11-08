@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurfOp ERP — Presentación Comercial y Guía Operativa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #cbd5e1;
+      color: #0f172a;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .slide {
+      width: 297mm;
+      height: 209mm;
+      background-color: #ffffff !important;
+      margin: 16px auto;
+      padding: 12mm 15mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #94a3b8;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+    }
+    @page {
+      size: 297mm 210mm;
+      margin: 0mm;
+    }
+    @media print {
+      html, body {
+        width: 297mm;
+        background-color: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .slide {
+        width: 297mm !important;
+        height: 209.5mm !important;
+        max-height: 209.5mm !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .slide:last-of-type {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Botón flotante para imprimir cuando se abre en navegador (se oculta en el PDF final, pero la navbar sí queda dentro de la Lámina 1) -->
+  <div class="no-print fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-blue-950 text-white px-5 py-3 border-2 border-pink-600 shadow-2xl">
+    <span class="text-xs font-semibold text-slate-200">Vista Previa 7 Láminas (A4 Horizontal)</span>
+    <button onclick="window.print()" class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold uppercase tracking-wider cursor-pointer">
+      🖨️ Guardar como PDF (7 Páginas Exactas)
+    </button>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 1: PORTADA + NAVBAR CON LINK A LA DEMO EN VIVO -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <!-- Navbar superior incluida en el PDF con link directo a la Demo -->
+    <div style="background-color: #172554; border-bottom: 4px solid #db2777;" class="text-white px-6 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div style="background-color: #db2777;" class="w-3.5 h-3.5"></div>
+        <div>
+          <span style="color: #f472b6;" class="text-[10px] font-bold uppercase tracking-widest block">Sistema de Gestión Operativa para Escuelas de Surf</span>
+          <span class="text-base font-extrabold tracking-tight text-white">SurfOp ERP — Dossier Comercial y Guía Paso a Paso</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-300">Demo interactiva disponible en:</span>
+        <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="background-color: #db2777;" class="px-4 py-2 text-white text-xs font-bold uppercase tracking-wider underline decoration-white/60">
+          🔗 https://josealfaro7.github.io/surfOps/ ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Contenido central Portada -->
+    <div class="my-auto grid grid-cols-12 gap-8 items-center py-2">
+      <div class="col-span-7">
+        <div style="background-color: #172554;" class="inline-block px-3 py-1 text-white text-[11px] font-bold uppercase tracking-widest mb-3">
+          Plataforma Integral Web · Temporada 2026–2027
+        </div>
+        <h1 style="color: #172554;" class="text-6xl font-extrabold tracking-tight leading-none mb-3">
+          SurfOp <span style="color: #db2777;" class="text-3xl font-bold align-baseline">ERP</span>
+        </h1>
+        <p class="text-base text-slate-700 leading-relaxed max-w-xl mb-6">
+          Control total de tarifas, fila de prioridad de instructores, agendamiento rápido en recepción, seguridad marina en tiempo real y cuadratura automática de caja diaria.
+        </p>
+
+        <div class="grid grid-cols-2 gap-3.5">
+          <div style="border-left: 4px solid #172554; background-color: #f8fafc;" class="p-3">
+            <div style="color: #172554;" class="text-xs font-bold uppercase">01 · Control Tarifario con PIN</div>
+            <p class="text-xs text-slate-600 mt-1">Precios de clases, cursos y pagos a profesores protegidos por clave de administrador.</p>
+          </div>
+          <div style="border-left: 4px solid #db2777; background-color: #f8fafc;" class="p-3">
+            <div style="color: #172554;" class="text-xs font-bold uppercase">02 · Fila Justa de Instructores</div>
+            <p class="text-xs text-slate-600 mt-1">Orden de llegada transparente para evitar malos entendidos en la asignación de clases.</p>
+          </div>
+          <div style="border-left: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3">
+            <div style="color: #172554;" class="text-xs font-bold uppercase">03 · Reserva en 3 Pasos + WhatsApp</div>
+            <p class="text-xs text-slate-600 mt-1">Cálculo automático de cobro, contacto de emergencia y comprobante directo al WhatsApp del alumno.</p>
+          </div>
+          <div style="border-left: 4px solid #059669; background-color: #f8fafc;" class="p-3">
+            <div style="color: #172554;" class="text-xs font-bold uppercase">04 · Cierre de Caja y Condiciones de Mar</div>
+            <p class="text-xs text-slate-600 mt-1">Liquidación de sueldos, métricas semanales, exportación Excel y barra de mareas/viento/luz en vivo.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta Derecha Oscura -->
+      <div style="background-color: #172554; border-top: 4px solid #db2777;" class="col-span-5 text-white p-6">
+        <div style="color: #f472b6;" class="text-xs font-bold uppercase tracking-widest mb-1">Flujo Operativo Diario</div>
+        <h3 class="text-lg font-bold text-white mb-4">5 Módulos Conectados en Tiempo Real</h3>
+        <ol class="space-y-3 text-xs">
+          <li class="flex items-start gap-3">
+            <span style="background-color: #db2777;" class="px-2 py-0.5 text-white text-xs font-bold tabular-nums shrink-0">01</span>
+            <div>
+              <strong class="block text-white">1.- Configuración</strong>
+              <span class="text-slate-300">Definición de precios de venta y nómina de instructores con PIN de seguridad.</span>
+            </div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span style="background-color: #0ea5e9;" class="px-2 py-0.5 text-white text-xs font-bold tabular-nums shrink-0">02</span>
+            <div>
+              <strong class="block text-white">2.- Fila de Asistencia</strong>
+              <span class="text-slate-300">Check-in de profesores y orden de prioridad según llegada.</span>
+            </div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span style="background-color: #0ea5e9;" class="px-2 py-0.5 text-white text-xs font-bold tabular-nums shrink-0">03</span>
+            <div>
+              <strong class="block text-white">3.- Ingreso de Clase</strong>
+              <span class="text-slate-300">Cobro automático, horario, profesor, contacto de emergencia y aviso WhatsApp.</span>
+            </div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span style="background-color: #0ea5e9;" class="px-2 py-0.5 text-white text-xs font-bold tabular-nums shrink-0">04</span>
+            <div>
+              <strong class="block text-white">4.- Cierre Diario</strong>
+              <span class="text-slate-300">Arqueo de caja, pago a profesores, gráficos semanales y descarga CSV.</span>
+            </div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span style="background-color: #059669;" class="px-2 py-0.5 text-white text-xs font-bold tabular-nums shrink-0">05</span>
+            <div>
+              <strong class="block text-white">5.- Extras: Condiciones de Mar y Luz</strong>
+              <span class="text-slate-300">Mareas (SHOA), oleaje, viento y alerta de seguridad por puesta de sol.</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Demo Interactiva: <a href="https://josealfaro7.github.io/surfOps/" class="underline font-semibold text-blue-950">https://josealfaro7.github.io/surfOps/</a></span>
+      <span class="font-bold text-slate-700">Lámina 01 / 07</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 2: 1.- CONFIGURACIÓN -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2.5">
+        <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 01</span>
+        <h2 style="color: #172554;" class="text-2xl font-extrabold">1.- Configuración.</h2>
+      </div>
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #db2777;" class="text-xs font-bold uppercase tracking-wider underline">
+        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      </a>
+    </div>
+
+    <div class="my-auto grid grid-cols-12 gap-7 items-center py-2">
+      <!-- Explicación detallada izquierda -->
+      <div class="col-span-5 space-y-3.5">
+        <p class="text-sm text-slate-700 leading-relaxed">
+          En el <strong>módulo de configuración</strong> podemos ingresar las tarifas que se cobran por clase, cursos o paquetes, y definir exactamente cuánto se le paga al instructor por cada sesión realizada.
+        </p>
+
+        <div style="border-left: 4px solid #172554; background-color: #f8fafc;" class="p-3">
+          <h4 style="color: #172554;" class="text-xs font-bold uppercase">A. Precios de Venta al Alumno (Caja)</h4>
+          <p class="text-xs text-slate-600 mt-1">
+            Define el valor de la <strong>Clase Individual (1 pax)</strong>, <strong>Clase Grupal (Base 2 pax)</strong>, el cobro <strong>Adicional por alumno extra</strong> y el <strong>Curso Completo (Pack 8 clases)</strong>.
+          </p>
+        </div>
+
+        <div style="border-left: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3">
+          <h4 style="color: #172554;" class="text-xs font-bold uppercase">B. Tarifas de Pago a Instructores (Nómina)</h4>
+          <p class="text-xs text-slate-600 mt-1">
+            Configura cuánto gana el profesor por dictar 1 clase individual, grupal o sesión de curso. Estos valores calculan automáticamente su sueldo del día.
+          </p>
+        </div>
+
+        <div style="border-left: 4px solid #db2777; background-color: #fdf2f8;" class="p-3">
+          <h4 style="color: #be185d;" class="text-xs font-bold uppercase">🔒 Protegido con PIN de Seguridad</h4>
+          <p class="text-xs text-slate-700 mt-1">
+            Este módulo queda bloqueado con un <strong>PIN de seguridad</strong>, para que solo el administrador pueda corregir o actualizar tarifas.
+          </p>
+        </div>
+      </div>
+
+      <!-- Representación visual derecha fiel a la UI -->
+      <div class="col-span-7 border border-slate-300 bg-white p-4">
+        <!-- Mini barra de navegación y mareas como en la captura -->
+        <div class="grid grid-cols-4 border border-slate-200 text-[10px] font-bold mb-1.5">
+          <div style="background-color: #172554;" class="text-white p-1.5 text-center">01 · Configuración</div>
+          <div class="p-1.5 text-center text-slate-600 bg-slate-50">02 · Fila de Asistencia (3/5)</div>
+          <div class="p-1.5 text-center text-slate-600 bg-slate-50">03 · Ingreso de Clase</div>
+          <div class="p-1.5 text-center text-slate-600 bg-slate-50">04 · Cierre Diario (6)</div>
+        </div>
+        <div style="background-color: #f8fafc;" class="border border-slate-200 px-2.5 py-1 text-[10px] text-slate-700 font-medium mb-3">
+          🌊 <strong>Mareas:</strong> 📉 02:41 (0.30m) 🔵 08:44 (1.23m) 📉 14:58 (0.21m) 🔵 21:17 (1.32m) | 🏄‍♂️ <strong>Oleaje:</strong> 1.5m (8s) | 💨 <strong>Viento:</strong> 6kts Oeste | ☀️ <strong>Luz:</strong> 06:46 - 20:11 hrs
+        </div>
+
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+          <div>
+            <span style="color: #db2777;" class="text-[10px] font-bold uppercase tracking-widest">■ MÓDULO 01 · PARÁMETROS FINANCIEROS</span>
+            <h3 class="text-sm font-bold text-slate-900">Configuración de Precios y Tarifas</h3>
+          </div>
+          <div class="flex gap-1.5">
+            <span class="px-2 py-1 border border-slate-300 text-[10px] font-semibold text-slate-700">↺ Restaurar Valores Base</span>
+            <span class="px-2 py-1 border border-slate-300 text-[10px] font-semibold text-slate-700">🔒 Bloquear</span>
+          </div>
+        </div>
+
+        <div style="background-color: #172554;" class="text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex justify-between mb-1.5">
+          <span>▌ A. PRECIOS DE VENTA AL ALUMNO (INGRESOS CAJA)</span>
+          <span class="text-slate-300 font-mono">SchoolConfig.Sales</span>
+        </div>
+        <div class="divide-y divide-slate-200 border border-slate-200 mb-3 text-xs">
+          <div class="p-2 flex justify-between items-center">
+            <div>
+              <strong class="block text-slate-900">Precio Clase Individual (1 pax)</strong>
+              <span class="text-[10px] text-slate-500">Tarifa estándar por una sesión individual única.</span>
+            </div>
+            <div style="background-color: #f8fafc;" class="border border-slate-300 px-3 py-1 font-bold tabular-nums">$ 25.000</div>
+          </div>
+          <div class="p-2 flex justify-between items-center">
+            <div>
+              <strong class="block text-slate-900">Precio Clase Grupal (Base 2 pax)</strong>
+              <span class="text-[10px] text-slate-500">Tarifa base para un grupo de 2 personas.</span>
+            </div>
+            <div style="background-color: #f8fafc;" class="border border-slate-300 px-3 py-1 font-bold tabular-nums">$ 40.000</div>
+          </div>
+          <div class="p-2 flex justify-between items-center">
+            <div>
+              <strong class="block text-slate-900">Adicional por alumno extra en grupo</strong>
+              <span class="text-[10px] text-slate-500">Monto que se suma por cada integrante extra sobre 2 personas.</span>
+            </div>
+            <div style="background-color: #f8fafc;" class="border border-slate-300 px-3 py-1 font-bold tabular-nums">$ 18.000</div>
+          </div>
+          <div class="p-2 flex justify-between items-center">
+            <div>
+              <strong class="block text-slate-900">Precio Curso Completo (Pack 8 clases)</strong>
+              <span class="text-[10px] text-slate-500">Valor comercial del programa formativo completo de 8 sesiones.</span>
+            </div>
+            <div style="background-color: #f8fafc;" class="border border-slate-300 px-3 py-1 font-bold tabular-nums">$ 160.000</div>
+          </div>
+        </div>
+
+        <div style="background-color: #172554;" class="text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex justify-between mb-1.5">
+          <span>▌ B. TARIFAS DE PAGO A INSTRUCTORES (NÓMINA STAFF)</span>
+          <span class="text-slate-300 font-mono">SchoolConfig.Rates</span>
+        </div>
+        <div class="border border-slate-200 p-2 flex justify-between items-center text-xs">
+          <div>
+            <strong class="block text-slate-900">Pago por Clase Individual / Grupal / Curso</strong>
+            <span class="text-[10px] text-slate-500">Honorario del instructor por dictar 1 sesión.</span>
+          </div>
+          <div style="background-color: #f8fafc;" class="border border-slate-300 px-3 py-1 font-bold tabular-nums">$ 7.000 / $ 10.000</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Módulo 01: Configuración</span>
+      <span class="font-bold text-slate-700">Lámina 02 / 07</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 3: 2.- FILA DE ASISTENCIA -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2.5">
+        <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 02</span>
+        <h2 style="color: #172554;" class="text-2xl font-extrabold">2.- Fila de Asistencia.</h2>
+      </div>
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #db2777;" class="text-xs font-bold uppercase tracking-wider underline">
+        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      </a>
+    </div>
+
+    <div class="my-auto grid grid-cols-12 gap-7 items-center py-2">
+      <div class="col-span-5 space-y-3.5">
+        <p class="text-sm text-slate-700 leading-relaxed">
+          Con este módulo puedes <strong>priorizar y ordenar las prioridades para asignar las clases a los profesores</strong> y evitar malos entendidos con asignación de más o menos clases a cada profesor.
+        </p>
+
+        <div style="border-left: 4px solid #172554; background-color: #f8fafc;" class="p-3">
+          <h4 style="color: #172554;" class="text-xs font-bold uppercase">1. Panel de Check-In en 1 Clic</h4>
+          <p class="text-xs text-slate-600 mt-1">
+            Al hacer clic sobre el bloque de cada instructor se registra su entrada (Check-in) y queda activo en la fila del día.
+          </p>
+        </div>
+        <div style="border-left: 4px solid #db2777; background-color: #f8fafc;" class="p-3">
+          <h4 style="color: #172554;" class="text-xs font-bold uppercase">2. Prioridad Automática por Orden de Llegada</h4>
+          <p class="text-xs text-slate-600 mt-1">
+            El sistema ordena quién tiene la <strong>Posición #1, #2 y #3</strong> según su hora de llegada para sugerirlo en la siguiente clase.
+          </p>
+        </div>
+        <div style="border-left: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3">
+          <h4 style="color: #172554;" class="text-xs font-bold uppercase">3. Visibilidad Total de Carga Horaria</h4>
+          <p class="text-xs text-slate-600 mt-1">
+            Muestra cuántas clases lleva cada profesor en el día y sus horarios ocupados para repartir los turnos con total transparencia.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-span-7 border border-slate-300 bg-white p-4">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-3">
+          <div>
+            <span style="color: #db2777;" class="text-[10px] font-bold uppercase tracking-widest">■ MÓDULO 02 · CONTROL DE PERSONAL</span>
+            <h3 class="text-sm font-bold text-slate-900">Asistencia y Fila Virtual de Instructores</h3>
+          </div>
+          <span style="background-color: #172554;" class="px-3 py-1.5 text-white text-[10px] font-bold">Ir a Ingreso de Clase →</span>
+        </div>
+
+        <div class="text-[10px] font-bold uppercase text-slate-500 mb-1.5 flex justify-between">
+          <span>1. PANEL DE CHECK-IN (SELECCIONAR PARA ACTIVAR / DESACTIVAR)</span>
+          <span>Activos: 3 / 5</span>
+        </div>
+        <div class="grid grid-cols-5 gap-2 mb-4">
+          <div style="background-color: #172554;" class="text-white p-2.5">
+            <div class="flex justify-between items-center mb-1.5">
+              <strong class="text-xs text-white">Diego</strong>
+              <span style="background-color: #db2777;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#1</span>
+            </div>
+            <div class="text-[10px] text-slate-300">🕒 Check-in 08:10</div>
+          </div>
+          <div style="background-color: #172554;" class="text-white p-2.5">
+            <div class="flex justify-between items-center mb-1.5">
+              <strong class="text-xs text-white">Jose</strong>
+              <span style="background-color: #0ea5e9;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#2</span>
+            </div>
+            <div class="text-[10px] text-slate-300">🕒 Check-in 08:20</div>
+          </div>
+          <div style="background-color: #172554;" class="text-white p-2.5">
+            <div class="flex justify-between items-center mb-1.5">
+              <strong class="text-xs text-white">Vitoco</strong>
+              <span style="background-color: #0ea5e9;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#3</span>
+            </div>
+            <div class="text-[10px] text-slate-300">🕒 Check-in 08:35</div>
+          </div>
+          <div class="bg-white text-slate-500 p-2.5 border border-slate-200">
+            <div class="flex justify-between items-center mb-1.5">
+              <strong class="text-xs text-slate-800">Caco</strong>
+              <span class="text-[9px] uppercase">Ausente</span>
+            </div>
+            <div class="text-[10px] text-slate-400">🕒 Marcar entrada</div>
+          </div>
+          <div class="bg-white text-slate-500 p-2.5 border border-slate-200">
+            <div class="flex justify-between items-center mb-1.5">
+              <strong class="text-xs text-slate-800">Alfred</strong>
+              <span class="text-[9px] uppercase">Ausente</span>
+            </div>
+            <div class="text-[10px] text-slate-400">🕒 Marcar entrada</div>
+          </div>
+        </div>
+
+        <div class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">
+          2. ORDEN VIGENTE EN FILA VIRTUAL (PRIORIDAD DE SUGERENCIA)
+        </div>
+        <table class="w-full text-left border border-slate-200 text-xs">
+          <thead style="background-color: #172554;" class="text-white text-[10px] uppercase">
+            <tr>
+              <th class="p-2">Posición</th>
+              <th class="p-2">Instructor</th>
+              <th class="p-2">Hora Llegada</th>
+              <th class="p-2">Carga Horaria Hoy</th>
+              <th class="p-2 text-right">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            <tr>
+              <td class="p-2"><span style="background-color: #db2777;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#1</span></td>
+              <td class="p-2 font-bold">Diego <span style="color: #db2777;" class="text-[10px]">[PRIORIDAD #1]</span></td>
+              <td class="p-2 tabular-nums text-slate-600">08:10 hrs</td>
+              <td class="p-2 text-[11px] text-slate-600">4 clases (09:00–10:15, 10:30–11:45, 12:30–13:45, 15:00–16:15)</td>
+              <td style="color: #0284c7;" class="p-2 text-right text-[10px] font-bold">EN TURNO</td>
+            </tr>
+            <tr>
+              <td class="p-2"><span class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 text-slate-700 text-[10px] font-bold">#2</span></td>
+              <td class="p-2 font-bold">Jose</td>
+              <td class="p-2 tabular-nums text-slate-600">08:20 hrs</td>
+              <td class="p-2 text-[11px] text-slate-600">1 clase (10:30–11:45)</td>
+              <td style="color: #0284c7;" class="p-2 text-right text-[10px] font-bold">EN TURNO</td>
+            </tr>
+            <tr>
+              <td class="p-2"><span class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 text-slate-700 text-[10px] font-bold">#3</span></td>
+              <td class="p-2 font-bold">Vitoco</td>
+              <td class="p-2 tabular-nums text-slate-600">08:35 hrs</td>
+              <td class="p-2 text-[11px] text-slate-600">1 clase (12:00–13:15)</td>
+              <td style="color: #0284c7;" class="p-2 text-right text-[10px] font-bold">EN TURNO</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Módulo 02: Fila de Asistencia</span>
+      <span class="font-bold text-slate-700">Lámina 03 / 07</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 4: 3.- INGRESO DE CLASE -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2.5">
+        <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 03</span>
+        <h2 style="color: #172554;" class="text-2xl font-extrabold">3.- Ingreso de Clase.</h2>
+      </div>
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #db2777;" class="text-xs font-bold uppercase tracking-wider underline">
+        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      </a>
+    </div>
+
+    <div class="my-auto py-2 space-y-3.5">
+      <!-- 3 bloques explicativos A, B, C -->
+      <div class="grid grid-cols-3 gap-3.5">
+        <div style="border-top: 4px solid #172554; background-color: #f8fafc;" class="p-3">
+          <div style="color: #172554;" class="text-xs font-extrabold uppercase mb-1">A. Identificar Naturaleza de la Clase</div>
+          <p class="text-[11px] text-slate-700 leading-relaxed">
+            Primero identificar si es clase <strong>individual o grupal</strong>, y si es <strong>clase única o curso</strong>; con eso el sistema <strong>calcula automáticamente el precio del servicio y cuánto se le debe pagar al profesor</strong>.
+          </p>
+        </div>
+        <div style="border-top: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3">
+          <div style="color: #172554;" class="text-xs font-extrabold uppercase mb-1">B. Medio de Pago y Descuento</div>
+          <p class="text-[11px] text-slate-700 leading-relaxed">
+            En este segundo paso especificamos el <strong>medio de pago</strong> (<em>Transferencia, Efectivo o Tarjeta</em>) y da la opción de ingresar un <strong>descuento para el cliente</strong> en caso que sea necesario.
+          </p>
+        </div>
+        <div style="border-top: 4px solid #db2777; background-color: #f8fafc;" class="p-3">
+          <div style="color: #172554;" class="text-xs font-extrabold uppercase mb-1">C. Horario, Profesor, Cliente y WhatsApp</div>
+          <p class="text-[11px] text-slate-700 leading-relaxed">
+            En el Paso 3 ingresamos horario (con alerta si supera el ocaso), profesor, <strong>datos del cliente y contacto de emergencia</strong>. Al guardar, permite enviar la <strong>confirmación por WhatsApp</strong> en 1 clic.
+          </p>
+        </div>
+      </div>
+
+      <!-- Visual compuesta de los 3 pasos + Tabla inferior -->
+      <div class="grid grid-cols-12 gap-3.5 items-stretch">
+        <!-- Columna Izquierda: Paso 1 y 2 -->
+        <div class="col-span-4 border border-slate-300 p-3 bg-white flex flex-col justify-between text-xs">
+          <div>
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">▌ PASO 01 · NATURALEZA DE LA CLASE</div>
+            <div class="grid grid-cols-2 gap-1.5 mb-2">
+              <div style="background-color: #172554;" class="text-white p-1.5 text-center font-bold text-[10px]">👤 Individual</div>
+              <div class="border border-slate-300 p-1.5 text-center text-slate-600 text-[10px]">👥 Grupal</div>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 mb-2.5">
+              <div style="background-color: #172554;" class="text-white p-1.5 text-center font-bold text-[10px]">Clase Única · $25.000</div>
+              <div class="border border-slate-300 p-1.5 text-center text-slate-600 text-[10px]">Curso Pack</div>
+            </div>
+
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">▌ PASO 02 · FINANZAS Y COBRO</div>
+            <div style="background-color: #f8fafc;" class="flex justify-between items-center border border-slate-200 p-1.5 mb-2">
+              <span class="text-[10px] font-bold text-slate-600">SUBTOTAL AUTOMÁTICO</span>
+              <strong class="text-xs tabular-nums">$25.000</strong>
+            </div>
+            <div class="grid grid-cols-3 gap-1 mb-2 text-[10px] font-bold text-center">
+              <div style="background-color: #172554;" class="text-white py-1">Transferencia</div>
+              <div class="border border-slate-300 py-1 text-slate-600">Efectivo</div>
+              <div class="border border-slate-300 py-1 text-slate-600">Tarjeta</div>
+            </div>
+          </div>
+          <div style="border: 2px solid #db2777; background-color: #fdf2f8;" class="p-2 flex justify-between items-center">
+            <span class="text-[10px] font-bold uppercase text-slate-800">TOTAL FINAL (CAJA)</span>
+            <strong class="text-sm font-extrabold text-slate-900 tabular-nums">$25.000</strong>
+          </div>
+        </div>
+
+        <!-- Columna Central: Paso 3 -->
+        <div class="col-span-4 border border-slate-300 p-3 bg-white flex flex-col justify-between text-xs">
+          <div>
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">▌ PASO 03 · ASIGNACIÓN, ALUMNO Y EMERGENCIA</div>
+            <div class="grid grid-cols-2 gap-1.5 mb-2">
+              <div class="border border-slate-300 p-1.5">
+                <span class="block text-[9px] text-slate-400 uppercase">Hora de Inicio</span>
+                <strong class="tabular-nums text-[11px]">🕒 10:30 AM</strong>
+              </div>
+              <div style="background-color: #f8fafc;" class="border border-slate-300 p-1.5">
+                <span class="block text-[9px] text-slate-400 uppercase">Término (+1h 15m)</span>
+                <strong style="color: #0369a1;" class="tabular-nums text-[11px]">11:45 hrs</strong>
+              </div>
+            </div>
+            <div class="border border-slate-300 p-1.5 mb-2 text-[10px]">
+              <span class="block text-[9px] text-slate-400 uppercase">Instructor Asignado</span>
+              <strong>#3 Vitoco (Llegada 08:35) — SUGERIDO [Disponible]</strong>
+            </div>
+            <div style="background-color: #f8fafc;" class="border border-slate-200 p-1.5 mb-2">
+              <span class="block text-[9px] font-bold uppercase text-slate-500">Datos del Alumno (Para envío WhatsApp)</span>
+              <div class="text-[10px] font-semibold text-slate-800 mt-0.5">Matías González · +56 9 8765 4321</div>
+            </div>
+            <div style="background-color: #fef2f2; border: 1px solid #fecaca;" class="p-1.5">
+              <span style="color: #b91c1c;" class="block text-[9px] font-bold uppercase">🚨 Contacto de Emergencia</span>
+              <div class="text-[10px] text-slate-700 mt-0.5">Carolina Soto (Madre) · +56 9 1234 5678</div>
+            </div>
+          </div>
+          <div style="background-color: #172554;" class="text-white text-center py-1.5 font-bold text-[10px] uppercase tracking-wider mt-2">
+            GUARDAR CLASE (10:30–11:45) · $25.000
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Registro Operativo del Día -->
+        <div class="col-span-4 border border-slate-300 p-3 bg-white flex flex-col justify-between text-xs">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[10px] font-bold uppercase text-slate-800">REGISTRO OPERATIVO DEL DÍA (6)</span>
+              <span style="color: #db2777;" class="text-[10px] font-bold">**Última visual de la página</span>
+            </div>
+            <p class="text-[10px] text-slate-600 mb-1.5">
+              Muestra en tiempo real todas las clases agendadas en el día:
+            </p>
+            <table class="w-full text-left border border-slate-200 text-[10px]">
+              <thead style="background-color: #172554;" class="text-white uppercase">
+                <tr>
+                  <th class="p-1.5">Horario</th>
+                  <th class="p-1.5">Alumno / Emergencia</th>
+                  <th class="p-1.5">Prof.</th>
+                  <th class="p-1.5 text-right">Caja</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 tabular-nums">
+                <tr>
+                  <td class="p-1 font-semibold">09:00–10:15</td>
+                  <td class="p-1">Martín Echeverría <span style="color: #dc2626;" class="block">Em: +569 5432 1098</span></td>
+                  <td class="p-1">Diego</td>
+                  <td class="p-1 text-right font-bold">$25.000</td>
+                </tr>
+                <tr>
+                  <td class="p-1 font-semibold">10:30–11:45</td>
+                  <td class="p-1">Familia Aguirre (3) <span style="color: #dc2626;" class="block">Em: +569 1122 3344</span></td>
+                  <td class="p-1">Diego</td>
+                  <td class="p-1 text-right font-bold">$55.000</td>
+                </tr>
+                <tr>
+                  <td class="p-1 font-semibold">10:30–11:45</td>
+                  <td class="p-1">Sofía Larraín <span style="color: #dc2626;" class="block">Em: +569 5566 7788</span></td>
+                  <td class="p-1">Jose</td>
+                  <td class="p-1 text-right font-bold">$25.000</td>
+                </tr>
+                <tr>
+                  <td class="p-1 font-semibold">15:00–16:15</td>
+                  <td class="p-1">Ignacio Zúñiga (Pack 8) <span style="color: #dc2626;" class="block">Em: +569 6677 8899</span></td>
+                  <td class="p-1">Diego</td>
+                  <td class="p-1 text-right font-bold">$160.000</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background-color: #ecfdf5; border-left: 4px solid #db2777;" class="p-1.5 text-[10px] flex justify-between items-center mt-2">
+            <span class="font-bold text-slate-800">✓ Clase Registrada</span>
+            <span style="background-color: #db2777;" class="px-2 py-1 text-white font-bold">Enviar Confirmación WhatsApp</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Módulo 03: Ingreso de Clase</span>
+      <span class="font-bold text-slate-700">Lámina 04 / 07</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 5: 4.- CIERRE DIARIO -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2.5">
+        <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 04</span>
+        <h2 style="color: #172554;" class="text-2xl font-extrabold">4.- Cierre Diario.</h2>
+      </div>
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #db2777;" class="text-xs font-bold uppercase tracking-wider underline">
+        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      </a>
+    </div>
+
+    <div class="my-auto py-2 space-y-3.5">
+      <p class="text-sm text-slate-700 leading-relaxed">
+        En el <strong>cierre diario</strong> podemos visualizar un resumen completo de clases, ingresos y pagos exactos para los profesores. <strong>Esta página se puede ajustar según las visuales y métricas que necesite cada escuela</strong>, e incluye exportación contable a Excel (<code>⬇ Exportar Caja CSV</code>).
+      </p>
+
+      <div class="grid grid-cols-12 gap-4 items-stretch">
+        <!-- Izquierda: Gráficos de distribución y rendimiento semanal -->
+        <div class="col-span-6 space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="border border-slate-300 bg-white p-2.5">
+              <div style="background-color: #172554;" class="text-white px-2 py-1 text-[9px] font-bold uppercase mb-2">DISTRIBUCIÓN MEDIO DE PAGO (HOY)</div>
+              <div class="space-y-1.5 text-[10px] tabular-nums">
+                <div>
+                  <div class="flex justify-between font-semibold"><span>Transferencia (4)</span><span>$235.000 (75%)</span></div>
+                  <div class="w-full h-1.5 bg-slate-200 mt-0.5"><div style="background-color: #172554; width: 75%;" class="h-1.5"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between font-semibold"><span>Tarjeta (1)</span><span>$55.000 (17%)</span></div>
+                  <div class="w-full h-1.5 bg-slate-200 mt-0.5"><div style="background-color: #0ea5e9; width: 17%;" class="h-1.5"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between font-semibold"><span>Efectivo (1)</span><span>$25.000 (8%)</span></div>
+                  <div class="w-full h-1.5 bg-slate-200 mt-0.5"><div style="background-color: #64748b; width: 8%;" class="h-1.5"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="border border-slate-300 bg-white p-2.5">
+              <div style="background-color: #172554;" class="text-white px-2 py-1 text-[9px] font-bold uppercase mb-2">DISTRIBUCIÓN TIPO DE CLASE (HOY)</div>
+              <div class="space-y-1.5 text-[10px] tabular-nums">
+                <div>
+                  <div class="flex justify-between font-semibold"><span>Curso Pack 8 (1)</span><span>$160.000 (51%)</span></div>
+                  <div class="w-full h-1.5 bg-slate-200 mt-0.5"><div style="background-color: #172554; width: 51%;" class="h-1.5"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between font-semibold"><span>Individual (4)</span><span>$100.000 (32%)</span></div>
+                  <div class="w-full h-1.5 bg-slate-200 mt-0.5"><div style="background-color: #0ea5e9; width: 32%;" class="h-1.5"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between font-semibold"><span>Grupal (1)</span><span>$55.000 (17%)</span></div>
+                  <div class="w-full h-1.5 bg-slate-200 mt-0.5"><div style="background-color: #db2777; width: 17%;" class="h-1.5"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border border-slate-300 bg-white p-3">
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2.5 flex justify-between">
+              <span>📊 RENDIMIENTO SEMANAL DE LA ESCUELA (LUNES A DOMINGO)</span>
+              <span style="color: #f472b6;">Hoy en Vivo</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs tabular-nums">
+              <div style="background-color: #f8fafc;" class="border border-slate-200 p-2">
+                <span class="text-[9px] font-bold uppercase text-slate-500 block">Facturación Semanal</span>
+                <strong class="text-base font-extrabold text-slate-900">$2.108.000</strong>
+                <span class="text-[10px] text-slate-500 block">52 clases en la semana</span>
+              </div>
+              <div style="background-color: #f8fafc;" class="border border-slate-200 p-2">
+                <span class="text-[9px] font-bold uppercase text-slate-500 block">Nómina Semanal Staff</span>
+                <strong style="color: #0284c7;" class="text-base font-extrabold">$418.000</strong>
+                <span class="text-[10px] text-slate-500 block">Liquidación profesores</span>
+              </div>
+              <div style="background-color: #172554; border-left: 4px solid #db2777;" class="text-white p-2">
+                <span style="color: #f472b6;" class="text-[9px] font-bold uppercase block">Ganancia Neta Semanal</span>
+                <strong class="text-base font-extrabold text-white">$1.690.000</strong>
+                <span class="text-[10px] text-slate-300 block">Utilidad escuela</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Derecha: KPIs del día y Leaderboard de Instructores -->
+        <div class="col-span-6 border border-slate-300 bg-white p-3.5 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-2.5">
+              <div>
+                <span style="color: #db2777;" class="text-[10px] font-bold uppercase">■ MÓDULO 04 · LIQUIDACIÓN Y REPORTES</span>
+                <h4 class="text-xs font-bold text-slate-900">Cierre Diario y Leaderboard de Instructores</h4>
+              </div>
+              <span class="px-2 py-1 border border-slate-300 text-[10px] font-bold text-slate-800">⬇ Exportar Caja (CSV)</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-3 tabular-nums">
+              <div class="border border-slate-200 p-2">
+                <span class="text-[9px] font-bold uppercase text-slate-500 block">Caja Total Escuela</span>
+                <strong class="text-sm font-extrabold text-slate-900">$315.000</strong>
+              </div>
+              <div class="border border-slate-200 p-2">
+                <span class="text-[9px] font-bold uppercase text-slate-500 block">Total a Repartir (Staff)</span>
+                <strong style="color: #0284c7;" class="text-sm font-extrabold">$45.000</strong>
+              </div>
+              <div style="background-color: #172554; border-left: 4px solid #db2777;" class="text-white p-2">
+                <span style="color: #f472b6;" class="text-[9px] font-bold uppercase block">Ganancia Neta Escuela</span>
+                <strong class="text-sm font-extrabold text-white">$270.000</strong>
+              </div>
+            </div>
+
+            <table class="w-full text-left border border-slate-200 text-[10px] tabular-nums">
+              <thead style="background-color: #172554;" class="text-white text-[9px] uppercase">
+                <tr>
+                  <th class="p-1.5">Pos.</th>
+                  <th class="p-1.5">Instructor</th>
+                  <th class="p-1.5">Clases</th>
+                  <th class="p-1.5">Desglose Operativo</th>
+                  <th class="p-1.5 text-right">Monto a Pagar Hoy</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr>
+                  <td class="p-1.5"><span style="background-color: #172554;" class="px-1.5 py-0.5 text-white text-[9px] font-bold">#1</span></td>
+                  <td class="p-1.5 font-bold">Diego <span style="background-color: #db2777;" class="px-1 text-white text-[8px]">LÍDER DEL DÍA</span></td>
+                  <td class="p-1.5 font-bold">4</td>
+                  <td class="p-1.5 text-slate-600">2 Individuales, 1 Grupal (3 pax), 1 Curso</td>
+                  <td class="p-1.5 text-right font-bold">$31.000</td>
+                </tr>
+                <tr>
+                  <td class="p-1.5">#2</td>
+                  <td class="p-1.5 font-bold">Jose</td>
+                  <td class="p-1.5">1</td>
+                  <td class="p-1.5 text-slate-600">1 Individual</td>
+                  <td class="p-1.5 text-right font-bold">$7.000</td>
+                </tr>
+                <tr>
+                  <td class="p-1.5">#3</td>
+                  <td class="p-1.5 font-bold">Vitoco</td>
+                  <td class="p-1.5">1</td>
+                  <td class="p-1.5 text-slate-600">1 Individual</td>
+                  <td class="p-1.5 text-right font-bold">$7.000</td>
+                </tr>
+              </tbody>
+              <tfoot style="background-color: #f8fafc;" class="font-bold border-t border-slate-300">
+                <tr>
+                  <td colspan="4" class="p-1.5 text-[10px] uppercase">Total Liquidación Staff</td>
+                  <td style="color: #172554;" class="p-1.5 text-right">$45.000</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Módulo 04: Cierre Diario</span>
+      <span class="font-bold text-slate-700">Lámina 05 / 07</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 6: 5.- EXTRAS (BARRA DE CONDICIONES DEL MAR) -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2.5">
+        <span style="background-color: #db2777;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 05 · EXTRAS</span>
+        <h2 style="color: #172554;" class="text-2xl font-extrabold">5.- Extras (Condiciones del Mar y Seguridad Solar).</h2>
+      </div>
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #db2777;" class="text-xs font-bold uppercase tracking-wider underline">
+        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      </a>
+    </div>
+
+    <div class="my-auto space-y-5 py-2">
+      <p class="text-sm text-slate-700 leading-relaxed max-w-4xl">
+        En este módulo podemos ver <strong>visuales extra que configuramos en relación a las condiciones del mar según la ubicación de la escuela</strong>, tales como mareas calibradas con el SHOA, oleaje, viento y luz solar del día.
+      </p>
+
+      <!-- Barra destacada a tamaño real -->
+      <div style="border: 2px solid #172554;" class="bg-white p-5">
+        <div style="color: #db2777;" class="text-[10px] font-bold uppercase tracking-widest mb-2">
+          VISTA REAL DE LA BARRA AMBIENTAL SUPERIOR (VISIBLE EN TODA LA APLICACIÓN)
+        </div>
+        <div class="grid grid-cols-4 border border-slate-200 text-xs font-bold mb-1">
+          <div class="p-2 text-center text-slate-600 bg-white">01 · Configuración</div>
+          <div class="p-2 text-center text-slate-600 bg-white">02 · Fila de Asistencia (3/5)</div>
+          <div class="p-2 text-center text-slate-600 bg-white">03 · Ingreso de Clase</div>
+          <div style="background-color: #172554;" class="text-white p-2 text-center">04 · Cierre Diario (6)</div>
+        </div>
+        <div style="background-color: #fefce8; border: 2px solid #eab308;" class="py-3 px-4 flex flex-wrap items-center justify-between text-sm font-medium tabular-nums text-slate-800">
+          <div class="flex flex-wrap items-center gap-x-3">
+            <span class="font-bold text-slate-900">🌊 Mareas:</span>
+            <span>📉 <strong class="text-slate-900">02:41</strong> <span class="text-slate-500">(0.30m)</span></span>
+            <span>🔵 <strong class="text-slate-900">08:44</strong> <span class="text-slate-500">(1.23m)</span></span>
+            <span>📉 <strong class="text-slate-900">14:58</strong> <span class="text-slate-500">(0.21m)</span></span>
+            <span>🔵 <strong class="text-slate-900">21:17</strong> <span class="text-slate-500">(1.32m)</span></span>
+            <span class="text-slate-400">|</span>
+            <span><strong class="text-slate-900">🏄‍♂️ Oleaje:</strong> <strong>1.5m</strong> <span class="text-slate-500">(8s)</span></span>
+            <span class="text-slate-400">|</span>
+            <span><strong class="text-slate-900">💨 Viento:</strong> <strong>6kts Oeste</strong></span>
+            <span class="text-slate-400">|</span>
+            <span><strong class="text-slate-900">☀️ Luz:</strong> <strong>06:46 - 20:11 hrs</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Tarjetas explicativas de los indicadores -->
+      <div class="grid grid-cols-4 gap-4">
+        <div style="border-top: 4px solid #172554; background-color: #f8fafc;" class="p-3.5">
+          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">🌊 4 Hitos de Marea (SHOA)</div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Indica las 2 bajamares (📉) y 2 pleamares (🔵) del día con su hora local y altura en metros calibrada al Nivel de Reducción de Sondas (NRS).
+          </p>
+        </div>
+        <div style="border-top: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3.5">
+          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">🏄‍♂️ Altura y Periodo de Ola</div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Muestra en vivo la altura del swell en metros y el periodo en segundos (<code>s</code>) para elegir el equipamiento y nivel de clase adecuado.
+          </p>
+        </div>
+        <div style="border-top: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3.5">
+          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">💨 Viento en Nudos y Rumbo</div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Velocidad del viento en nudos (<code>kts</code>) y dirección cardinal en español (<em>Oeste, Suroeste, Sur</em>) según las coordenadas de la playa.
+          </p>
+        </div>
+        <div style="border-top: 4px solid #db2777; background-color: #fdf2f8;" class="p-3.5">
+          <div style="color: #be185d;" class="text-xs font-bold uppercase mb-1">☀️ Alerta de Luz Solar (Ocaso)</div>
+          <p class="text-xs text-slate-700 leading-relaxed">
+            Conectada al Módulo 3: si se agenda una clase que termine después de la última luz del día (<code>20:11 hrs</code>), el sistema alerta en rojo.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Módulo 05: Extras y Condiciones del Mar</span>
+      <span class="font-bold text-slate-700">Lámina 06 / 07</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- LÁMINA 7: PLAN DE PAGO Y PROPUESTA COMERCIAL -->
+  <!-- ========================================================= -->
+  <section class="slide">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="flex items-center gap-2.5">
+        <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">PROPUESTA COMERCIAL</span>
+        <h2 style="color: #172554;" class="text-2xl font-extrabold">Plan de Pago.</h2>
+      </div>
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #db2777;" class="text-xs font-bold uppercase tracking-wider underline">
+        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      </a>
+    </div>
+
+    <div class="my-auto py-2 space-y-5">
+      <p class="text-sm text-slate-700 leading-relaxed max-w-4xl">
+        Nuestro modelo de implementación acompaña a la escuela desde la validación en terreno hasta el contrato anual, descontando el mes Beta y facilitando el pago en cuotas post-temporada:
+      </p>
+
+      <div class="grid grid-cols-3 gap-5 items-stretch">
+        <!-- Etapa 1 -->
+        <div class="border border-slate-300 bg-white p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span style="background-color: #f1f5f9; color: #172554;" class="px-2.5 py-1 text-xs font-extrabold uppercase">1. Mes de Prueba</span>
+              <span class="text-xs font-semibold text-slate-500">Noviembre 2026</span>
+            </div>
+            <h3 style="color: #172554;" class="text-base font-extrabold mb-2">Pruebas en Funcionamiento Real</h3>
+            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+              Nuestro plan es poder hacer pruebas con el funcionamiento de la escuela durante <strong>noviembre del 2026</strong>. Para esto el servicio solo tendría un costo de <strong>$25.000</strong>, por temas de mantención y servidores.
+            </p>
+          </div>
+          <div class="border-t border-slate-200 pt-3">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block">Costo Noviembre 2026</span>
+            <div style="color: #172554;" class="text-3xl font-extrabold tabular-nums">$25.000</div>
+            <span class="text-[11px] text-slate-500 block mt-0.5">Solo por temas de mantención y servidores.</span>
+          </div>
+        </div>
+
+        <!-- Etapa 2 -->
+        <div style="border: 2px solid #0ea5e9;" class="bg-white p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span style="background-color: #0ea5e9;" class="px-2.5 py-1 text-white text-xs font-extrabold uppercase">2. Contrato Beta</span>
+              <span style="color: #0284c7;" class="text-xs font-semibold">Duración: 1 Mes</span>
+            </div>
+            <h3 style="color: #172554;" class="text-base font-extrabold mb-2">Mejoras + Feedback de Usuarios</h3>
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+              Posteriormente pasaríamos a un <strong>contrato beta por un mes</strong>, el cual cuenta con la implementación de mejoras posterior al mes de prueba y feedback de los usuarios.
+            </p>
+            <div style="background-color: #f0f9ff; border-left: 4px solid #0ea5e9;" class="p-2 text-[11px] text-slate-700 mb-3">
+              <strong>✓ Se abona al Contrato Anual:</strong> Los <strong>$100.000</strong> del mes Beta se abonan íntegramente al contrato anual siguiente.
+            </div>
+          </div>
+          <div class="border-t border-slate-200 pt-3">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block">Valor Mes Beta (Abonable)</span>
+            <div style="color: #172554;" class="text-3xl font-extrabold tabular-nums">$100.000 <span style="color: #0284c7;" class="text-xs font-bold">+ $25.000 mant.</span></div>
+            <span class="text-[11px] text-slate-500 block mt-0.5">Más $25.000 por mantención, atención y servidores.</span>
+          </div>
+        </div>
+
+        <!-- Etapa 3 -->
+        <div style="background-color: #172554; border-top: 4px solid #db2777;" class="text-white p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span style="background-color: #db2777;" class="px-2.5 py-1 text-white text-xs font-extrabold uppercase">3. Contrato Anual</span>
+              <span style="color: #f472b6;" class="text-xs font-semibold">Enero y Marzo</span>
+            </div>
+            <h3 class="text-base font-extrabold text-white mb-2">Facilidad en Cuotas Post-Temporada</h3>
+            <p class="text-xs text-slate-200 leading-relaxed mb-3">
+              Después del mes beta, pasa a un <strong>contrato anual</strong> de <strong>$500.000</strong> (menos <strong>$100.000 abonados el mes anterior</strong>), los cuales se pueden pagar en cuotas:
+            </p>
+            <ul class="space-y-1.5 text-xs text-white mb-3 tabular-nums">
+              <li class="flex justify-between border-b border-slate-700 pb-1"><span>• Cuota 1 (Enero):</span><strong>$200.000</strong></li>
+              <li class="flex justify-between border-b border-slate-700 pb-1"><span>• Cuota 2 (Marzo, post-temporada):</span><strong>$200.000</strong></li>
+            </ul>
+          </div>
+          <div class="border-t border-slate-700 pt-3">
+            <span style="color: #f472b6;" class="text-[10px] font-bold uppercase block">Saldo Anual ($500.000 − $100.000 Abono)</span>
+            <div class="text-3xl font-extrabold text-white tabular-nums">$400.000 <span class="text-xs font-normal text-slate-300">en 2 cuotas</span></div>
+            <span class="text-[11px] text-slate-300 block mt-0.5">Más $25.000 mensuales por temas de mantención.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+      <span>SurfOp ERP · Propuesta Comercial y Plan de Pago</span>
+      <span class="font-bold text-slate-700">Lámina 07 / 07</span>
+    </div>
+  </section>
+
+</body>
+</html>

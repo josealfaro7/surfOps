@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import {
   calculateInstructorPayment,
+  calculateRentalTotals,
   getInstructorConflicts,
   timeToMinutes,
+  addMinutesToTime,
 } from '../utils/calculations';
 
 const SurfSchoolContext = createContext(null);
+
+export const RENTAL_RATES_STORAGE_KEY = 'surfops_rental_rates';
+export const ACTIVE_RENTALS_STORAGE_KEY = 'surfops_active_rentals';
+export const COMPLETED_RENTALS_STORAGE_KEY = 'surfops_completed_rentals';
 
 export const INITIAL_SCHOOL_CONFIG = {
   // Precios de Venta (Lo que paga el alumno)
@@ -20,6 +26,65 @@ export const INITIAL_SCHOOL_CONFIG = {
   payGroupExtraPax: 2000,      // Bono por cada alumno extra sobre 2 pax
   payCourseSingleClass: 6000,  // Pago por 1 clase de un Curso
 };
+
+export const INITIAL_RENTAL_RATES = [
+  {
+    id: 'tabla_surf',
+    label: 'Tabla de Surf',
+    pricePerHour: 8000,
+    enabled: true,
+  },
+  {
+    id: 'traje_surf',
+    label: 'Traje de Surf',
+    pricePerHour: 5000,
+    enabled: true,
+  },
+  {
+    id: 'bodyboard',
+    label: 'Bodyboard',
+    pricePerHour: 5000,
+    enabled: true,
+  },
+  {
+    id: 'aletas',
+    label: 'Aletas',
+    pricePerHour: 3000,
+    enabled: true,
+  },
+];
+
+function safeReadFromLocalStorage(key, fallbackValue) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallbackValue;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallbackValue;
+  } catch {
+    return fallbackValue;
+  }
+}
+
+function safeSaveToLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (err) {
+    const isQuotaError =
+      err &&
+      (err.name === 'QuotaExceededError' ||
+        err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        err.code === 22);
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(
+        isQuotaError
+          ? '⚠️ Alerta de Memoria: Se alcanzó el límite de 5 MB de almacenamiento local del navegador (localStorage). Marca devoluciones pendientes para liberar espacio de fotos de carnet.'
+          : '⚠️ No se pudo guardar en el almacenamiento local del navegador.'
+      );
+    }
+    return false;
+  }
+}
 
 const getBaseTimestamp = (timeStr) => {
   const [h, m] = timeStr.split(':').map(Number);
@@ -214,6 +279,26 @@ export function SurfSchoolProvider({ children }) {
   // 3. DailyClasses
   const [dailyClasses, setDailyClasses] = useState(INITIAL_DAILY_CLASSES);
 
+  // 4. Tarifas de Arriendo (Equipamiento - Módulo 01 & Módulo 05)
+  const [rentalRates, setRentalRates] = useState(() => {
+    const saved = safeReadFromLocalStorage(RENTAL_RATES_STORAGE_KEY, null);
+    if (Array.isArray(saved) && saved.length > 0) {
+      return saved;
+    }
+    return INITIAL_RENTAL_RATES;
+  });
+
+  // 5. Arriendos Activos y Completados (Módulo 05)
+  const [activeRentals, setActiveRentals] = useState(() => {
+    const saved = safeReadFromLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, []);
+    return Array.isArray(saved) ? saved : [];
+  });
+
+  const [completedRentals, setCompletedRentals] = useState(() => {
+    const saved = safeReadFromLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, []);
+    return Array.isArray(saved) ? saved : [];
+  });
+
   // Hora del ocaso compartida desde EnvironmentBar para validación de luz en Módulo 3
   const [sunsetTime, setSunsetTime] = useState('20:15');
 
@@ -228,7 +313,20 @@ export function SurfSchoolProvider({ children }) {
       }));
   }, [instructors]);
 
-  // Actualizar configuración y recalcular pagos del día en base a las nuevas tarifas
+  // Resumen financiero derivado de arriendos del día (sin alterar métricas de instructores)
+  const rentalsTotalRevenue = useMemo(() => {
+    const activeSum = activeRentals.reduce(
+      (acc, r) => acc + (Number(r.finalTotal) || 0),
+      0
+    );
+    const completedSum = completedRentals.reduce(
+      (acc, r) => acc + (Number(r.finalTotal) || 0),
+      0
+    );
+    return activeSum + completedSum;
+  }, [activeRentals, completedRentals]);
+
+  // Actualizar configuración de clases y recalcular pagos del día en base a las nuevas tarifas
   const updateSchoolConfig = (newValues) => {
     const updatedConfig = { ...schoolConfig, ...newValues };
     setSchoolConfig(updatedConfig);
@@ -243,6 +341,92 @@ export function SurfSchoolProvider({ children }) {
         }),
       }))
     );
+  };
+
+  // Actualizar tarifas de arriendo de equipamiento y guardar en localStorage
+  const updateRentalRates = (newRates) => {
+    const normalized = Array.isArray(newRates) ? newRates : INITIAL_RENTAL_RATES;
+    setRentalRates(normalized);
+    safeSaveToLocalStorage(RENTAL_RATES_STORAGE_KEY, normalized);
+  };
+
+  // Registrar nuevo arriendo activo (Módulo 05) reutilizando addMinutesToTime(checkIn, hours * 60)
+  const addRental = (rentalForm) => {
+    const rateItem =
+      rentalRates.find((r) => r.id === rentalForm.itemId) || rentalRates[0];
+    const unitPricePerHour = Number(rateItem?.pricePerHour) || 0;
+    const quantity = Math.max(1, Number(rentalForm.quantity) || 1);
+    const hours = Math.min(12, Math.max(1, Number(rentalForm.hours) || 1));
+    const discountInput = Math.max(0, Number(rentalForm.discount) || 0);
+
+    const { subtotal, discount, finalTotal } = calculateRentalTotals(
+      unitPricePerHour,
+      quantity,
+      hours,
+      discountInput
+    );
+
+    const now = new Date();
+    const checkInTime =
+      rentalForm.checkInTime ||
+      `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // Reutilización estricta de addMinutesToTime multiplicando horas * 60
+    const estimatedReturnTime = addMinutesToTime(checkInTime, hours * 60);
+
+    const newRentalRecord = {
+      id: `rnt-${Date.now()}`,
+      date: getTodayDateString(),
+      itemId: rateItem?.id || 'tabla_surf',
+      itemLabel: rateItem?.label || 'Tabla de Surf',
+      unitPricePerHour,
+      quantity,
+      hours,
+      checkInTime,
+      estimatedReturnTime,
+      subtotal,
+      discount,
+      finalTotal,
+      customerName: rentalForm.customerName?.trim() || 'Cliente',
+      customerEmail: rentalForm.customerEmail?.trim() || '',
+      customerPhone: rentalForm.customerPhone?.trim() || '',
+      emergencyContact: rentalForm.emergencyContact?.trim() || '',
+      idPhotoBase64: rentalForm.idPhotoBase64 || '',
+      status: 'active',
+    };
+
+    const nextActive = [newRentalRecord, ...activeRentals];
+    const savedOk = safeSaveToLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, nextActive);
+    if (savedOk) {
+      setActiveRentals(nextActive);
+      return newRentalRecord;
+    }
+    return null;
+  };
+
+  // Marcar devolución recibida: quita de activos y pasa al historial de completados
+  const completeRental = (rentalId) => {
+    const target = activeRentals.find((r) => r.id === rentalId);
+    if (!target) return;
+
+    const now = new Date();
+    const returnedAt = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes()
+    ).padStart(2, '0')}`;
+
+    const nextActive = activeRentals.filter((r) => r.id !== rentalId);
+    // Se conserva idPhotoBase64 en sesión o se libera espacio en localStorage si es necesario
+    const completedRecord = {
+      ...target,
+      status: 'completed',
+      returnedAt,
+    };
+    const nextCompleted = [completedRecord, ...completedRentals];
+
+    setActiveRentals(nextActive);
+    setCompletedRentals(nextCompleted);
+    safeSaveToLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, nextActive);
+    safeSaveToLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, nextCompleted);
   };
 
   // Check-in de instructor
@@ -389,17 +573,30 @@ export function SurfSchoolProvider({ children }) {
         checkInTimestamp: null,
       }))
     );
+    setActiveRentals([]);
+    setCompletedRentals([]);
+    safeSaveToLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, []);
+    safeSaveToLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, []);
   };
 
   const restoreDemoData = () => {
     setSchoolConfig(INITIAL_SCHOOL_CONFIG);
     setInstructors(INITIAL_INSTRUCTORS);
     setDailyClasses(INITIAL_DAILY_CLASSES);
+    setRentalRates(INITIAL_RENTAL_RATES);
+    safeSaveToLocalStorage(RENTAL_RATES_STORAGE_KEY, INITIAL_RENTAL_RATES);
   };
 
   const value = {
     schoolConfig,
     updateSchoolConfig,
+    rentalRates,
+    updateRentalRates,
+    activeRentals,
+    completedRentals,
+    rentalsTotalRevenue,
+    addRental,
+    completeRental,
     instructors,
     virtualQueue,
     checkInInstructor,

@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
-import { Sliders, UserCheck, PlusSquare, BarChart2, Database, RotateCcw, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Sliders,
+  UserCheck,
+  PlusSquare,
+  BarChart2,
+  Shield,
+  Database,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import { SurfSchoolProvider, useSurfSchool } from './context/SurfSchoolContext';
 import Module1Config from './components/Module1Config';
 import Module2Attendance from './components/Module2Attendance';
 import Module3NewClass from './components/Module3NewClass';
 import Module4ClosingDashboard from './components/Module4ClosingDashboard';
+import Module5Rentals from './components/Module5Rentals';
 import EnvironmentBar from './components/EnvironmentBar';
 
 function SurfSchoolWorkspace() {
@@ -13,12 +23,25 @@ function SurfSchoolWorkspace() {
 
   const {
     schoolConfig,
+    rentalRates,
+    activeRentals,
+    rentalsTotalRevenue,
     instructors,
     virtualQueue,
     dailyClasses,
     resetDayEmpty,
     restoreDemoData,
   } = useSurfSchool();
+
+  // Truncar idPhotoBase64 en el inspector de memoria para no colapsar la vista
+  const sanitizedRentalsForInspector = useMemo(
+    () =>
+      activeRentals.map((r) => ({
+        ...r,
+        idPhotoBase64: r.idPhotoBase64 ? '[IMAGE DATA TRUNCATED]' : null,
+      })),
+    [activeRentals]
+  );
 
   const tabs = [
     {
@@ -45,13 +68,19 @@ function SurfSchoolWorkspace() {
       label: `Cierre Diario (${dailyClasses.length})`,
       icon: BarChart2,
     },
+    {
+      id: 'mod5',
+      code: '05',
+      label: `🏄‍♂️ Arriendos (${activeRentals.length})`,
+      icon: Shield,
+    },
   ];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Barra Superior ERP Profesional con protagonismo Azul y acento Rosado */}
       <header className="bg-white border-b border-slate-300 sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="h-16 flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 sm:py-0">
             {/* Identidad Corporativa POISSON */}
             <div className="flex items-center gap-3">
@@ -104,8 +133,8 @@ function SurfSchoolWorkspace() {
             </div>
           </div>
 
-          {/* Navegación Estructurada Rectangular (Protagonismo Azul, detalle complementario Rosado) */}
-          <nav className="grid grid-cols-2 lg:grid-cols-4 border-t border-slate-200 -mx-4 sm:mx-0">
+          {/* Navegación Estructurada Rectangular (5 Módulos) */}
+          <nav className="grid grid-cols-2 lg:grid-cols-5 border-t border-slate-200 -mx-4 sm:mx-0">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -142,17 +171,19 @@ function SurfSchoolWorkspace() {
         </div>
       </header>
 
-      {/* Barra de Condiciones Ambientales Persistente (EnvironmentBar) debajo de la navegación y sobre el contenido del módulo */}
+      {/* Barra de Condiciones Ambientales Persistente (EnvironmentBar) */}
       <EnvironmentBar />
 
-      {/* Inspector de los 3 Objetos Globales en Memoria */}
+      {/* Inspector de Objetos Globales en Memoria (con idPhotoBase64 truncado) */}
       {showStateInspector && (
         <div className="bg-blue-950 text-slate-100 border-b border-slate-300">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
-              <div className="font-semibold text-sky-400 mb-1.5">1. SchoolConfig</div>
+              <div className="font-semibold text-sky-400 mb-1.5">
+                1. SchoolConfig & RentalRates
+              </div>
               <pre className="text-[11px] text-slate-300">
-                {JSON.stringify(schoolConfig, null, 2)}
+                {JSON.stringify({ schoolConfig, rentalRates }, null, 2)}
               </pre>
             </div>
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
@@ -169,18 +200,27 @@ function SurfSchoolWorkspace() {
                 {JSON.stringify(dailyClasses, null, 2)}
               </pre>
             </div>
+            <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
+              <div className="font-semibold text-emerald-400 mb-1.5">
+                4. ActiveRentals ({activeRentals.length}) · Caja: ${rentalsTotalRevenue}
+              </div>
+              <pre className="text-[11px] text-slate-300">
+                {JSON.stringify(sanitizedRentalsForInspector, null, 2)}
+              </pre>
+            </div>
           </div>
         </div>
       )}
 
       {/* Área Operativa Principal */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
         {activeTab === 'mod1' && <Module1Config />}
         {activeTab === 'mod2' && (
           <Module2Attendance onGoToNewClass={() => setActiveTab('mod3')} />
         )}
         {activeTab === 'mod3' && <Module3NewClass />}
         {activeTab === 'mod4' && <Module4ClosingDashboard />}
+        {activeTab === 'mod5' && <Module5Rentals />}
       </main>
     </div>
   );

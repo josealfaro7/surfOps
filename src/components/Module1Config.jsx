@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Check, RotateCcw, Lock, Unlock, AlertCircle } from 'lucide-react';
-import { useSurfSchool, INITIAL_SCHOOL_CONFIG } from '../context/SurfSchoolContext';
+import { Check, RotateCcw, Lock, Unlock, AlertCircle, Shield } from 'lucide-react';
+import {
+  useSurfSchool,
+  INITIAL_SCHOOL_CONFIG,
+  INITIAL_RENTAL_RATES,
+} from '../context/SurfSchoolContext';
 import { formatCurrency } from '../utils/calculations';
 
 const ADMIN_PIN = '0000';
 
 export default function Module1Config() {
-  const { schoolConfig, updateSchoolConfig } = useSurfSchool();
+  const {
+    schoolConfig,
+    updateSchoolConfig,
+    rentalRates,
+    updateRentalRates,
+  } = useSurfSchool();
+
   const [formData, setFormData] = useState(schoolConfig);
+  const [rentalRatesForm, setRentalRatesForm] = useState(rentalRates);
   const [saved, setSaved] = useState(false);
 
   // Estado de bloqueo por PIN (0000)
@@ -18,6 +29,10 @@ export default function Module1Config() {
   useEffect(() => {
     setFormData(schoolConfig);
   }, [schoolConfig]);
+
+  useEffect(() => {
+    setRentalRatesForm(rentalRates);
+  }, [rentalRates]);
 
   const handleUnlockSubmit = (e) => {
     e.preventDefault();
@@ -43,16 +58,38 @@ export default function Module1Config() {
     setSaved(false);
   };
 
+  const handleRentalRatePriceChange = (itemId, rawValue) => {
+    const num = rawValue === '' ? 0 : Math.max(0, Number(rawValue));
+    setRentalRatesForm((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, pricePerHour: num } : item
+      )
+    );
+    setSaved(false);
+  };
+
+  const handleRentalRateToggle = (itemId) => {
+    setRentalRatesForm((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, enabled: !item.enabled } : item
+      )
+    );
+    setSaved(false);
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
     updateSchoolConfig(formData);
+    updateRentalRates(rentalRatesForm);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
   const handleReset = () => {
     setFormData(INITIAL_SCHOOL_CONFIG);
+    setRentalRatesForm(INITIAL_RENTAL_RATES);
     updateSchoolConfig(INITIAL_SCHOOL_CONFIG);
+    updateRentalRates(INITIAL_RENTAL_RATES);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -78,7 +115,7 @@ export default function Module1Config() {
                 Ingresa el PIN de Administrador
               </h1>
               <p className="text-xs text-slate-500 mt-1">
-                Este módulo modifica los precios de venta y las tarifas de pago al staff.
+                Este módulo modifica los precios de venta, las tarifas de pago al staff y los valores de arriendo de equipamiento.
               </p>
             </div>
 
@@ -146,7 +183,7 @@ export default function Module1Config() {
           step="500"
           value={formData[field]}
           onChange={(e) => handleNumberChange(field, e.target.value)}
-          className="w-full h-12 pl-8 pr-24 rounded-sm border border-slate-300 bg-white text-base font-semibold text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+          className="w-full h-12 pl-8 pr-24 rounded-sm border border-slate-300 bg-white text-base font-semibold text-blue-950 tabular-nums focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
         />
         <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-medium text-sky-600 font-mono pointer-events-none">
           {formatCurrency(formData[field])}
@@ -162,13 +199,13 @@ export default function Module1Config() {
         <div>
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600">
             <span className="w-2 h-2 bg-pink-600 inline-block" />
-            Módulo 01 · Parámetros Financieros
+            Módulo 01 · Parámetros Financieros y Equipamiento
           </span>
           <h1 className="text-2xl font-bold text-blue-950 mt-1">
             Configuración de Precios y Tarifas
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Define los valores de cobro en recepción y las tarifas de liquidación para los instructores.
+            Define los valores de cobro en recepción, las tarifas de liquidación para los instructores y el tarifario por hora de arriendos.
           </p>
         </div>
 
@@ -267,12 +304,106 @@ export default function Module1Config() {
           </div>
         </section>
 
+        {/* Bloque C: Tarifas de Arriendo (Equipamiento) */}
+        <section className="border border-slate-300 rounded-none bg-white">
+          <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-1.5 h-4 bg-sky-400 inline-block" />
+              <Shield className="w-4 h-4 text-pink-400" />
+              <h2 className="text-sm font-semibold uppercase tracking-wider">
+                C. Tarifas de Arriendo (Equipamiento)
+              </h2>
+            </div>
+            <span className="text-xs font-mono text-sky-300">surfops_rental_rates</span>
+          </div>
+
+          <div className="divide-y divide-slate-200">
+            {rentalRatesForm.map((item) => (
+              <div
+                key={item.id}
+                className={`py-4 px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition ${
+                  item.enabled ? 'bg-white' : 'bg-slate-50/80'
+                }`}
+              >
+                <div className="space-y-1 max-w-xl">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base font-semibold text-blue-950">
+                      {item.label}
+                    </span>
+                    <span className="px-2 py-0.5 text-[11px] font-mono font-semibold bg-slate-100 border border-slate-300 text-slate-600 rounded-none">
+                      {item.id}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-none ${
+                        item.enabled
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-400'
+                          : 'bg-slate-200 text-slate-600 border border-slate-300'
+                      }`}
+                    >
+                      {item.enabled ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Precio base cobrado por cada hora de arriendo en el Módulo 05.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
+                  {/* Switch / Checkbox de estado Habilitado / Deshabilitado */}
+                  <label
+                    htmlFor={`toggle-${item.id}`}
+                    className="inline-flex items-center gap-2.5 cursor-pointer select-none px-3 py-2 border border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-sm"
+                  >
+                    <input
+                      id={`toggle-${item.id}`}
+                      type="checkbox"
+                      checked={Boolean(item.enabled)}
+                      onChange={() => handleRentalRateToggle(item.id)}
+                      className="w-4 h-4 accent-pink-600 rounded-none cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-blue-950">
+                      {item.enabled ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </label>
+
+                  {/* Input Precio por Hora (CLP) */}
+                  <div className="relative w-full sm:w-64">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-semibold text-slate-400 select-none">
+                      $
+                    </span>
+                    <input
+                      id={`rental-price-${item.id}`}
+                      type="number"
+                      min="0"
+                      step="500"
+                      disabled={!item.enabled}
+                      value={item.pricePerHour}
+                      onChange={(e) =>
+                        handleRentalRatePriceChange(item.id, e.target.value)
+                      }
+                      aria-label={`Precio por Hora para ${item.label}`}
+                      className={`w-full h-12 pl-8 pr-28 rounded-sm border border-slate-300 text-base font-semibold tabular-nums outline-none transition ${
+                        item.enabled
+                          ? 'bg-white text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}
+                    />
+                    <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-medium text-sky-600 font-mono pointer-events-none">
+                      {formatCurrency(item.pricePerHour)} / hr
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Barra de acción */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-4">
           {saved && (
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-950 bg-sky-50 px-4 py-2.5 border border-sky-400 border-l-4 border-l-pink-600 rounded-none">
               <Check className="w-4 h-4 text-pink-600" />
-              Parámetros actualizados en memoria
+              Parámetros y tarifas de arriendo guardados
             </span>
           )}
           <button
