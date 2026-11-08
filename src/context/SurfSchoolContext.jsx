@@ -269,6 +269,111 @@ export const INITIAL_DAILY_CLASSES = [
   },
 ];
 
+const DEMO_ID_PHOTO_SVG =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+      <rect width="320" height="200" fill="#f8fafc" stroke="#94a3b8" stroke-width="4"/>
+      <rect width="320" height="38" fill="#172554"/>
+      <text x="16" y="24" font-family="monospace" font-size="13" font-weight="bold" fill="#ffffff">REPÚBLICA DE CHILE · CÉDULA DE IDENTIDAD</text>
+      <rect x="20" y="56" width="76" height="96" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+      <circle cx="58" cy="88" r="18" fill="#64748b"/>
+      <path d="M32 142 C32 118 84 118 84 142 Z" fill="#64748b"/>
+      <text x="112" y="72" font-family="sans-serif" font-size="11" fill="#475569">DOCUMENTO EN GARANTÍA ERP</text>
+      <text x="112" y="96" font-family="monospace" font-size="13" font-weight="bold" fill="#0f172a">RUN 19.482.310-K</text>
+      <text x="112" y="120" font-family="sans-serif" font-size="11" fill="#334155">ESTADO: VERIFICADO RECEPCIÓN</text>
+      <text x="112" y="144" font-family="monospace" font-size="11" fill="#0284c7">LA HERRADURA · COQUIMBO</text>
+    </svg>`
+  );
+
+export const INITIAL_ACTIVE_RENTALS = [
+  {
+    id: 'rnt-demo-1',
+    date: getTodayDateString(),
+    itemId: 'tabla_surf',
+    itemLabel: 'Tabla de Surf',
+    unitPricePerHour: 8000,
+    quantity: 2,
+    hours: 2,
+    checkInTime: '10:30',
+    estimatedReturnTime: '22:30',
+    subtotal: 32000,
+    discount: 2000,
+    finalTotal: 30000,
+    customerName: 'Lucas Valenzuela',
+    customerEmail: 'lucas.valenzuela@correo.cl',
+    customerPhone: '+56 9 8412 3390',
+    emergencyContact: 'Andrea Valenzuela · +56 9 8412 0011',
+    idPhotoBase64: DEMO_ID_PHOTO_SVG,
+    status: 'active',
+  },
+  {
+    id: 'rnt-demo-2',
+    date: getTodayDateString(),
+    itemId: 'traje_surf',
+    itemLabel: 'Traje de Surf',
+    unitPricePerHour: 5000,
+    quantity: 1,
+    hours: 2,
+    checkInTime: '09:00',
+    estimatedReturnTime: '11:00',
+    subtotal: 10000,
+    discount: 0,
+    finalTotal: 10000,
+    customerName: 'Martina Gómez',
+    customerEmail: 'martina.gomez@correo.cl',
+    customerPhone: '+56 9 7621 4410',
+    emergencyContact: 'Rodrigo Gómez · +56 9 7621 9988',
+    idPhotoBase64: DEMO_ID_PHOTO_SVG,
+    status: 'active',
+  },
+];
+
+export const INITIAL_COMPLETED_RENTALS = [
+  {
+    id: 'rnt-demo-3',
+    date: getTodayDateString(),
+    itemId: 'bodyboard',
+    itemLabel: 'Bodyboard',
+    unitPricePerHour: 5000,
+    quantity: 2,
+    hours: 1,
+    checkInTime: '09:15',
+    estimatedReturnTime: '10:15',
+    returnedAt: '10:12',
+    subtotal: 10000,
+    discount: 0,
+    finalTotal: 10000,
+    customerName: 'Cristóbal Pizarro',
+    customerEmail: 'cpizarro@correo.cl',
+    customerPhone: '+56 9 6334 1122',
+    emergencyContact: 'Claudia Pizarro · +56 9 6334 8877',
+    idPhotoBase64: DEMO_ID_PHOTO_SVG,
+    status: 'completed',
+  },
+  {
+    id: 'rnt-demo-4',
+    date: getTodayDateString(),
+    itemId: 'aletas',
+    itemLabel: 'Aletas',
+    unitPricePerHour: 3000,
+    quantity: 2,
+    hours: 1,
+    checkInTime: '09:15',
+    estimatedReturnTime: '10:15',
+    returnedAt: '10:12',
+    subtotal: 6000,
+    discount: 0,
+    finalTotal: 6000,
+    customerName: 'Cristóbal Pizarro',
+    customerEmail: 'cpizarro@correo.cl',
+    customerPhone: '+56 9 6334 1122',
+    emergencyContact: 'Claudia Pizarro · +56 9 6334 8877',
+    idPhotoBase64: DEMO_ID_PHOTO_SVG,
+    status: 'completed',
+  },
+];
+
 export function SurfSchoolProvider({ children }) {
   // 1. SchoolConfig
   const [schoolConfig, setSchoolConfig] = useState(INITIAL_SCHOOL_CONFIG);
@@ -290,13 +395,13 @@ export function SurfSchoolProvider({ children }) {
 
   // 5. Arriendos Activos y Completados (Módulo 05)
   const [activeRentals, setActiveRentals] = useState(() => {
-    const saved = safeReadFromLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, []);
-    return Array.isArray(saved) ? saved : [];
+    const saved = safeReadFromLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, null);
+    return Array.isArray(saved) ? saved : INITIAL_ACTIVE_RENTALS;
   });
 
   const [completedRentals, setCompletedRentals] = useState(() => {
-    const saved = safeReadFromLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, []);
-    return Array.isArray(saved) ? saved : [];
+    const saved = safeReadFromLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, null);
+    return Array.isArray(saved) ? saved : INITIAL_COMPLETED_RENTALS;
   });
 
   // Hora del ocaso compartida desde EnvironmentBar para validación de luz en Módulo 3
@@ -584,7 +689,11 @@ export function SurfSchoolProvider({ children }) {
     setInstructors(INITIAL_INSTRUCTORS);
     setDailyClasses(INITIAL_DAILY_CLASSES);
     setRentalRates(INITIAL_RENTAL_RATES);
+    setActiveRentals(INITIAL_ACTIVE_RENTALS);
+    setCompletedRentals(INITIAL_COMPLETED_RENTALS);
     safeSaveToLocalStorage(RENTAL_RATES_STORAGE_KEY, INITIAL_RENTAL_RATES);
+    safeSaveToLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, INITIAL_ACTIVE_RENTALS);
+    safeSaveToLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, INITIAL_COMPLETED_RENTALS);
   };
 
   const value = {

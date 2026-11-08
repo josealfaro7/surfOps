@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Trophy,
   Calendar,
+  Waves,
 } from 'lucide-react';
 import { useSurfSchool, getTodayDateString } from '../context/SurfSchoolContext';
 import {
@@ -26,10 +27,17 @@ const BASE_WEEK_DAYS = [
 ];
 
 export default function Module4ClosingDashboard() {
-  const { instructors, dailyClasses } = useSurfSchool();
+  const {
+    instructors,
+    dailyClasses,
+    activeRentals = [],
+    completedRentals = [],
+    rentalsTotalRevenue = 0,
+    rentalRates = [],
+  } = useSurfSchool();
   const [expandedId, setExpandedId] = useState(null);
 
-  // 1. Resumen General del Día
+  // 1. Resumen General del Día (Clases + Arriendos con Silo Financiero para Instructores)
   const summary = useMemo(() => {
     const totalClasses = dailyClasses.length;
     const totalRevenue = dailyClasses.reduce((acc, c) => acc + (Number(c.finalTotal) || 0), 0);
@@ -38,14 +46,77 @@ export default function Module4ClosingDashboard() {
       0
     );
     const netProfit = totalRevenue - totalInstructorPayout;
+    const combinedRevenue = totalRevenue + rentalsTotalRevenue;
+    const combinedNetProfit = netProfit + rentalsTotalRevenue;
 
     return {
       totalClasses,
       totalRevenue,
       totalInstructorPayout,
       netProfit,
+      combinedRevenue,
+      combinedNetProfit,
     };
-  }, [dailyClasses]);
+  }, [dailyClasses, rentalsTotalRevenue]);
+
+  // 1B. Resumen y Distribución de Arriendos del Día (Módulo 05)
+  const rentalSummary = useMemo(() => {
+    const allRentals = [...activeRentals, ...completedRentals];
+    const activeCount = activeRentals.length;
+    const completedCount = completedRentals.length;
+    const totalRentals = allRentals.length;
+    const totalUnits = allRentals.reduce((acc, r) => acc + (Number(r.quantity) || 1), 0);
+    const totalHours = allRentals.reduce((acc, r) => acc + (Number(r.hours) || 1), 0);
+
+    const itemColors = {
+      tabla_surf: 'bg-blue-950',
+      traje_surf: 'bg-sky-500',
+      bodyboard: 'bg-pink-600',
+      aletas: 'bg-slate-600',
+    };
+
+    const byItemMap = {};
+    rentalRates.forEach((rate) => {
+      byItemMap[rate.id] = {
+        id: rate.id,
+        label: rate.label,
+        count: 0,
+        units: 0,
+        hours: 0,
+        amount: 0,
+        color: itemColors[rate.id] || 'bg-sky-500',
+      };
+    });
+
+    allRentals.forEach((r) => {
+      const key = r.itemId || 'tabla_surf';
+      if (!byItemMap[key]) {
+        byItemMap[key] = {
+          id: key,
+          label: r.itemLabel || 'Equipamiento',
+          count: 0,
+          units: 0,
+          hours: 0,
+          amount: 0,
+          color: itemColors[key] || 'bg-sky-500',
+        };
+      }
+      byItemMap[key].count += 1;
+      byItemMap[key].units += Number(r.quantity) || 1;
+      byItemMap[key].hours += Number(r.hours) || 1;
+      byItemMap[key].amount += Number(r.finalTotal) || 0;
+    });
+
+    return {
+      activeCount,
+      completedCount,
+      totalRentals,
+      totalUnits,
+      totalHours,
+      totalRevenue: rentalsTotalRevenue,
+      byItem: Object.values(byItemMap),
+    };
+  }, [activeRentals, completedRentals, rentalRates, rentalsTotalRevenue]);
 
   // 2. Leaderboard de Instructores (Liquidación Diaria ordenada de mayor a menor)
   const leaderboardSettlements = useMemo(() => {
@@ -90,17 +161,19 @@ export default function Module4ClosingDashboard() {
         return {
           ...d,
           classes: summary.totalClasses,
-          revenue: summary.totalRevenue,
+          rentals: rentalSummary.totalRentals,
+          revenue: summary.combinedRevenue,
           staffPay: summary.totalInstructorPayout,
-          netProfit: summary.netProfit,
+          netProfit: summary.combinedNetProfit,
         };
       }
       return {
         ...d,
+        rentals: 0,
         netProfit: d.revenue - d.staffPay,
       };
     });
-  }, [summary]);
+  }, [summary, rentalSummary.totalRentals]);
 
   const maxWeeklyRevenue = useMemo(() => {
     return Math.max(...weeklyData.map((d) => d.revenue), 100000);
@@ -258,12 +331,12 @@ export default function Module4ClosingDashboard() {
         </button>
       </div>
 
-      {/* 1. RESUMEN EJECUTIVO DEL DÍA */}
-      <section className="grid grid-cols-1 md:grid-cols-3 border border-slate-300 bg-white divide-y md:divide-y-0 md:divide-x divide-slate-300 rounded-none">
+      {/* 1. RESUMEN EJECUTIVO DEL DÍA (CLASES + ARRIENDOS CON SILO FINANCIERO) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-slate-300 bg-white divide-y sm:divide-y-0 sm:divide-x divide-slate-300 rounded-none">
         <div className="p-6">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold uppercase tracking-wider">
-              Caja Total Escuela
+              Caja Clases (Hoy)
             </span>
             <Wallet className="w-4 h-4 text-sky-500" />
           </div>
@@ -271,7 +344,24 @@ export default function Module4ClosingDashboard() {
             {formatCurrency(summary.totalRevenue)}
           </div>
           <div className="mt-1 text-xs font-medium text-slate-500">
-            {summary.totalClasses} clases registradas hoy
+            {summary.totalClasses} {summary.totalClasses === 1 ? 'clase registrada' : 'clases registradas'} hoy
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Caja Arriendos (Hoy)
+            </span>
+            <Waves className="w-4 h-4 text-sky-500" />
+          </div>
+          <div className="mt-2 text-3xl font-mono font-bold text-blue-950">
+            {formatCurrency(rentalSummary.totalRevenue)}
+          </div>
+          <div className="mt-1 text-xs font-medium text-slate-500">
+            {rentalSummary.totalRentals}{' '}
+            {rentalSummary.totalRentals === 1 ? 'arriendo' : 'arriendos'} hoy ({rentalSummary.activeCount}{' '}
+            en curso · {rentalSummary.completedCount} devueltos)
           </div>
         </div>
 
@@ -286,22 +376,22 @@ export default function Module4ClosingDashboard() {
             {formatCurrency(summary.totalInstructorPayout)}
           </div>
           <div className="mt-1 text-xs font-medium text-slate-500">
-            Nómina acumulada de instructores
+            Nómina acumulada (exclusiva de clases)
           </div>
         </div>
 
         <div className="p-6 bg-blue-950 text-white border-b-4 border-b-pink-600">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-semibold uppercase tracking-wider text-sky-400">
-              Ganancia Neta Escuela
+              Ganancia Neta Total
             </span>
             <TrendingUp className="w-4 h-4 text-sky-400" />
           </div>
           <div className="mt-2 text-3xl font-mono font-bold text-white">
-            {formatCurrency(summary.netProfit)}
+            {formatCurrency(summary.combinedNetProfit)}
           </div>
           <div className="mt-1 text-xs font-medium text-slate-300">
-            Ingresos brutos menos nómina de instructores
+            Caja total {formatCurrency(summary.combinedRevenue)} menos nómina staff
           </div>
         </div>
       </section>
@@ -539,6 +629,118 @@ export default function Module4ClosingDashboard() {
                   <div className="w-full h-2.5 bg-slate-100 border border-slate-300 rounded-none overflow-hidden">
                     <div
                       className={`h-full ${info.color} transition-all duration-300`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 3B. MÉTRICAS Y DISTRIBUCIÓN DE ARRIENDOS DE EQUIPAMIENTO (HOY - MÓDULO 05) */}
+      <section className="border border-slate-300 bg-white rounded-none">
+        <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <Waves className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Métricas y Distribución de Arriendos de Equipamiento (Hoy · Módulo 05)
+            </span>
+          </div>
+
+          <span className="text-xs font-mono text-sky-300">
+            100% Margen Escuela · Silo Financiero Independiente de Instructores
+          </span>
+        </div>
+
+        {/* Sub-KPIs de Arriendos */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-slate-300 divide-y sm:divide-y-0 sm:divide-x divide-slate-300 bg-slate-50">
+          <div className="p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Total Arriendos (Hoy)
+            </div>
+            <div className="mt-1 text-2xl font-mono font-bold text-blue-950">
+              {rentalSummary.totalRentals}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              {rentalSummary.totalUnits}{' '}
+              {rentalSummary.totalUnits === 1 ? 'unidad entregada' : 'unidades entregadas'}
+            </div>
+          </div>
+
+          <div className="p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              En Curso (En Agua)
+            </div>
+            <div className="mt-1 text-2xl font-mono font-bold text-sky-600">
+              {rentalSummary.activeCount}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              Equipos actualmente activos
+            </div>
+          </div>
+
+          <div className="p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Devueltos (Cerrados)
+            </div>
+            <div className="mt-1 text-2xl font-mono font-bold text-emerald-700">
+              {rentalSummary.completedCount}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              Recepción conforme registrada
+            </div>
+          </div>
+
+          <div className="p-4 bg-white">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Total Recaudado Arriendos
+            </div>
+            <div className="mt-1 text-2xl font-mono font-bold text-blue-950">
+              {formatCurrency(rentalSummary.totalRevenue)}
+            </div>
+            <div className="text-xs text-pink-600 font-semibold mt-0.5">
+              {rentalSummary.totalHours} {rentalSummary.totalHours === 1 ? 'hora contratada' : 'horas contratadas'}
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico de Barras por Ítem de Equipamiento */}
+        <div className="p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+              Recaudación y Demanda por Tipo de Equipamiento
+            </span>
+            <span className="text-xs text-slate-500">
+              Porcentaje sobre caja de arriendos ({formatCurrency(rentalSummary.totalRevenue)})
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {rentalSummary.byItem.map((item) => {
+              const pct =
+                rentalSummary.totalRevenue > 0
+                  ? Math.round((item.amount / rentalSummary.totalRevenue) * 100)
+                  : 0;
+
+              return (
+                <div key={item.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold text-slate-800">
+                      {item.label}{' '}
+                      <span className="text-xs font-normal text-slate-500">
+                        ({item.count} {item.count === 1 ? 'arriendo' : 'arriendos'} · {item.units}{' '}
+                        {item.units === 1 ? 'ud.' : 'uds.'})
+                      </span>
+                    </span>
+                    <span className="font-mono font-semibold text-blue-950">
+                      {formatCurrency(item.amount)} ({pct}%)
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-100 border border-slate-300 rounded-none overflow-hidden">
+                    <div
+                      className={`h-full ${item.color} transition-all duration-300`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
