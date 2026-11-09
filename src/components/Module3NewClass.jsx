@@ -16,8 +16,16 @@ import {
   Phone,
   Mail,
   ShieldAlert,
+  Calendar,
+  Plus,
+  Layers,
 } from 'lucide-react';
-import { useSurfSchool } from '../context/SurfSchoolContext';
+import {
+  useSurfSchool,
+  getTodayIsoDate,
+  addDaysToIsoDate,
+  formatIsoToDisplayDate,
+} from '../context/SurfSchoolContext';
 import {
   calculateStudentSubtotal,
   formatCurrency,
@@ -33,6 +41,7 @@ const PAYMENT_OPTIONS = [
 ];
 
 const QUICK_BLOCKS = ['09:00', '10:30', '12:00', '15:00', '16:30'];
+const MAX_COURSE_PACK_SESSIONS = 8;
 
 /**
  * Normaliza un número de teléfono para usar en https://wa.me/<numero>
@@ -58,6 +67,8 @@ export default function Module3NewClass() {
     virtualQueue,
     dailyClasses,
     addDailyClass,
+    addCoursePackClasses,
+    assignInstructorToClass,
     removeDailyClass,
     getSuggestedInstructorForSlot,
     sunsetTime,
@@ -72,9 +83,12 @@ export default function Module3NewClass() {
   const [discount, setDiscount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Transferencia');
 
-  // Paso 3: Asignación y Agenda (Duración fija automática +1h 15m = 75 min)
+  // Paso 3: Asignación y Agenda (Duración fija automática +1h 15m = 75 min) — Sesión Principal (#1)
   const [startTime, setStartTime] = useState('10:30');
   const endTime = useMemo(() => addMinutesToTime(startTime, 75), [startTime]);
+
+  // Sesiones futuras adicionales cuando category === 'curso' (Sesiones #2..#8)
+  const [extraCourseSessions, setExtraCourseSessions] = useState([]);
 
   // Validación de seguridad contra la hora del ocaso
   const exceedsSunset = useMemo(() => {
@@ -109,7 +123,7 @@ export default function Module3NewClass() {
   const numericDiscount = Math.max(0, Number(discount) || 0);
   const finalTotal = Math.max(0, subtotal - numericDiscount);
 
-  // Sugerencia inteligente desde la Fila Virtual
+  // Sugerencia inteligente desde la Fila Virtual para la Sesión #1
   const suggestionInfo = useMemo(() => {
     return getSuggestedInstructorForSlot(startTime, endTime);
   }, [startTime, endTime, virtualQueue, dailyClasses]);
@@ -137,6 +151,50 @@ export default function Module3NewClass() {
     }
   };
 
+  const handleCategorySelect = (nextCategory) => {
+    setCategory(nextCategory);
+    if (nextCategory === 'curso' && extraCourseSessions.length === 0) {
+      const todayIso = getTodayIsoDate();
+      setExtraCourseSessions([
+        {
+          tempId: `ses-${Date.now()}-2`,
+          operationDate: addDaysToIsoDate(todayIso, 1),
+          startTime: startTime || '10:30',
+          instructorId: '', // Por definir (nullable en Supabase)
+        },
+      ]);
+    }
+  };
+
+  // Agregar nueva sesión futura al Curso Pack (hasta 8 sesiones en total incluyendo la Sesión #1)
+  const handleAddFutureCourseSession = () => {
+    if (1 + extraCourseSessions.length >= MAX_COURSE_PACK_SESSIONS) return;
+    const baseDate =
+      extraCourseSessions.length > 0
+        ? extraCourseSessions[extraCourseSessions.length - 1].operationDate
+        : getTodayIsoDate();
+
+    setExtraCourseSessions((prev) => [
+      ...prev,
+      {
+        tempId: `ses-${Date.now()}-${prev.length + 2}`,
+        operationDate: addDaysToIsoDate(baseDate, 1),
+        startTime: startTime || '10:30',
+        instructorId: '', // Opcional / Por definir (status = 'pending_instructor')
+      },
+    ]);
+  };
+
+  const handleUpdateFutureSession = (tempId, field, value) => {
+    setExtraCourseSessions((prev) =>
+      prev.map((s) => (s.tempId === tempId ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const handleRemoveFutureSession = (tempId) => {
+    setExtraCourseSessions((prev) => prev.filter((s) => s.tempId !== tempId));
+  };
+
   const handleInstructorChange = (e) => {
     const newId = e.target.value;
     setSelectedInstructorId(newId);
@@ -158,13 +216,28 @@ export default function Module3NewClass() {
     const cleanPhone = normalizeWhatsAppPhone(classData.studentPhone);
     const formattedNumber = Math.round(Number(classData.total) || 0).toLocaleString('es-CL');
 
-    const mensajeConfirmacion = [
+    const lines = [
       '🏄‍♂️ *Confirmación de Clase - Poisson Surf School*',
       `👤 Alumno: ${classData.studentName}`,
       `📅 Horario: ${classData.startTime} - ${classData.endTime}`,
       `👨‍🏫 Instructor: ${classData.instructorName}`,
       `💰 Total a pagar: $${formattedNumber}`,
-    ].join('\n');
+    ];
+
+    if (Array.isArray(classData.scheduledSessions) && classData.scheduledSessions.length > 1) {
+      lines.push(
+        `📚 Sesiones agendadas del Curso (${classData.scheduledSessions.length}/${MAX_COURSE_PACK_SESSIONS}):`
+      );
+      classData.scheduledSessions.forEach((s, idx) => {
+        const instObj = instructors.find((i) => i.id === s.instructorId);
+        const instLabel = instObj ? instObj.name : 'Por definir';
+        lines.push(
+          `  • Sesión #${idx + 1}: ${s.date} (${s.startTime}–${s.endTime}) · Inst: ${instLabel}`
+        );
+      });
+    }
+
+    const mensajeConfirmacion = lines.join('\n');
 
     const baseUrl = cleanPhone
       ? `https://wa.me/${cleanPhone}?text=`
@@ -181,46 +254,104 @@ export default function Module3NewClass() {
     const wasSuggested =
       suggestionInfo.suggestedInstructor?.id === selectedInstructorId && !isManualOverride;
 
-    const created = addDailyClass({
-      modality,
-      pax: effectivePax,
-      category,
-      subtotal,
-      discount: numericDiscount,
-      paymentMethod,
-      finalTotal,
-      startTime,
-      endTime,
-      instructorId: selectedInstructorId,
-      wasSuggestedByQueue: wasSuggested,
-      studentName: studentName.trim() || 'Alumno',
-      studentPhone: studentPhone.trim(),
-      studentEmail: studentEmail.trim(),
-      emergencyContactName: emergencyContactName.trim(),
-      emergencyContactPhone: emergencyContactPhone.trim(),
-    });
+    const assignedInst = instructors.find((i) => i.id === selectedInstructorId);
 
-    const assignedInst = instructors.find((i) => i.id === created.instructorId);
+    if (category === 'curso') {
+      const todayIso = getTodayIsoDate();
+      const courseGroupId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `cg-${Date.now()}`;
 
-    const savedPayload = {
-      studentName: created.studentName,
-      studentPhone: created.studentPhone,
-      studentEmail: created.studentEmail,
-      emergencyContactName: created.emergencyContactName,
-      emergencyContactPhone: created.emergencyContactPhone,
-      instructorName: assignedInst?.name || 'Instructor',
-      startTime: created.startTime,
-      endTime: created.endTime,
-      total: created.finalTotal,
-      method: created.paymentMethod,
-    };
+      // Sesión #1 (Hoy, carga el valor total a Caja) + Sesiones #2..N ($0 a Caja, marcadas como pagadas)
+      const allSessionsPayload = [
+        {
+          operationDate: todayIso,
+          startTime,
+          endTime,
+          instructorId: selectedInstructorId,
+          wasSuggestedByQueue: wasSuggested,
+          status: 'scheduled',
+        },
+        ...extraCourseSessions.map((s) => ({
+          operationDate: s.operationDate || todayIso,
+          startTime: s.startTime || '10:30',
+          endTime: addMinutesToTime(s.startTime || '10:30', 75),
+          instructorId: s.instructorId || null,
+          wasSuggestedByQueue: false,
+          status: s.instructorId ? 'scheduled' : 'pending_instructor',
+        })),
+      ];
 
-    setLastSavedClass(savedPayload);
+      const createdSessions = addCoursePackClasses({
+        courseGroupId,
+        modality,
+        pax: effectivePax,
+        subtotal,
+        discount: numericDiscount,
+        paymentMethod,
+        studentName: studentName.trim() || 'Alumno',
+        studentPhone: studentPhone.trim(),
+        studentEmail: studentEmail.trim(),
+        emergencyContactName: emergencyContactName.trim(),
+        emergencyContactPhone: emergencyContactPhone.trim(),
+        sessions: allSessionsPayload,
+      });
+
+      const firstCreated = createdSessions[0];
+      setLastSavedClass({
+        studentName: firstCreated.studentName,
+        studentPhone: firstCreated.studentPhone,
+        studentEmail: firstCreated.studentEmail,
+        emergencyContactName: firstCreated.emergencyContactName,
+        emergencyContactPhone: firstCreated.emergencyContactPhone,
+        instructorName: assignedInst?.name || 'Instructor',
+        startTime: firstCreated.startTime,
+        endTime: firstCreated.endTime,
+        total: firstCreated.finalTotal,
+        method: firstCreated.paymentMethod,
+        courseGroupId,
+        scheduledSessions: createdSessions,
+      });
+    } else {
+      const created = addDailyClass({
+        modality,
+        pax: effectivePax,
+        category,
+        subtotal,
+        discount: numericDiscount,
+        paymentMethod,
+        finalTotal,
+        startTime,
+        endTime,
+        instructorId: selectedInstructorId,
+        wasSuggestedByQueue: wasSuggested,
+        studentName: studentName.trim() || 'Alumno',
+        studentPhone: studentPhone.trim(),
+        studentEmail: studentEmail.trim(),
+        emergencyContactName: emergencyContactName.trim(),
+        emergencyContactPhone: emergencyContactPhone.trim(),
+      });
+
+      setLastSavedClass({
+        studentName: created.studentName,
+        studentPhone: created.studentPhone,
+        studentEmail: created.studentEmail,
+        emergencyContactName: created.emergencyContactName,
+        emergencyContactPhone: created.emergencyContactPhone,
+        instructorName: assignedInst?.name || 'Instructor',
+        startTime: created.startTime,
+        endTime: created.endTime,
+        total: created.finalTotal,
+        method: created.paymentMethod,
+      });
+    }
 
     // Reiniciar el formulario tras guardar
     setModality('individual');
     setPax(2);
     setCategory('unica');
+    setExtraCourseSessions([]);
     setDiscount('');
     setPaymentMethod('Transferencia');
     setStudentName('');
@@ -232,6 +363,8 @@ export default function Module3NewClass() {
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const totalPlannedSessions = category === 'curso' ? 1 + extraCourseSessions.length : 1;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -257,8 +390,17 @@ export default function Module3NewClass() {
               <Check className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-base font-bold text-blue-950 uppercase tracking-wide">
-                Clase Registrada Exitosamente
+              <div className="text-base font-bold text-blue-950 uppercase tracking-wide flex flex-wrap items-center gap-2">
+                <span>
+                  {lastSavedClass.scheduledSessions?.length > 1
+                    ? `Curso Pack Agendado (${lastSavedClass.scheduledSessions.length} sesiones)`
+                    : 'Clase Registrada Exitosamente'}
+                </span>
+                {lastSavedClass.courseGroupId && (
+                  <span className="px-2 py-0.5 text-[10px] font-mono bg-blue-950 text-sky-300">
+                    GRUPO #{String(lastSavedClass.courseGroupId).slice(0, 8)}
+                  </span>
+                )}
               </div>
               <div className="text-sm text-slate-700 mt-0.5">
                 Alumno: <strong className="text-blue-950">{lastSavedClass.studentName}</strong>{' '}
@@ -267,12 +409,12 @@ export default function Module3NewClass() {
                     ({lastSavedClass.studentPhone})
                   </span>
                 )}{' '}
-                · Horario:{' '}
+                · Horario Sesión #1:{' '}
                 <strong className="font-mono">
                   {lastSavedClass.startTime} - {lastSavedClass.endTime}
                 </strong>{' '}
                 · Instructor: <strong className="text-blue-950">{lastSavedClass.instructorName}</strong> ·
-                Total: <strong className="font-mono text-pink-600">{formatCurrency(lastSavedClass.total)}</strong>
+                Cargo a Caja: <strong className="font-mono text-pink-600">{formatCurrency(lastSavedClass.total)}</strong>
               </div>
             </div>
           </div>
@@ -402,7 +544,7 @@ export default function Module3NewClass() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setCategory('unica')}
+                  onClick={() => handleCategorySelect('unica')}
                   className={`h-14 px-5 rounded-sm border text-base font-semibold transition flex items-center justify-between cursor-pointer ${
                     category === 'unica'
                       ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
@@ -415,15 +557,15 @@ export default function Module3NewClass() {
 
                 <button
                   type="button"
-                  onClick={() => setCategory('curso')}
+                  onClick={() => handleCategorySelect('curso')}
                   className={`h-14 px-5 rounded-sm border text-base font-semibold transition flex items-center justify-between cursor-pointer ${
                     category === 'curso'
                       ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
                       : 'bg-white text-slate-800 border-slate-300 hover:bg-sky-50'
                   }`}
                 >
-                  <span>Curso</span>
-                  <span className="text-xs font-mono opacity-80">PACK 8 CLASES</span>
+                  <span>Curso Pack</span>
+                  <span className="text-xs font-mono opacity-80">MULTI-SESIÓN (PACK 8)</span>
                 </button>
               </div>
             </div>
@@ -522,7 +664,9 @@ export default function Module3NewClass() {
                   </span>
                 </div>
                 <div className="text-xs text-slate-600 mt-0.5">
-                  Monto neto a registrar en caja de la escuela
+                  {category === 'curso'
+                    ? 'Se carga íntegramente en la Sesión #1; las sesiones futuras quedan con $0 (Pagadas en Pack).'
+                    : 'Monto neto a registrar en caja de la escuela'}
                 </div>
               </div>
               <div className="text-3xl font-mono font-bold text-blue-950">
@@ -533,7 +677,7 @@ export default function Module3NewClass() {
         </section>
 
         {/* ==========================================
-            PASO 3: ASIGNACIÓN Y DATOS DEL ALUMNO
+            PASO 3: ASIGNACIÓN, MULTI-AGENDAMIENTO Y FICHA DEL ALUMNO
         ========================================== */}
         <section className="border border-slate-300 bg-white rounded-none">
           <div className="px-6 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
@@ -547,11 +691,13 @@ export default function Module3NewClass() {
           </div>
 
           <div className="p-6 space-y-6">
-            {/* Horario con cálculo automático +1h 15m */}
+            {/* Horario con cálculo automático +1h 15m (Sesión #1) */}
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <label htmlFor="start-time-input" className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                  Horario de la Clase
+                  {category === 'curso'
+                    ? 'Horario de la Sesión #1 (Hoy · Carga el Pack a Caja)'
+                    : 'Horario de la Clase'}
                 </label>
                 <span className="text-xs font-mono font-semibold text-sky-600">
                   Término automático: +1 hora 15 min
@@ -639,11 +785,13 @@ export default function Module3NewClass() {
               </div>
             </div>
 
-            {/* Asignación de Instructor */}
+            {/* Asignación de Instructor (Sesión #1) */}
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <label htmlFor="instructor-select" className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                  Instructor Asignado
+                  {category === 'curso'
+                    ? 'Instructor Asignado (Sesión #1)'
+                    : 'Instructor Asignado'}
                 </label>
                 {isManualOverride && suggestionInfo.suggestedInstructor && (
                   <button
@@ -714,6 +862,176 @@ export default function Module3NewClass() {
                 </div>
               )}
             </div>
+
+            {/* ============================================================
+                PLANIFICADOR MULTI-SESIÓN CUANDO SE SELECCIONA 'CURSO PACK'
+            ============================================================ */}
+            {category === 'curso' && (
+              <div className="p-5 bg-slate-50 border border-blue-950 border-l-4 border-l-pink-600 rounded-none space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-300">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-950">
+                      <Layers className="w-4 h-4 text-pink-600" />
+                      <span>
+                        Planificador Multi-Agendamiento Curso Pack ({totalPlannedSessions}/
+                        {MAX_COURSE_PACK_SESSIONS} sesiones)
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Todas las sesiones comparten un mismo <code className="font-mono">course_group_id</code>.
+                      Solo la Sesión #1 carga el valor a caja ({formatCurrency(finalTotal)}); las siguientes quedan pagadas ($0) y aceptan instructor opcional (&ldquo;Por definir&rdquo;).
+                    </p>
+                  </div>
+
+                  {totalPlannedSessions < MAX_COURSE_PACK_SESSIONS && (
+                    <button
+                      type="button"
+                      onClick={handleAddFutureCourseSession}
+                      className="h-10 px-3.5 rounded-sm bg-blue-950 hover:bg-blue-900 border-b-2 border-pink-600 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-sky-400" />
+                      Agregar Sesión #{totalPlannedSessions + 1}
+                    </button>
+                  )}
+                </div>
+
+                {/* Resumen fijo de la Sesión #1 */}
+                <div className="p-3 bg-white border border-slate-300 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="px-2 py-0.5 bg-blue-950 text-white font-mono font-bold uppercase">
+                      Sesión #1
+                    </span>
+                    <span className="font-mono font-semibold text-blue-950">
+                      {formatIsoToDisplayDate(getTodayIsoDate())} · {startTime}–{endTime}
+                    </span>
+                    <span className="text-slate-600">
+                      · Inst:{' '}
+                      <strong className="text-blue-950">
+                        {instructors.find((i) => i.id === selectedInstructorId)?.name || 'Asignado'}
+                      </strong>
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-pink-600 text-white font-mono font-bold uppercase self-start sm:self-auto">
+                    Cargo a Caja: {formatCurrency(finalTotal)}
+                  </span>
+                </div>
+
+                {/* Lista dinámica de Sesiones Futuras (#2..#8) */}
+                {extraCourseSessions.length === 0 ? (
+                  <div className="p-4 border border-dashed border-slate-300 bg-white text-center text-xs text-slate-500">
+                    Solo se agendará la Sesión #1 hoy. Haz clic en &ldquo;Agregar Sesión&rdquo; si deseas dejar programadas las próximas fechas del curso en el calendario.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {extraCourseSessions.map((ses, index) => {
+                      const sessionNumber = index + 2;
+                      const sesEndTime = addMinutesToTime(ses.startTime || '10:30', 75);
+                      return (
+                        <div
+                          key={ses.tempId}
+                          className="p-3.5 bg-white border border-slate-300 rounded-none space-y-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 bg-sky-600 text-white text-xs font-mono font-bold uppercase">
+                                Sesión #{sessionNumber}
+                              </span>
+                              <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-400 text-emerald-800 text-[11px] font-mono font-semibold uppercase">
+                                Pagado en Pack ($0 a Caja)
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-500">
+                                status: {ses.instructorId ? 'scheduled' : 'pending_instructor'}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFutureSession(ses.tempId)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-pink-600 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Quitar
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {/* Fecha de la sesión futura */}
+                            <div>
+                              <label className="block text-[11px] font-semibold uppercase text-slate-600 mb-1">
+                                Fecha en Calendario
+                              </label>
+                              <div className="relative">
+                                <Calendar className="w-3.5 h-3.5 text-sky-600 absolute left-3 top-3 pointer-events-none" />
+                                <input
+                                  type="date"
+                                  required
+                                  value={ses.operationDate}
+                                  onChange={(e) =>
+                                    handleUpdateFutureSession(
+                                      ses.tempId,
+                                      'operationDate',
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full h-10 pl-8 pr-2.5 rounded-sm border border-slate-300 bg-white text-xs font-mono font-semibold text-blue-950 focus:border-blue-950 outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Hora de inicio (+75m automático) */}
+                            <div>
+                              <label className="block text-[11px] font-semibold uppercase text-slate-600 mb-1">
+                                Inicio (Término {sesEndTime})
+                              </label>
+                              <input
+                                type="time"
+                                required
+                                value={ses.startTime}
+                                onChange={(e) =>
+                                  handleUpdateFutureSession(
+                                    ses.tempId,
+                                    'startTime',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full h-10 px-3 rounded-sm border border-slate-300 bg-white text-xs font-mono font-semibold text-blue-950 focus:border-blue-950 outline-none"
+                              />
+                            </div>
+
+                            {/* Instructor Opcional / Por definir (nullable) */}
+                            <div>
+                              <label className="block text-[11px] font-semibold uppercase text-slate-600 mb-1">
+                                Instructor (Opcional)
+                              </label>
+                              <select
+                                value={ses.instructorId}
+                                onChange={(e) =>
+                                  handleUpdateFutureSession(
+                                    ses.tempId,
+                                    'instructorId',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full h-10 px-2.5 rounded-sm border border-slate-300 bg-white text-xs font-semibold text-blue-950 focus:border-blue-950 outline-none cursor-pointer"
+                              >
+                                <option value="">
+                                  ⏳ Por definir (Asignar el día de la clase)
+                                </option>
+                                {instructors.map((inst) => (
+                                  <option key={inst.id} value={inst.id}>
+                                    {inst.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Ficha de Datos del Alumno */}
             <div className="pt-4 border-t border-slate-200 space-y-4">
@@ -824,14 +1142,20 @@ export default function Module3NewClass() {
           type="submit"
           className="w-full h-16 px-8 rounded-none bg-blue-950 hover:bg-blue-900 border-b-4 border-pink-600 text-white text-lg font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-3"
         >
-          <span>Guardar Clase ({startTime}–{endTime}) · {formatCurrency(finalTotal)}</span>
+          <span>
+            {category === 'curso'
+              ? `Guardar Curso Pack (${totalPlannedSessions} ${
+                  totalPlannedSessions === 1 ? 'Sesión' : 'Sesiones'
+                }) · Caja: ${formatCurrency(finalTotal)}`
+              : `Guardar Clase (${startTime}–{endTime}) · ${formatCurrency(finalTotal)}`}
+          </span>
         </button>
       </form>
 
-      {/* Tabla Corporativa de Clases Registradas en el Día */}
+      {/* Tabla Corporativa de Clases Registradas en el Día y Sesiones de Curso */}
       <section className="pt-4 space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-700">
-          Registro Operativo del Día ({dailyClasses.length})
+          Registro Operativo del Día y Sesiones de Curso ({dailyClasses.length})
         </h3>
 
         <div className="border border-slate-300 bg-white rounded-none overflow-x-auto">
@@ -843,10 +1167,10 @@ export default function Module3NewClass() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-blue-950 text-white text-xs font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Horario</th>
+                  <th className="py-3 px-4">Fecha / Horario</th>
                   <th className="py-3 px-4">Alumno / Contacto</th>
                   <th className="py-3 px-4">Emergencia</th>
-                  <th className="py-3 px-4">Modalidad</th>
+                  <th className="py-3 px-4">Modalidad / Pack</th>
                   <th className="py-3 px-4">Instructor</th>
                   <th className="py-3 px-4 text-right">Total Caja</th>
                   <th className="py-3 px-3 text-center">Acciones</th>
@@ -855,10 +1179,19 @@ export default function Module3NewClass() {
               <tbody className="divide-y divide-slate-200 text-sm">
                 {dailyClasses.map((cls) => {
                   const inst = instructors.find((i) => i.id === cls.instructorId);
+                  const isPaidPackSession =
+                    cls.isPaidInPack ||
+                    (cls.category === 'curso' && Number(cls.finalTotal) === 0);
+
                   return (
                     <tr key={cls.id} className="even:bg-slate-50/80">
                       <td className="py-3 px-4 font-mono font-semibold text-blue-950 whitespace-nowrap">
-                        {cls.startTime}–{cls.endTime}
+                        <div>{cls.startTime}–{cls.endTime}</div>
+                        {cls.date && (
+                          <div className="text-[11px] font-normal text-slate-500">
+                            {cls.date}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-semibold text-slate-900">{cls.studentName}</div>
@@ -883,18 +1216,52 @@ export default function Module3NewClass() {
                           <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 text-xs">
-                        {cls.modality === 'grupal' ? `Grupal (${cls.pax} pax)` : 'Individual'} ·{' '}
-                        {cls.category === 'curso' ? 'Curso Pack 8' : 'Única'}
+                      <td className="py-3 px-4 text-slate-600 text-xs space-y-1">
+                        <div>
+                          {cls.modality === 'grupal' ? `Grupal (${cls.pax} pax)` : 'Individual'} ·{' '}
+                          {cls.category === 'curso' ? 'Curso Pack 8' : 'Única'}
+                        </div>
+                        {cls.courseGroupId && (
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="px-1.5 py-0.5 bg-blue-950 text-sky-300 text-[10px] font-mono">
+                              Sesión {cls.sessionIndex || 1}/{cls.totalSessions || 8}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              #{String(cls.courseGroupId).slice(0, 6)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-4 font-semibold text-blue-950">
-                        {inst?.name}
+                        {inst ? (
+                          <span>{inst.name}</span>
+                        ) : (
+                          <select
+                            aria-label={`Asignar instructor a ${cls.studentName}`}
+                            value={cls.instructorId || ''}
+                            onChange={(e) => assignInstructorToClass(cls.id, e.target.value)}
+                            className="h-8 px-2 rounded-sm border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-900 outline-none cursor-pointer"
+                          >
+                            <option value="">Por definir</option>
+                            {instructors.map((itemInst) => (
+                              <option key={itemInst.id} value={itemInst.id}>
+                                Asignar: {itemInst.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold text-blue-950">
                         <div>{formatCurrency(cls.finalTotal)}</div>
-                        <div className="text-[11px] font-sans font-normal text-slate-400">
-                          {cls.paymentMethod}
-                        </div>
+                        {isPaidPackSession ? (
+                          <span className="inline-block px-1.5 py-0.5 bg-emerald-50 border border-emerald-400 text-emerald-700 text-[10px] font-mono uppercase">
+                            Pagado en Pack
+                          </span>
+                        ) : (
+                          <div className="text-[11px] font-sans font-normal text-slate-400">
+                            {cls.paymentMethod}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">
@@ -904,7 +1271,7 @@ export default function Module3NewClass() {
                               openStudentWhatsApp({
                                 studentName: cls.studentName,
                                 studentPhone: cls.studentPhone,
-                                instructorName: inst?.name || 'Instructor',
+                                instructorName: inst?.name || 'Por definir',
                                 startTime: cls.startTime,
                                 endTime: cls.endTime,
                                 total: cls.finalTotal,

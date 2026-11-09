@@ -392,6 +392,24 @@ export const getTodayIsoDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+export const formatIsoToDisplayDate = (isoDate) => {
+  if (!isoDate || typeof isoDate !== 'string') return getTodayDateString();
+  if (isoDate.includes('/')) return isoDate;
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return isoDate;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
+export const addDaysToIsoDate = (isoDateStr, daysToAdd = 1) => {
+  const [y, m, d] = (isoDateStr || getTodayIsoDate()).split('-').map(Number);
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  dt.setDate(dt.getDate() + daysToAdd);
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function SurfSchoolProvider({ children }) {
   // 0. Sesión de Supabase Auth e Identidad Corporativa Multitenant (Zero-FOUC desde surfops_school_branding)
   const [session, setSession] = useState(null);
@@ -545,7 +563,10 @@ export function SurfSchoolProvider({ children }) {
       if (Array.isArray(classesRes.data)) {
         const mappedClasses = classesRes.data.map((cls) => ({
           id: cls.id,
-          date: getTodayDateString(),
+          date: formatIsoToDisplayDate(cls.operation_date),
+          operationDate: cls.operation_date || todayIso,
+          courseGroupId: cls.course_group_id || null,
+          status: cls.status || (cls.instructor_id ? 'scheduled' : 'pending_instructor'),
           modality: cls.modality,
           pax: Number(cls.pax),
           category: cls.category,
@@ -555,7 +576,7 @@ export function SurfSchoolProvider({ children }) {
           finalTotal: Number(cls.final_total),
           startTime: String(cls.start_time).slice(0, 5),
           endTime: String(cls.end_time).slice(0, 5),
-          instructorId: cls.instructor_id,
+          instructorId: cls.instructor_id || null,
           wasSuggestedByQueue: Boolean(cls.was_suggested_by_queue),
           studentName: cls.student_name,
           studentPhone: cls.student_phone,
@@ -1031,7 +1052,7 @@ export function SurfSchoolProvider({ children }) {
     };
   };
 
-  // Guardar nueva clase (con cálculo de pago a instructor en background)
+  // Guardar nueva clase única (con cálculo de pago a instructor en background y soporte para course_group_id / status)
   const addDailyClass = (classForm) => {
     const modality = classForm.modality === 'grupal' ? 'grupal' : 'individual';
     const pax = modality === 'grupal' ? Math.max(2, Number(classForm.pax) || 2) : 1;
@@ -1039,13 +1060,21 @@ export function SurfSchoolProvider({ children }) {
     const subtotal = Number(classForm.subtotal) || 0;
     const discount = Math.max(0, Number(classForm.discount) || 0);
     const finalTotal = Math.max(0, subtotal - discount);
+    const instructorId = classForm.instructorId || null;
+    const operationDate = classForm.operationDate || getTodayIsoDate();
+    const courseGroupId = classForm.courseGroupId || null;
+    const status =
+      classForm.status || (instructorId ? 'scheduled' : 'pending_instructor');
 
     // Background Math: calcula cuánto gana el instructor según SchoolConfig vigente al momento del registro
-    const instructorPay = calculateInstructorPayment(schoolConfig, {
-      modality,
-      pax,
-      category,
-    });
+    // Si instructor_id es null ("Por definir"), instructorPay queda en 0 hasta que se asigne el día de la clase
+    const instructorPay = instructorId
+      ? calculateInstructorPayment(schoolConfig, {
+          modality,
+          pax,
+          category,
+        })
+      : 0;
 
     const classId =
       typeof crypto !== 'undefined' && crypto.randomUUID
@@ -1054,7 +1083,13 @@ export function SurfSchoolProvider({ children }) {
 
     const newClassRecord = {
       id: classId,
-      date: classForm.date || getTodayDateString(),
+      date: classForm.date || formatIsoToDisplayDate(operationDate),
+      operationDate,
+      courseGroupId,
+      status,
+      sessionIndex: classForm.sessionIndex || 1,
+      totalSessions: classForm.totalSessions || 1,
+      isPaidInPack: Boolean(classForm.isPaidInPack),
       modality,
       pax,
       category,
@@ -1064,7 +1099,7 @@ export function SurfSchoolProvider({ children }) {
       finalTotal,
       startTime: classForm.startTime,
       endTime: classForm.endTime,
-      instructorId: classForm.instructorId,
+      instructorId,
       wasSuggestedByQueue: Boolean(classForm.wasSuggestedByQueue),
       studentName: classForm.studentName?.trim() || 'Alumno',
       studentPhone: classForm.studentPhone?.trim() || '',
@@ -1075,9 +1110,13 @@ export function SurfSchoolProvider({ children }) {
     };
 
     setDailyClasses((prev) =>
-      [...prev, newClassRecord].sort(
-        (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
-      )
+      [...prev, newClassRecord].sort((a, b) => {
+        const dateCmp = String(a.operationDate || '').localeCompare(
+          String(b.operationDate || '')
+        );
+        if (dateCmp !== 0) return dateCmp;
+        return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+      })
     );
 
     if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
@@ -1087,7 +1126,9 @@ export function SurfSchoolProvider({ children }) {
           id: classId,
           school_id: schoolBranding.schoolId,
           instructor_id: newClassRecord.instructorId,
-          operation_date: getTodayIsoDate(),
+          course_group_id: newClassRecord.courseGroupId,
+          status: newClassRecord.status,
+          operation_date: newClassRecord.operationDate,
           modality: newClassRecord.modality,
           pax: newClassRecord.pax,
           category: newClassRecord.category,
@@ -1109,6 +1150,187 @@ export function SurfSchoolProvider({ children }) {
     }
 
     return newClassRecord;
+  };
+
+  // Multi-agendamiento de Curso Pack: agrupa N sesiones mediante course_group_id,
+  // carga el valor total únicamente en la Sesión #1 y marca las sesiones #2..N como pagadas ($0 a caja)
+  // soportando instructor_id nullable ("Por definir") y status ('scheduled' | 'pending_instructor')
+  const addCoursePackClasses = (packPayload) => {
+    const modality = packPayload.modality === 'grupal' ? 'grupal' : 'individual';
+    const pax =
+      modality === 'grupal' ? Math.max(2, Number(packPayload.pax) || 2) : 1;
+    const packSubtotal = Number(packPayload.subtotal) || 0;
+    const packDiscount = Math.max(0, Number(packPayload.discount) || 0);
+    const packFinalTotal = Math.max(0, packSubtotal - packDiscount);
+    const paymentMethod = packPayload.paymentMethod || 'Transferencia';
+
+    const courseGroupId =
+      packPayload.courseGroupId ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `cg-${Date.now()}`);
+
+    const rawSessions =
+      Array.isArray(packPayload.sessions) && packPayload.sessions.length > 0
+        ? packPayload.sessions
+        : [
+            {
+              operationDate: getTodayIsoDate(),
+              startTime: packPayload.startTime || '09:00',
+              endTime: packPayload.endTime || '10:15',
+              instructorId: packPayload.instructorId || null,
+              wasSuggestedByQueue: Boolean(packPayload.wasSuggestedByQueue),
+            },
+          ];
+
+    const totalSessions = rawSessions.length;
+
+    const createdRecords = rawSessions.map((sessionItem, idx) => {
+      const isFirstSession = idx === 0;
+      const instructorId = sessionItem.instructorId || null;
+      const operationDate = sessionItem.operationDate || getTodayIsoDate();
+      const startTime = sessionItem.startTime || '09:00';
+      const endTime =
+        sessionItem.endTime || addMinutesToTime(startTime, 75);
+      const status =
+        sessionItem.status ||
+        (instructorId ? 'scheduled' : 'pending_instructor');
+
+      // Regla financiera estricta: SOLO la primera sesión carga el valor del pack a caja;
+      // las sesiones posteriores (2..N) quedan con $0 en caja (marcadas como pagadas en el pack)
+      const sessionSubtotal = isFirstSession ? packSubtotal : 0;
+      const sessionDiscount = isFirstSession ? packDiscount : 0;
+      const sessionFinalTotal = isFirstSession ? packFinalTotal : 0;
+
+      // Pago de instructor por sesión individual de curso (si ya tiene instructor asignado)
+      const instructorPay = instructorId
+        ? calculateInstructorPayment(schoolConfig, {
+            modality,
+            pax,
+            category: 'curso',
+          })
+        : 0;
+
+      const classId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `cls-${Date.now()}-${idx}`;
+
+      return {
+        id: classId,
+        date: formatIsoToDisplayDate(operationDate),
+        operationDate,
+        courseGroupId,
+        status,
+        sessionIndex: idx + 1,
+        totalSessions,
+        isPaidInPack: !isFirstSession,
+        modality,
+        pax,
+        category: 'curso',
+        subtotal: sessionSubtotal,
+        discount: sessionDiscount,
+        paymentMethod: isFirstSession
+          ? paymentMethod
+          : `Pagado en Pack (${paymentMethod})`,
+        finalTotal: sessionFinalTotal,
+        startTime,
+        endTime,
+        instructorId,
+        wasSuggestedByQueue: Boolean(sessionItem.wasSuggestedByQueue),
+        studentName: packPayload.studentName?.trim() || 'Alumno',
+        studentPhone: packPayload.studentPhone?.trim() || '',
+        studentEmail: packPayload.studentEmail?.trim() || '',
+        emergencyContactName: packPayload.emergencyContactName?.trim() || '',
+        emergencyContactPhone: packPayload.emergencyContactPhone?.trim() || '',
+        instructorPay,
+      };
+    });
+
+    setDailyClasses((prev) =>
+      [...prev, ...createdRecords].sort((a, b) => {
+        const dateCmp = String(a.operationDate || '').localeCompare(
+          String(b.operationDate || '')
+        );
+        if (dateCmp !== 0) return dateCmp;
+        return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+      })
+    );
+
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      const dbRows = createdRecords.map((rec) => ({
+        id: rec.id,
+        school_id: schoolBranding.schoolId,
+        instructor_id: rec.instructorId,
+        course_group_id: rec.courseGroupId,
+        status: rec.status,
+        operation_date: rec.operationDate,
+        modality: rec.modality,
+        pax: rec.pax,
+        category: rec.category,
+        subtotal: rec.subtotal,
+        discount: rec.discount,
+        payment_method: rec.paymentMethod,
+        final_total: rec.finalTotal,
+        instructor_pay: rec.instructorPay,
+        start_time: rec.startTime,
+        end_time: rec.endTime,
+        was_suggested_by_queue: rec.wasSuggestedByQueue,
+        student_name: rec.studentName,
+        student_phone: rec.studentPhone,
+        student_email: rec.studentEmail,
+        emergency_contact_name: rec.emergencyContactName,
+        emergency_contact_phone: rec.emergencyContactPhone,
+      }));
+
+      supabase
+        .from('surf_classes')
+        .insert(dbRows)
+        .then(() => {});
+    }
+
+    return createdRecords;
+  };
+
+  // Asignar o cambiar el instructor de una sesión agendada ("Por definir" -> instructor activo)
+  const assignInstructorToClass = (classId, instructorId) => {
+    const normalizedInstructorId = instructorId || null;
+
+    setDailyClasses((prev) =>
+      prev.map((cls) => {
+        if (cls.id !== classId) return cls;
+        const nextStatus = normalizedInstructorId
+          ? 'scheduled'
+          : 'pending_instructor';
+        const nextInstructorPay = normalizedInstructorId
+          ? calculateInstructorPayment(schoolConfig, {
+              modality: cls.modality,
+              pax: cls.pax,
+              category: cls.category,
+            })
+          : 0;
+
+        if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+          supabase
+            .from('surf_classes')
+            .update({
+              instructor_id: normalizedInstructorId,
+              status: nextStatus,
+              instructor_pay: nextInstructorPay,
+            })
+            .eq('id', classId)
+            .eq('school_id', schoolBranding.schoolId)
+            .then(() => {});
+        }
+
+        return {
+          ...cls,
+          instructorId: normalizedInstructorId,
+          status: nextStatus,
+          instructorPay: nextInstructorPay,
+        };
+      })
+    );
   };
 
   const removeDailyClass = (classId) => {
@@ -1177,6 +1399,8 @@ export function SurfSchoolProvider({ children }) {
     checkOutInstructor,
     dailyClasses,
     addDailyClass,
+    addCoursePackClasses,
+    assignInstructorToClass,
     removeDailyClass,
     getSuggestedInstructorForSlot,
     resetDayEmpty,
