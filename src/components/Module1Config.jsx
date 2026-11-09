@@ -10,6 +10,8 @@ import {
   DEFAULT_POISSON_BRANDING,
 } from '../lib/supabaseClient';
 import { formatCurrency } from '../utils/calculations';
+import ModuleHeader from './ui/ModuleHeader';
+import BauhausArt from './ui/BauhausArt';
 
 const ADMIN_PIN = '0000';
 
@@ -176,83 +178,82 @@ export default function Module1Config() {
   // Pantalla de bloqueo por PIN si aún no se ha desbloqueado
   if (!isUnlocked) {
     return (
-      <div className="max-w-md mx-auto my-12">
-        <div className="border border-slate-300 bg-white rounded-none">
-          <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-pink-500 inline-block" />
-              <h2 className="text-xs font-semibold uppercase tracking-wider">
-                Acceso Restringido · Configuración
-              </h2>
-            </div>
-            <Lock className="w-4 h-4 text-sky-400" />
-          </div>
-
-          <form onSubmit={handleUnlockSubmit} className="p-6 space-y-5">
+      <div className="ed-stack py-6 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+          <div className="lg:col-span-7 space-y-8">
             <div>
-              <h1 className="text-lg font-bold text-blue-950">
-                Ingresa el PIN de Administrador
+              <span className="ed-eyebrow">Acceso Restringido · Módulo 01</span>
+              <h1 className="ed-display mt-4">
+                Configuración <span className="text-signal-blue">protegida.</span>
               </h1>
-              <p className="text-xs text-slate-500 mt-1">
-                Este módulo modifica los precios de venta, las tarifas de pago al staff y los valores de arriendo de equipamiento.
+              <p className="ed-body ed-measure mt-4">
+                Este módulo modifica la identidad visual de la escuela, los precios de venta a clientes, las tarifas de nómina del staff y los arriendos. Ingresa el PIN maestro para continuar.
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor="admin-pin-input"
-                className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
-              >
-                PIN de Seguridad (4 dígitos)
-              </label>
-              <input
-                id="admin-pin-input"
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                autoFocus
-                required
-                placeholder="••••"
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  if (pinError) setPinError(false);
-                }}
-                className="w-full h-14 px-4 rounded-sm border border-slate-300 bg-slate-50 text-center text-2xl font-mono font-bold tracking-[0.5em] text-blue-950 focus:bg-white focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
-              />
+            <div className="ed-card max-w-md">
+              <form onSubmit={handleUnlockSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="admin-pin-input" className="ed-label">
+                    PIN de Seguridad (4 dígitos)
+                  </label>
+                  <input
+                    id="admin-pin-input"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    autoFocus
+                    required
+                    placeholder="••••"
+                    value={pinInput}
+                    onChange={(e) => {
+                      setPinInput(e.target.value);
+                      if (pinError) setPinError(false);
+                    }}
+                    className="ed-input text-center text-heading-xs tracking-[0.4em] ed-num"
+                  />
+                  <p className="ed-help">PIN predeterminado en demostración: 0000</p>
+                </div>
+
+                {pinError && (
+                  <div className="ed-notice ed-notice-alert">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <span>PIN incorrecto. Inténtalo nuevamente.</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="ed-btn ed-btn-block"
+                >
+                  <Unlock className="w-4 h-4 mr-2 text-signal-blue" />
+                  <span>Desbloquear Configuración</span>
+                </button>
+              </form>
             </div>
+          </div>
 
-            {pinError && (
-              <div className="p-3 border border-pink-600 bg-pink-50 text-xs font-semibold text-pink-700 flex items-center gap-2 rounded-none">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>PIN incorrecto. Inténtalo nuevamente.</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="w-full h-12 px-6 rounded-none bg-blue-950 hover:bg-blue-900 border-b-2 border-pink-600 text-white text-xs font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Unlock className="w-4 h-4 text-sky-400" />
-              Desbloquear Configuración
-            </button>
-          </form>
+          <div className="lg:col-span-5 flex justify-center">
+            <BauhausArt variant="config" className="w-full max-w-[380px] aspect-square" />
+          </div>
         </div>
       </div>
     );
   }
 
   const renderField = (label, description, field) => (
-    <div className="py-4 px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 last:border-b-0 bg-white">
-      <div className="space-y-0.5 max-w-xl">
-        <label htmlFor={field} className="block text-base font-semibold text-blue-950">
+    <div className="py-6 border-b border-midnight-ink/15 last:border-b-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="space-y-1 max-w-xl">
+        <label htmlFor={field} className="block font-bold text-caption text-midnight-ink">
           {label}
         </label>
-        <p className="text-sm text-slate-500">{description}</p>
+        <p className="ed-caption ed-muted">
+          {description}
+        </p>
       </div>
 
       <div className="relative w-full md:w-64 shrink-0">
-        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-semibold text-slate-400 select-none">
+        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center font-bold text-caption text-midnight-ink select-none">
           $
         </span>
         <input
@@ -262,9 +263,9 @@ export default function Module1Config() {
           step="500"
           value={formData[field]}
           onChange={(e) => handleNumberChange(field, e.target.value)}
-          className="w-full h-12 pl-8 pr-24 rounded-sm border border-slate-300 bg-white text-base font-semibold text-blue-950 tabular-nums focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+          className="ed-input pl-8 pr-28 text-right ed-num"
         />
-        <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-medium text-sky-600 font-mono pointer-events-none">
+        <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center font-bold text-caption text-signal-blue ed-num pointer-events-none">
           {formatCurrency(formData[field])}
         </span>
       </div>
@@ -272,66 +273,57 @@ export default function Module1Config() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="ed-stack">
       {/* Cabecera de Módulo */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-slate-300">
-        <div>
-          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600">
-            <span className="w-2 h-2 bg-pink-600 inline-block" />
-            Módulo 01 · Parámetros Financieros y Equipamiento
-          </span>
-          <h1 className="text-2xl font-bold text-blue-950 mt-1">
-            Configuración de Precios y Tarifas
-          </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Define los valores de cobro en recepción, las tarifas de liquidación para los instructores y el tarifario por hora de arriendos.
-          </p>
-        </div>
+      <ModuleHeader
+        eyebrow="Módulo 01 · Parámetros Financieros y Equipamiento"
+        title="Configuración de Precios"
+        accent="y Tarifas"
+        description="Ajusta la identidad corporativa de la escuela, los precios de venta a clientes, las tarifas de liquidación por clase para instructores y el arriendo de equipos."
+        art="config"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="ed-btn"
+            >
+              <RotateCcw className="w-4 h-4 mr-1 text-signal-blue" />
+              Restaurar Valores Base
+            </button>
+            <button
+              type="button"
+              onClick={handleLockPanel}
+              className="ed-btn"
+              title="Bloquear panel con PIN"
+            >
+              <Lock className="w-4 h-4 mr-1 text-signal-blue" />
+              Bloquear Panel
+            </button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2 self-start md:self-auto">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-sm border border-slate-300 bg-white hover:bg-sky-50 text-blue-950 text-sm font-medium transition cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4 text-sky-600" />
-            Restaurar Valores Base
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLockPanel}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-sm border border-slate-300 bg-white hover:bg-pink-50 text-slate-700 hover:text-pink-600 text-sm font-medium transition cursor-pointer"
-            title="Bloquear panel con PIN"
-          >
-            <Lock className="w-4 h-4 text-pink-600" />
-            Bloquear
-          </button>
-        </div>
-      </div>
-
-      <form onSubmit={handleSave} className="space-y-8">
+      <form onSubmit={handleSave} className="space-y-12">
         {/* Bloque Identidad de la Escuela y Tema Visual */}
-        <section className="border border-slate-300 rounded-none bg-white">
-          <div className="px-6 py-4 bg-[var(--brand-primary,#172554)] text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-[var(--brand-accent,#db2777)] inline-block" />
-              <Palette className="w-4 h-4 text-sky-400" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider">
-                Identidad de la Escuela y Tema Visual
+        <section className="ed-card space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-midnight-ink">
+            <div>
+              <span className="ed-eyebrow">Personalización Multitenant</span>
+              <h2 className="ed-h2 mt-1 flex items-center gap-2">
+                <Palette className="w-6 h-6 text-signal-blue" />
+                <span>Identidad de la Escuela y Tema Visual</span>
               </h2>
             </div>
-            <span className="text-xs font-mono text-sky-300">
-              public.schools · surfops_school_branding
-            </span>
+            <span className="ed-tag">public.schools</span>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             {/* School ID (Solo lectura) */}
-            <div className="space-y-1.5">
+            <div>
               <label
                 htmlFor="school-id-readonly"
-                className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+                className="ed-label"
               >
                 School ID (UUID · Solo Lectura)
               </label>
@@ -340,18 +332,18 @@ export default function Module1Config() {
                 type="text"
                 readOnly
                 value={brandingForm.schoolId}
-                className="w-full h-11 px-4 rounded-sm border border-slate-300 bg-slate-100 text-xs font-mono font-semibold text-slate-600 cursor-not-allowed outline-none"
+                className="ed-input opacity-60 cursor-not-allowed ed-num"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Nombre de la Escuela (displayName) */}
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="md:col-span-2">
                 <label
                   htmlFor="school-display-name"
-                  className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+                  className="ed-label"
                 >
-                  Nombre de la Escuela (displayName)
+                  Nombre Comercial de la Escuela
                 </label>
                 <input
                   id="school-display-name"
@@ -369,17 +361,17 @@ export default function Module1Config() {
                     setSaved(false);
                   }}
                   placeholder="Ej. POISSON"
-                  className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-base font-bold uppercase text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                  className="ed-input font-bold uppercase"
                 />
               </div>
 
               {/* Inicial / Monograma (monogram) */}
-              <div className="space-y-1.5">
+              <div>
                 <label
                   htmlFor="school-monogram"
-                  className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+                  className="ed-label"
                 >
-                  Monograma (monogram)
+                  Monograma (Glifo)
                 </label>
                 <input
                   id="school-monogram"
@@ -394,23 +386,23 @@ export default function Module1Config() {
                     setSaved(false);
                   }}
                   placeholder="P"
-                  className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-center text-base font-bold uppercase text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                  className="ed-input text-center font-display font-bold text-subheading uppercase"
                 />
               </div>
             </div>
 
             {/* Selector de las 4 Paletas de SCHOOL_THEME_PRESETS */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-blue-950">
-                  Selector de Tema Visual (SCHOOL_THEME_PRESETS)
+            <div className="space-y-4 pt-4 border-t border-midnight-ink/15">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="ed-eyebrow">
+                  Paleta de Identidad (Glifo y Presets)
                 </span>
-                <span className="text-xs text-slate-500">
-                  Elige una de las 4 paletas corporativas
+                <span className="ed-caption ed-muted">
+                  Se refleja en el monograma del riel lateral y sincroniza con Supabase
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {Object.values(SCHOOL_THEME_PRESETS).map((preset) => {
                   const isSelected =
                     brandingForm.themeId === preset.id ||
@@ -421,32 +413,38 @@ export default function Module1Config() {
                       key={preset.id}
                       type="button"
                       onClick={() => handleThemeSelect(preset)}
-                      className={`p-3.5 border text-left rounded-none transition cursor-pointer flex items-center justify-between gap-3 ${
+                      className={`p-5 border text-left transition cursor-pointer flex items-center justify-between gap-4 ${
                         isSelected
-                          ? 'border-blue-950 bg-sky-50/70 ring-1 ring-blue-950'
-                          : 'border-slate-300 bg-white hover:bg-slate-50'
+                          ? 'border-2 border-signal-blue bg-cream-paper'
+                          : 'border-midnight-ink bg-cream-paper hover:bg-midnight-ink/5'
                       }`}
                     >
                       <div className="space-y-1">
-                        <div className="text-xs font-bold text-blue-950">
-                          {preset.name}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-caption text-midnight-ink">
+                            {preset.name}
+                          </span>
+                          {isSelected && (
+                            <span className="ed-tag ed-tag-blue">
+                              Activa
+                            </span>
+                          )}
                         </div>
-                        <div className="text-[11px] font-mono text-slate-500">
-                          {preset.palette.primary} · {preset.palette.secondary} ·{' '}
-                          {preset.palette.accent}
+                        <div className="ed-caption ed-muted ed-num">
+                          {preset.palette.primary} · {preset.palette.secondary}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className="w-5 h-5 border border-slate-300 inline-block"
+                          className="w-6 h-6 border border-midnight-ink inline-block"
                           style={{ backgroundColor: preset.palette.primary }}
                         />
                         <span
-                          className="w-5 h-5 border border-slate-300 inline-block"
+                          className="w-6 h-6 border border-midnight-ink inline-block"
                           style={{ backgroundColor: preset.palette.secondary }}
                         />
                         <span
-                          className="w-5 h-5 border border-slate-300 inline-block"
+                          className="w-6 h-6 border border-midnight-ink inline-block"
                           style={{ backgroundColor: preset.palette.accent }}
                         />
                       </div>
@@ -459,142 +457,131 @@ export default function Module1Config() {
         </section>
 
         {/* Bloque A: Precios de Venta */}
-        <section className="border border-slate-300 rounded-none bg-white">
-          <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-sky-400 inline-block" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider">
-                A. Precios de Venta al Alumno (Ingresos Caja)
-              </h2>
-            </div>
-            <span className="text-xs font-mono text-sky-300">SchoolConfig.Sales</span>
+        <section className="ed-card space-y-6">
+          <div className="pb-4 border-b border-midnight-ink">
+            <span className="ed-eyebrow">Matriz de Cobro en Caja</span>
+            <h2 className="ed-h2 mt-1">
+              A. Precios de Venta al Alumno
+            </h2>
           </div>
 
           <div>
             {renderField(
               'Precio Clase Individual (1 pax)',
-              'Tarifa estándar por una sesión individual única.',
+              'Tarifa estándar por una sesión individual única de 1 alumno.',
               'priceIndividual'
             )}
             {renderField(
               'Precio Clase Grupal (Base 2 pax)',
-              'Tarifa base para un grupo de 2 personas.',
+              'Tarifa base cobrada para una clase de 2 alumnos.',
               'priceGroupBase'
             )}
             {renderField(
               'Adicional por alumno extra en grupo',
-              'Monto que se suma por cada integrante extra sobre 2 personas.',
+              'Monto añadido por cada participante adicional a partir del 3er alumno.',
               'priceGroupExtraPax'
             )}
             {renderField(
               'Precio Curso Completo (Pack 8 clases)',
-              'Valor comercial del programa formativo completo de 8 sesiones.',
+              'Tarifa del programa de 8 clases (solo cobra en caja la 1ra sesión).',
               'priceCoursePack8'
             )}
           </div>
         </section>
 
         {/* Bloque B: Tarifas de Instructor */}
-        <section className="border border-slate-300 rounded-none bg-white">
-          <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-pink-500 inline-block" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider">
-                B. Tarifas de Pago a Instructores (Nómina Staff)
-              </h2>
-            </div>
-            <span className="text-xs font-mono text-pink-300">SchoolConfig.Rates</span>
+        <section className="ed-card space-y-6">
+          <div className="pb-4 border-b border-midnight-ink">
+            <span className="ed-eyebrow">Nómina y Liquidación de Staff</span>
+            <h2 className="ed-h2 mt-1">
+              B. Tarifas de Pago a Instructores
+            </h2>
           </div>
 
           <div>
             {renderField(
               'Pago por Clase Individual',
-              'Honorario del instructor por dictar 1 clase individual.',
+              'Honorario asignado al instructor por impartir 1 clase individual.',
               'payIndividual'
             )}
             {renderField(
               'Pago por Clase Grupal (Base 2 pax)',
-              'Honorario base del instructor por una clase grupal de 2 alumnos.',
+              'Honorario base asignado por impartir una clase grupal de 2 alumnos.',
               'payGroupBase'
             )}
             {renderField(
               'Bono por alumno extra sobre 2 pax',
-              'Adicional pagado al instructor por cada alumno extra en el grupo.',
+              'Compensación adicional por cada alumno adicional en el grupo.',
               'payGroupExtraPax'
             )}
             {renderField(
               'Pago por 1 clase de Curso',
-              'Honorario del instructor por cada sesión perteneciente a un Curso (Pack 8).',
+              'Honorario asignado al instructor por cada sesión impartida de un Curso Pack 8.',
               'payCourseSingleClass'
             )}
           </div>
         </section>
 
         {/* Bloque C: Tarifas de Arriendo (Equipamiento) */}
-        <section className="border border-slate-300 rounded-none bg-white">
-          <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-sky-400 inline-block" />
-              <Shield className="w-4 h-4 text-pink-400" />
-              <h2 className="text-sm font-semibold uppercase tracking-wider">
-                C. Tarifas de Arriendo (Equipamiento)
-              </h2>
-            </div>
-            <span className="text-xs font-mono text-sky-300">surfops_rental_rates</span>
+        <section className="ed-card space-y-6">
+          <div className="pb-4 border-b border-midnight-ink">
+            <span className="ed-eyebrow">Equipamiento Operativo</span>
+            <h2 className="ed-h2 mt-1 flex items-center gap-2">
+              <Shield className="w-6 h-6 text-signal-blue" />
+              <span>C. Tarifas de Arriendo por Hora</span>
+            </h2>
           </div>
 
-          <div className="divide-y divide-slate-200">
+          <div className="divide-y divide-midnight-ink/15">
             {rentalRatesForm.map((item) => (
               <div
                 key={item.id}
-                className={`py-4 px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition ${
-                  item.enabled ? 'bg-white' : 'bg-slate-50/80'
+                className={`py-6 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-4 transition ${
+                  item.enabled ? '' : 'opacity-50'
                 }`}
               >
                 <div className="space-y-1 max-w-xl">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-base font-semibold text-blue-950">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-bold text-caption text-midnight-ink">
                       {item.label}
                     </span>
-                    <span className="px-2 py-0.5 text-[11px] font-mono font-semibold bg-slate-100 border border-slate-300 text-slate-600 rounded-none">
+                    <span className="ed-tag font-normal">
                       {item.id}
                     </span>
                     <span
-                      className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-none ${
-                        item.enabled
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-400'
-                          : 'bg-slate-200 text-slate-600 border border-slate-300'
+                      className={`ed-tag ${
+                        item.enabled ? 'ed-tag-blue' : 'ed-muted'
                       }`}
                     >
                       {item.enabled ? 'Habilitado' : 'Deshabilitado'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Precio base cobrado por cada hora de arriendo en el Módulo 05.
+                  <p className="ed-caption ed-muted">
+                    Tarifa aplicada por cada hora de uso en el Módulo 05.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
-                  {/* Switch / Checkbox de estado Habilitado / Deshabilitado */}
+                  {/* Checkbox plano para Habilitar/Deshabilitar */}
                   <label
                     htmlFor={`toggle-${item.id}`}
-                    className="inline-flex items-center gap-2.5 cursor-pointer select-none px-3 py-2 border border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-sm"
+                    className="inline-flex items-center gap-2.5 cursor-pointer select-none px-4 py-3 border border-midnight-ink bg-cream-paper"
                   >
                     <input
                       id={`toggle-${item.id}`}
                       type="checkbox"
                       checked={Boolean(item.enabled)}
                       onChange={() => handleRentalRateToggle(item.id)}
-                      className="w-4 h-4 accent-pink-600 rounded-none cursor-pointer"
+                      className="w-4 h-4 accent-midnight-ink cursor-pointer"
                     />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-blue-950">
-                      {item.enabled ? 'Habilitado' : 'Deshabilitado'}
+                    <span className="font-bold text-caption text-midnight-ink">
+                      {item.enabled ? 'En Servicio' : 'Pausado'}
                     </span>
                   </label>
 
-                  {/* Input Precio por Hora (CLP) */}
+                  {/* Input Precio por Hora */}
                   <div className="relative w-full sm:w-64">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-semibold text-slate-400 select-none">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center font-bold text-caption text-midnight-ink select-none">
                       $
                     </span>
                     <input
@@ -608,13 +595,9 @@ export default function Module1Config() {
                         handleRentalRatePriceChange(item.id, e.target.value)
                       }
                       aria-label={`Precio por Hora para ${item.label}`}
-                      className={`w-full h-12 pl-8 pr-28 rounded-sm border border-slate-300 text-base font-semibold tabular-nums outline-none transition ${
-                        item.enabled
-                          ? 'bg-white text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      }`}
+                      className="ed-input pl-8 pr-28 text-right ed-num"
                     />
-                    <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-medium text-sky-600 font-mono pointer-events-none">
+                    <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center font-bold text-caption text-signal-blue ed-num pointer-events-none">
                       {formatCurrency(item.pricePerHour)} / hr
                     </span>
                   </div>
@@ -625,16 +608,16 @@ export default function Module1Config() {
         </section>
 
         {/* Barra de acción */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-4">
+        <div className="pt-4 flex flex-col sm:flex-row items-center justify-end gap-6">
           {saved && (
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-950 bg-sky-50 px-4 py-2.5 border border-sky-400 border-l-4 border-l-pink-600 rounded-none">
-              <Check className="w-4 h-4 text-pink-600" />
-              Parámetros y tarifas de arriendo guardados
-            </span>
+            <div className="ed-notice ed-notice-blue">
+              <Check className="w-5 h-5 text-signal-blue shrink-0" />
+              <span>Parámetros, identidad y tarifas guardados exitosamente.</span>
+            </div>
           )}
           <button
             type="submit"
-            className="w-full sm:w-auto h-12 px-8 rounded-sm bg-blue-950 hover:bg-blue-900 border-b-2 border-pink-600 text-white text-sm font-semibold uppercase tracking-wider transition cursor-pointer"
+            className="ed-btn px-10 py-4 text-body"
           >
             Guardar Configuración
           </button>

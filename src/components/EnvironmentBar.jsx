@@ -104,7 +104,6 @@ export default function EnvironmentBar() {
         const cached = localStorage.getItem(tidesCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
-          // Verifica que el caché ya esté en datum NRS del SHOA y tenga los hitos completos del día local
           const isValidNRSCache =
             Array.isArray(parsed) &&
             parsed.length >= 3 &&
@@ -122,7 +121,6 @@ export default function EnvironmentBar() {
       if (!apiKey) return FALLBACK_TIDES;
 
       try {
-        // Construir inicio y fin del día local (Chile) convertidos a UTC para no cortar la pleamar nocturna (>21:00 hrs)
         const now = new Date();
         const localStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
         const localEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
@@ -147,7 +145,6 @@ export default function EnvironmentBar() {
           return formatted;
         }
       } catch {
-        // Si se alcanza la cuota diaria gratuita de Stormglass, guardar y retornar los hitos NRS del día
         try {
           localStorage.setItem(tidesCacheKey, JSON.stringify(FALLBACK_TIDES));
         } catch {
@@ -267,59 +264,65 @@ export default function EnvironmentBar() {
   }, [setSunsetTime]);
 
   return (
-    <div className="w-full bg-slate-50 border-y border-slate-200 rounded-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-sm font-medium tabular-nums text-slate-800">
+    <div className="w-full bg-cream-paper border-b border-midnight-ink font-usual">
+      <div className="ed-page py-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-caption">
         {loading ? (
-          <span className="text-slate-500 animate-pulse">
-            Cargando condiciones de mareas, oleaje, viento y luz del día...
+          <span className="ed-caption ed-muted">
+            Sincronizando condiciones oceanográficas (SHOA, Open-Meteo)...
           </span>
         ) : (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 w-full justify-between">
             {/* Bloque 1: Mareas */}
-            <div className="flex flex-wrap items-center gap-x-2">
-              <span className="font-bold text-slate-900">🌊 Mareas:</span>
+            <div className="flex flex-wrap items-center gap-x-3">
+              <span className="font-bold text-signal-blue uppercase tracking-[0.05em]">
+                Mareas SHOA:
+              </span>
               {tides.map((t, idx) => (
-                <span key={`${t.type}-${t.time}-${idx}`} className="inline-flex items-center gap-1">
-                  <span>{t.type === 'high' ? '🔵' : '📉'}</span>
-                  <span className="text-slate-900 font-semibold">{t.time}</span>
-                  <span className="text-slate-500">({t.height}m)</span>
+                <span key={`${t.type}-${t.time}-${idx}`} className="inline-flex items-center gap-1.5 ed-num">
+                  <span className="font-bold text-midnight-ink">
+                    {t.type === 'high' ? 'Pleamar' : 'Bajamar'}
+                  </span>
+                  <span className="text-midnight-ink">{t.time}</span>
+                  <span className="ed-muted">({t.height}m)</span>
                 </span>
               ))}
             </div>
 
-            <span className="text-slate-300 select-none" aria-hidden="true">
-              |
-            </span>
+            {/* Separador e información meteorológica */}
+            <div className="flex flex-wrap items-center gap-x-5">
+              {/* Bloque 2: Oleaje */}
+              <div className="inline-flex items-center gap-1.5 ed-num">
+                <span className="font-bold text-signal-blue uppercase tracking-[0.05em]">
+                  Oleaje:
+                </span>
+                <span className="font-bold text-midnight-ink">{swell.waveHeight}m</span>
+                <span className="ed-muted">({swell.wavePeriod}s)</span>
+              </div>
 
-            {/* Bloque 2: Oleaje */}
-            <div className="inline-flex items-center gap-1.5">
-              <span className="font-bold text-slate-900">🏄‍♂️ Oleaje:</span>
-              <span className="text-slate-900 font-semibold">{swell.waveHeight}m</span>
-              <span className="text-slate-500">({swell.wavePeriod}s)</span>
-            </div>
+              <span className="text-midnight-ink/30 select-none" aria-hidden="true">•</span>
 
-            <span className="text-slate-300 select-none" aria-hidden="true">
-              |
-            </span>
+              {/* Bloque 3: Viento */}
+              <div className="inline-flex items-center gap-1.5 ed-num">
+                <span className="font-bold text-signal-blue uppercase tracking-[0.05em]">
+                  Viento:
+                </span>
+                <span className="font-bold text-midnight-ink">
+                  {swell.windSpeedKts} kts
+                </span>
+                <span className="ed-muted">{swell.windDirectionLabel}</span>
+              </div>
 
-            {/* Bloque 3: Viento */}
-            <div className="inline-flex items-center gap-1.5">
-              <span className="font-bold text-slate-900">💨 Viento:</span>
-              <span className="text-slate-900 font-semibold">
-                {swell.windSpeedKts}kts {swell.windDirectionLabel}
-              </span>
-            </div>
+              <span className="text-midnight-ink/30 select-none" aria-hidden="true">•</span>
 
-            <span className="text-slate-300 select-none" aria-hidden="true">
-              |
-            </span>
-
-            {/* Bloque 4: Luz (Amanecer y Ocaso) */}
-            <div className="inline-flex items-center gap-1.5">
-              <span className="font-bold text-slate-900">☀️ Luz:</span>
-              <span className="text-slate-900 font-semibold">
-                {sun.sunrise} - {sun.sunset} hrs
-              </span>
+              {/* Bloque 4: Luz Solar */}
+              <div className="inline-flex items-center gap-1.5 ed-num">
+                <span className="font-bold text-signal-blue uppercase tracking-[0.05em]">
+                  Luz Solar:
+                </span>
+                <span className="font-bold text-midnight-ink">
+                  {sun.sunrise} a {sun.sunset} hrs
+                </span>
+              </div>
             </div>
           </div>
         )}

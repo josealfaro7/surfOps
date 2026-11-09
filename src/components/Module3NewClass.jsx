@@ -33,6 +33,7 @@ import {
   addMinutesToTime,
   timeToMinutes,
 } from '../utils/calculations';
+import ModuleHeader from './ui/ModuleHeader';
 
 const PAYMENT_OPTIONS = [
   { id: 'Transferencia', label: 'Transferencia', icon: Smartphone },
@@ -43,11 +44,6 @@ const PAYMENT_OPTIONS = [
 const QUICK_BLOCKS = ['09:00', '10:30', '12:00', '15:00', '16:30'];
 const MAX_COURSE_PACK_SESSIONS = 8;
 
-/**
- * Normaliza un número de teléfono para usar en https://wa.me/<numero>
- * Elimina espacios, guiones y signos '+'. Si tiene 9 dígitos (ej. 987654321), antepone 56.
- * Si tiene 8 dígitos (ej. 87654321), antepone 569.
- */
 function normalizeWhatsAppPhone(rawPhone) {
   const digits = String(rawPhone || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -166,7 +162,6 @@ export default function Module3NewClass() {
     }
   };
 
-  // Agregar nueva sesión futura al Curso Pack (hasta 8 sesiones en total incluyendo la Sesión #1)
   const handleAddFutureCourseSession = () => {
     if (1 + extraCourseSessions.length >= MAX_COURSE_PACK_SESSIONS) return;
     const baseDate =
@@ -180,7 +175,7 @@ export default function Module3NewClass() {
         tempId: `ses-${Date.now()}-${prev.length + 2}`,
         operationDate: addDaysToIsoDate(baseDate, 1),
         startTime: startTime || '10:30',
-        instructorId: '', // Opcional / Por definir (status = 'pending_instructor')
+        instructorId: '',
       },
     ]);
   };
@@ -209,7 +204,6 @@ export default function Module3NewClass() {
     }
   };
 
-  // Abre wa.me/<telefono_alumno>?text=<mensaje>
   const openStudentWhatsApp = (classData) => {
     if (!classData) return;
 
@@ -217,16 +211,16 @@ export default function Module3NewClass() {
     const formattedNumber = Math.round(Number(classData.total) || 0).toLocaleString('es-CL');
 
     const lines = [
-      '🏄‍♂️ *Confirmación de Clase - Poisson Surf School*',
-      `👤 Alumno: ${classData.studentName}`,
-      `📅 Horario: ${classData.startTime} - ${classData.endTime}`,
-      `👨‍🏫 Instructor: ${classData.instructorName}`,
-      `💰 Total a pagar: $${formattedNumber}`,
+      '*Confirmación de Clase - Poisson Surf School*',
+      `Alumno: ${classData.studentName}`,
+      `Horario: ${classData.startTime} - ${classData.endTime}`,
+      `Instructor: ${classData.instructorName}`,
+      `Total a pagar: $${formattedNumber}`,
     ];
 
     if (Array.isArray(classData.scheduledSessions) && classData.scheduledSessions.length > 1) {
       lines.push(
-        `📚 Sesiones agendadas del Curso (${classData.scheduledSessions.length}/${MAX_COURSE_PACK_SESSIONS}):`
+        `Sesiones agendadas del Curso (${classData.scheduledSessions.length}/${MAX_COURSE_PACK_SESSIONS}):`
       );
       classData.scheduledSessions.forEach((s, idx) => {
         const instObj = instructors.find((i) => i.id === s.instructorId);
@@ -263,7 +257,6 @@ export default function Module3NewClass() {
           ? crypto.randomUUID()
           : `cg-${Date.now()}`;
 
-      // Sesión #1 (Hoy, carga el valor total a Caja) + Sesiones #2..N ($0 a Caja, marcadas como pagadas)
       const allSessionsPayload = [
         {
           operationDate: todayIso,
@@ -347,7 +340,6 @@ export default function Module3NewClass() {
       });
     }
 
-    // Reiniciar el formulario tras guardar
     setModality('individual');
     setPax(2);
     setCategory('unica');
@@ -367,148 +359,136 @@ export default function Module3NewClass() {
   const totalPlannedSessions = category === 'curso' ? 1 + extraCourseSessions.length : 1;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      {/* Cabecera */}
-      <div className="pb-5 border-b border-slate-300">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600">
-          <span className="w-2 h-2 bg-pink-600 inline-block" />
-          Módulo 03 · Registro Operativo
-        </span>
-        <h1 className="text-2xl font-bold text-blue-950 mt-1">
-          Ingreso de Nueva Clase
-        </h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Flujo secuencial de registro. El término (+1h 15m) y la tarifa del instructor se calculan automáticamente.
-        </p>
-      </div>
+    <div className="ed-stack">
+      {/* Cabecera Two-Column Feature con BauhausArt */}
+      <ModuleHeader
+        eyebrow="Módulo 03 · Registro Operativo"
+        title="Ingreso de"
+        accent="Clases"
+        description="Flujo de registro para recepción: duración fija (+1h 15m), sugerencia inteligente de instructor por fila virtual y soporte para packs multi-sesión."
+        art="newclass"
+      />
 
-      {/* SUCCESS BANNER CON BOTÓN DE CONFIRMACIÓN POR WHATSAPP AL NÚMERO DEL ALUMNO */}
+      {/* Banner de confirmación con acción WhatsApp */}
       {lastSavedClass && (
-        <div className="p-5 bg-emerald-50/90 border-2 border-pink-600 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-8 h-8 bg-pink-600 text-white flex items-center justify-center shrink-0 rounded-none mt-0.5">
-              <Check className="w-5 h-5" />
+        <div className="ed-card border-2 border-midnight-ink flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 bg-midnight-ink text-cream-paper flex items-center justify-center shrink-0">
+              <Check className="w-6 h-6 text-signal-blue" />
             </div>
             <div>
-              <div className="text-base font-bold text-blue-950 uppercase tracking-wide flex flex-wrap items-center gap-2">
-                <span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-display font-bold text-subheading text-midnight-ink">
                   {lastSavedClass.scheduledSessions?.length > 1
                     ? `Curso Pack Agendado (${lastSavedClass.scheduledSessions.length} sesiones)`
                     : 'Clase Registrada Exitosamente'}
                 </span>
                 {lastSavedClass.courseGroupId && (
-                  <span className="px-2 py-0.5 text-[10px] font-mono bg-blue-950 text-sky-300">
-                    GRUPO #{String(lastSavedClass.courseGroupId).slice(0, 8)}
+                  <span className="ed-tag ed-tag-blue">
+                    Grupo #{String(lastSavedClass.courseGroupId).slice(0, 8)}
                   </span>
                 )}
               </div>
-              <div className="text-sm text-slate-700 mt-0.5">
-                Alumno: <strong className="text-blue-950">{lastSavedClass.studentName}</strong>{' '}
+              <div className="ed-body ed-muted mt-2">
+                Alumno: <strong className="text-midnight-ink">{lastSavedClass.studentName}</strong>{' '}
                 {lastSavedClass.studentPhone && (
-                  <span className="font-mono text-xs text-slate-600">
-                    ({lastSavedClass.studentPhone})
-                  </span>
+                  <span className="ed-num">({lastSavedClass.studentPhone})</span>
                 )}{' '}
-                · Horario Sesión #1:{' '}
-                <strong className="font-mono">
-                  {lastSavedClass.startTime} - {lastSavedClass.endTime}
+                · Horario:{' '}
+                <strong className="text-midnight-ink ed-num">
+                  {lastSavedClass.startTime}–{lastSavedClass.endTime}
                 </strong>{' '}
-                · Instructor: <strong className="text-blue-950">{lastSavedClass.instructorName}</strong> ·
-                Cargo a Caja: <strong className="font-mono text-pink-600">{formatCurrency(lastSavedClass.total)}</strong>
+                · Instructor: <strong className="text-signal-blue">{lastSavedClass.instructorName}</strong> ·
+                Total Caja: <strong className="text-midnight-ink ed-num">{formatCurrency(lastSavedClass.total)}</strong>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
               onClick={() => openStudentWhatsApp(lastSavedClass)}
-              className="h-11 px-5 rounded-none bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 cursor-pointer"
+              className="ed-btn ed-btn-active"
             >
-              <MessageSquare className="w-4 h-4" />
-              Enviar Confirmación por WhatsApp
+              <MessageSquare className="w-4 h-4 mr-2 text-signal-blue" />
+              <span>Confirmar vía WhatsApp</span>
             </button>
-
             <button
               type="button"
               onClick={() => setLastSavedClass(null)}
-              className="h-11 w-11 border border-slate-300 bg-white hover:bg-slate-100 text-slate-500 flex items-center justify-center rounded-none transition cursor-pointer"
-              title="Cerrar alerta"
+              className="p-2 cursor-pointer hover:text-signal-blue"
+              title="Cerrar aviso"
             >
-              <X className="w-4 h-4" />
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
       )}
 
-      {/* FORMULARIO VERTICAL ESTRICTO (1 Sola Columna Central) */}
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* ==========================================
-            PASO 1: NATURALEZA DE LA CLASE
-        ========================================== */}
-        <section className="border border-slate-300 bg-white rounded-none">
-          <div className="px-6 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-pink-500 inline-block" />
-              <span className="text-xs font-semibold uppercase tracking-wider">
+      {/* FORMULARIO SECUENCIAL */}
+      <form onSubmit={handleSubmit} className="space-y-12">
+        {/* PASO 1: NATURALEZA DE LA CLASE */}
+        <section className="ed-card space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-midnight-ink">
+            <div>
+              <span className="ed-eyebrow">Modalidad y Formato</span>
+              <h2 className="ed-h2 mt-1">
                 Paso 01 · Naturaleza de la Clase
-              </span>
+              </h2>
             </div>
-            <span className="text-xs font-mono text-sky-300">Modalidad & Categoría</span>
+            <span className="font-display font-bold text-heading-xs text-signal-blue ed-num">
+              01
+            </span>
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Modalidad: Individual o Grupal */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                1. Modalidad
+          <div className="space-y-6">
+            {/* Modalidad */}
+            <div>
+              <label className="ed-label">
+                Modalidad del Servicio
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => handleModalitySelect('individual')}
-                  className={`h-14 px-5 rounded-sm border text-base font-semibold transition flex items-center justify-between cursor-pointer ${
-                    modality === 'individual'
-                      ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
-                      : 'bg-white text-slate-800 border-slate-300 hover:bg-sky-50'
+                  className={`ed-btn justify-between h-14 ${
+                    modality === 'individual' ? 'ed-btn-active' : ''
                   }`}
                 >
-                  <span className="flex items-center gap-2.5">
-                    <User className={`w-5 h-5 ${modality === 'individual' ? 'text-sky-400' : 'text-slate-500'}`} />
-                    Individual
+                  <span className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-signal-blue" />
+                    <span>Individual</span>
                   </span>
-                  <span className="text-xs font-mono opacity-80">1 PAX</span>
+                  <span className="ed-tag font-normal">1 Alumno</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleModalitySelect('grupal')}
-                  className={`h-14 px-5 rounded-sm border text-base font-semibold transition flex items-center justify-between cursor-pointer ${
-                    modality === 'grupal'
-                      ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
-                      : 'bg-white text-slate-800 border-slate-300 hover:bg-sky-50'
+                  className={`ed-btn justify-between h-14 ${
+                    modality === 'grupal' ? 'ed-btn-active' : ''
                   }`}
                 >
-                  <span className="flex items-center gap-2.5">
-                    <Users className={`w-5 h-5 ${modality === 'grupal' ? 'text-sky-400' : 'text-slate-500'}`} />
-                    Grupal
+                  <span className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-signal-blue" />
+                    <span>Grupal</span>
                   </span>
-                  <span className="text-xs font-mono opacity-80">2+ PAX</span>
+                  <span className="ed-tag font-normal">2+ Alumnos</span>
                 </button>
               </div>
             </div>
 
-            {/* Cantidad de Personas si es Grupal */}
+            {/* Cantidad de personas si es grupal */}
             {modality === 'grupal' && (
-              <div className="p-4 bg-slate-50 border border-slate-300 rounded-none space-y-2">
-                <label htmlFor="pax-input" className="block text-sm font-semibold text-blue-950">
-                  Cantidad de Personas en el Grupo (Mínimo 2)
+              <div className="p-6 border border-midnight-ink bg-cream-paper space-y-3">
+                <label htmlFor="pax-input" className="ed-label">
+                  Integrantes del Grupo (Mínimo 2)
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 max-w-xs">
                   <button
                     type="button"
                     onClick={() => setPax((p) => Math.max(2, Number(p) - 1))}
-                    className="h-12 w-14 rounded-sm border border-slate-300 bg-white hover:bg-sky-50 text-lg font-bold text-blue-950 transition cursor-pointer"
+                    className="ed-btn ed-btn-sm h-12 w-14 text-subheading"
                   >
                     −
                   </button>
@@ -519,97 +499,90 @@ export default function Module3NewClass() {
                     max="25"
                     value={pax}
                     onChange={(e) => setPax(Math.max(2, Number(e.target.value) || 2))}
-                    className="flex-1 h-12 px-4 rounded-sm border border-slate-300 bg-white text-center text-lg font-semibold text-blue-950 focus:border-blue-950 outline-none"
+                    className="ed-input text-center text-subheading ed-num font-bold"
                   />
                   <button
                     type="button"
                     onClick={() => setPax((p) => Number(p) + 1)}
-                    className="h-12 w-14 rounded-sm border border-slate-300 bg-white hover:bg-sky-50 text-lg font-bold text-blue-950 transition cursor-pointer"
+                    className="ed-btn ed-btn-sm h-12 w-14 text-subheading"
                   >
                     +
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Base 2 personas ({formatCurrency(schoolConfig.priceGroupBase)}) +{' '}
-                  {formatCurrency(schoolConfig.priceGroupExtraPax)} por persona adicional.
+                <p className="ed-caption ed-muted ed-num">
+                  Base 2 personas: {formatCurrency(schoolConfig.priceGroupBase)} +{' '}
+                  {formatCurrency(schoolConfig.priceGroupExtraPax)} por alumno adicional.
                 </p>
               </div>
             )}
 
-            {/* Categoría: Clase Única o Curso (Pack de 8) */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                2. Categoría
+            {/* Categoría: Clase Única o Curso Pack */}
+            <div>
+              <label className="ed-label">
+                Tipo de Contratación
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => handleCategorySelect('unica')}
-                  className={`h-14 px-5 rounded-sm border text-base font-semibold transition flex items-center justify-between cursor-pointer ${
-                    category === 'unica'
-                      ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
-                      : 'bg-white text-slate-800 border-slate-300 hover:bg-sky-50'
+                  className={`ed-btn justify-between h-14 ${
+                    category === 'unica' ? 'ed-btn-active' : ''
                   }`}
                 >
                   <span>Clase Única</span>
-                  <span className="text-xs font-mono opacity-80">1 SESIÓN</span>
+                  <span className="ed-tag font-normal">1 Sesión</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleCategorySelect('curso')}
-                  className={`h-14 px-5 rounded-sm border text-base font-semibold transition flex items-center justify-between cursor-pointer ${
-                    category === 'curso'
-                      ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
-                      : 'bg-white text-slate-800 border-slate-300 hover:bg-sky-50'
+                  className={`ed-btn justify-between h-14 ${
+                    category === 'curso' ? 'ed-btn-active' : ''
                   }`}
                 >
                   <span>Curso Pack</span>
-                  <span className="text-xs font-mono opacity-80">MULTI-SESIÓN (PACK 8)</span>
+                  <span className="ed-tag font-normal">Pack de 8 Clases</span>
                 </button>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ==========================================
-            PASO 2: FINANZAS Y COBRO
-        ========================================== */}
-        <section className="border border-slate-300 bg-white rounded-none">
-          <div className="px-6 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-sky-400 inline-block" />
-              <span className="text-xs font-semibold uppercase tracking-wider">
+        {/* PASO 2: FINANZAS Y COBRO */}
+        <section className="ed-card space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-midnight-ink">
+            <div>
+              <span className="ed-eyebrow">Tarifación y Pago</span>
+              <h2 className="ed-h2 mt-1">
                 Paso 02 · Finanzas y Cobro
-              </span>
+              </h2>
             </div>
-            <span className="text-xs font-mono text-sky-300">Cálculo de Caja</span>
+            <span className="font-display font-bold text-heading-xs text-signal-blue ed-num">
+              02
+            </span>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             {/* Subtotal Automático */}
-            <div className="p-4 bg-slate-50 border border-slate-300 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-6 border border-midnight-ink bg-cream-paper flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                  Subtotal Automático
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Según tarifas vigentes ({category === 'curso' ? 'Curso Pack 8' : 'Clase Única'} ·{' '}
-                  {modality === 'grupal' ? `${effectivePax} personas` : '1 persona'})
+                <span className="ed-eyebrow">Tarifa Base del Sistema</span>
+                <div className="ed-caption ed-muted mt-1">
+                  {category === 'curso' ? 'Programa Curso Pack 8' : 'Clase Única'} ({modality === 'grupal' ? `${effectivePax} personas` : '1 persona'})
                 </div>
               </div>
-              <div className="text-2xl font-mono font-bold text-blue-950">
+              <div className="font-display font-bold text-heading-xs text-midnight-ink ed-num">
                 {formatCurrency(subtotal)}
               </div>
             </div>
 
             {/* Descuento Manual */}
-            <div className="space-y-1.5">
-              <label htmlFor="discount-input" className="block text-sm font-semibold text-blue-950">
-                Descuento Manual (Opcional)
+            <div>
+              <label htmlFor="discount-input" className="ed-label">
+                Descuento Manual en Pesos (Opcional)
               </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-sm font-semibold text-slate-400 select-none">
+              <div className="relative max-w-sm">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center font-bold text-caption text-midnight-ink select-none">
                   −$
                 </span>
                 <input
@@ -621,17 +594,17 @@ export default function Module3NewClass() {
                   placeholder="0"
                   value={discount}
                   onChange={(e) => setDiscount(e.target.value)}
-                  className="w-full h-12 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-base font-semibold text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
+                  className="ed-input pl-10 ed-num"
                 />
               </div>
             </div>
 
-            {/* Selector de Medio de Pago Cuadrado */}
-            <div className="space-y-2">
-              <span className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                Medio de Pago
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup">
+            {/* Selector de Medio de Pago */}
+            <div>
+              <label className="ed-label">
+                Medio de Pago en Caja
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" role="radiogroup">
                 {PAYMENT_OPTIONS.map((opt) => {
                   const Icon = opt.icon;
                   const isSelected = paymentMethod === opt.id;
@@ -640,13 +613,9 @@ export default function Module3NewClass() {
                       key={opt.id}
                       type="button"
                       onClick={() => setPaymentMethod(opt.id)}
-                      className={`h-14 px-4 rounded-sm border text-sm font-semibold transition flex items-center justify-center gap-2.5 cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
-                          : 'bg-white text-slate-800 border-slate-300 hover:bg-sky-50'
-                      }`}
+                      className={`ed-btn h-14 ${isSelected ? 'ed-btn-active' : ''}`}
                     >
-                      <Icon className={`w-4 h-4 ${isSelected ? 'text-sky-400' : 'text-slate-500'}`} />
+                      <Icon className="w-5 h-5 mr-1 text-signal-blue" />
                       <span>{opt.label}</span>
                     </button>
                   );
@@ -654,57 +623,57 @@ export default function Module3NewClass() {
               </div>
             </div>
 
-            {/* Total Final (Caja) con protagonismo Azul y detalle complementario Pink-600 */}
-            <div className="p-5 bg-sky-50/60 border border-blue-950 border-l-4 border-l-pink-600 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            {/* Total Final en Caja */}
+            <div className="ed-card-ink p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-bold uppercase tracking-wider text-blue-950 flex items-center gap-2">
-                  <span>Total Final (Ingreso a Caja)</span>
-                  <span className="px-2 py-0.5 bg-pink-600 text-white text-[10px] font-mono uppercase">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-caption uppercase text-saffron-yellow tracking-[0.05em]">
+                    Total a Recaudar en Caja
+                  </span>
+                  <span className="ed-tag border-cream-paper text-cream-paper">
                     {paymentMethod}
                   </span>
                 </div>
-                <div className="text-xs text-slate-600 mt-0.5">
+                <div className="ed-caption text-cream-paper/70 mt-1">
                   {category === 'curso'
-                    ? 'Se carga íntegramente en la Sesión #1; las sesiones futuras quedan con $0 (Pagadas en Pack).'
-                    : 'Monto neto a registrar en caja de la escuela'}
+                    ? 'Se carga íntegramente a la Sesión #1. Las próximas 7 sesiones quedan agendadas con costo $0.'
+                    : 'Ingreso directo a caja diaria'}
                 </div>
               </div>
-              <div className="text-3xl font-mono font-bold text-blue-950">
+              <div className="font-display font-bold text-heading-xs text-cream-paper ed-num">
                 {formatCurrency(finalTotal)}
               </div>
             </div>
           </div>
         </section>
 
-        {/* ==========================================
-            PASO 3: ASIGNACIÓN, MULTI-AGENDAMIENTO Y FICHA DEL ALUMNO
-        ========================================== */}
-        <section className="border border-slate-300 bg-white rounded-none">
-          <div className="px-6 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 bg-pink-500 inline-block" />
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                Paso 03 · Asignación, Ficha del Alumno y Emergencia
-              </span>
+        {/* PASO 3: ASIGNACIÓN Y AGENDA */}
+        <section className="ed-card space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-midnight-ink">
+            <div>
+              <span className="ed-eyebrow">Programación y Alumno</span>
+              <h2 className="ed-h2 mt-1">
+                Paso 03 · Asignación, Calendario y Datos de Contacto
+              </h2>
             </div>
-            <span className="text-xs font-mono text-sky-300">Duración fija 1h 15m</span>
+            <span className="font-display font-bold text-heading-xs text-signal-blue ed-num">
+              03
+            </span>
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Horario con cálculo automático +1h 15m (Sesión #1) */}
-            <div className="space-y-3">
+          <div className="space-y-6">
+            {/* Horario y Bloques Rápidos */}
+            <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <label htmlFor="start-time-input" className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                  {category === 'curso'
-                    ? 'Horario de la Sesión #1 (Hoy · Carga el Pack a Caja)'
-                    : 'Horario de la Clase'}
+                <label htmlFor="start-time-input" className="ed-label mb-0">
+                  {category === 'curso' ? 'Horario Sesión #1 (Hoy)' : 'Horario de la Clase'}
                 </label>
-                <span className="text-xs font-mono font-semibold text-sky-600">
-                  Término automático: +1 hora 15 min
+                <span className="ed-caption ed-muted">
+                  Duración fija: 1 hora 15 minutos (+75 min)
                 </span>
               </div>
 
-              {/* Botones rápidos de bloque */}
+              {/* Botones de bloque */}
               <div className="flex flex-wrap items-center gap-2">
                 {QUICK_BLOCKS.map((block) => {
                   const blockEnd = addMinutesToTime(block, 75);
@@ -714,93 +683,70 @@ export default function Module3NewClass() {
                       key={block}
                       type="button"
                       onClick={() => setStartTime(block)}
-                      className={`h-9 px-3 rounded-sm border text-xs font-mono font-semibold transition cursor-pointer ${
-                        isActive
-                          ? 'bg-blue-950 text-white border-blue-950 border-b-2 border-b-pink-600'
-                          : 'bg-white text-slate-700 border-slate-300 hover:bg-sky-50'
-                      }`}
+                      className={`ed-btn ed-btn-sm ${isActive ? 'ed-btn-active' : ''}`}
                     >
-                      {block}–{blockEnd}
+                      {block} a {blockEnd}
                     </button>
                   );
                 })}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-11 items-center gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-11 items-center gap-4 pt-2">
                 <div className="sm:col-span-5">
-                  <span className="block text-xs font-medium text-slate-500 mb-1">
+                  <span className="ed-caption font-bold text-midnight-ink block mb-2">
                     Hora de Inicio
                   </span>
                   <div className="relative">
-                    <Clock className="w-4 h-4 text-sky-500 absolute left-3.5 top-4 pointer-events-none" />
+                    <Clock className="w-5 h-5 text-signal-blue absolute left-3.5 top-3.5 pointer-events-none" />
                     <input
                       id="start-time-input"
                       type="time"
                       required
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full h-12 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-lg font-mono font-semibold text-blue-950 focus:border-blue-950 outline-none"
+                      className="ed-input pl-11 ed-num"
                     />
                   </div>
                 </div>
 
-                <div className="hidden sm:flex sm:col-span-1 items-center justify-center pt-5">
-                  <ArrowRight className="w-5 h-5 text-slate-400" />
+                <div className="hidden sm:flex sm:col-span-1 items-center justify-center pt-6">
+                  <ArrowRight className="w-5 h-5 text-signal-blue" />
                 </div>
 
                 <div className="sm:col-span-5">
-                  <span className="block text-xs font-medium text-slate-500 mb-1">
-                    Hora de Término (Automática +1h 15m)
+                  <span className="ed-caption font-bold text-midnight-ink block mb-2">
+                    Hora de Término (+75m automático)
                   </span>
-                  <div
-                    className={`h-12 px-4 rounded-sm border bg-slate-100 text-blue-950 flex items-center justify-between transition ${
-                      exceedsSunset
-                        ? 'border-2 border-red-600 bg-red-50/40'
-                        : 'border-slate-300'
-                    }`}
-                  >
-                    <span
-                      className={`text-lg font-mono font-bold ${
-                        exceedsSunset ? 'text-red-600' : 'text-blue-950'
-                      }`}
-                    >
+                  <div className="h-12 px-4 border border-midnight-ink bg-cream-paper flex items-center justify-between">
+                    <span className="font-bold text-caption text-midnight-ink ed-num">
                       {endTime} hrs
                     </span>
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-mono uppercase ${
-                        exceedsSunset
-                          ? 'bg-red-600 text-white'
-                          : 'bg-blue-950 text-sky-300'
-                      }`}
-                    >
+                    <span className="ed-tag ed-tag-blue font-bold">
                       +75 MIN
                     </span>
                   </div>
                   {exceedsSunset && (
-                    <p className="mt-1.5 text-xs font-semibold text-red-600">
-                      ⚠️ Advertencia: La clase finalizará después de la última luz del día ({sunsetTime}).
+                    <p className="mt-2 ed-caption font-bold text-ember-red">
+                      Atención: El horario sobrepasa la puesta de sol estimada ({sunsetTime}).
                     </p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Asignación de Instructor (Sesión #1) */}
-            <div className="space-y-2">
+            {/* Asignación de Instructor */}
+            <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <label htmlFor="instructor-select" className="block text-sm font-semibold text-blue-950 uppercase tracking-wide">
-                  {category === 'curso'
-                    ? 'Instructor Asignado (Sesión #1)'
-                    : 'Instructor Asignado'}
+                <label htmlFor="instructor-select" className="ed-label mb-0">
+                  {category === 'curso' ? 'Instructor Sesión #1' : 'Instructor de la Sesión'}
                 </label>
                 {isManualOverride && suggestionInfo.suggestedInstructor && (
                   <button
                     type="button"
                     onClick={handleRestoreSuggestion}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline cursor-pointer"
+                    className="ed-link text-signal-blue"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Restaurar sugerencia de Fila Virtual
+                    Restaurar sugerencia FIFO
                   </button>
                 )}
               </div>
@@ -809,10 +755,10 @@ export default function Module3NewClass() {
                 id="instructor-select"
                 value={selectedInstructorId}
                 onChange={handleInstructorChange}
-                className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-base font-semibold text-blue-950 focus:border-blue-950 outline-none cursor-pointer"
+                className="ed-input"
               >
                 {virtualQueue.length > 0 && (
-                  <optgroup label="Fila Virtual (Orden de llegada)">
+                  <optgroup label="Fila Virtual (Orden de Llegada)">
                     {virtualQueue.map((inst) => {
                       const conflicts = getInstructorConflicts(
                         inst.id,
@@ -823,11 +769,11 @@ export default function Module3NewClass() {
                       const isSuggested = suggestionInfo.suggestedInstructor?.id === inst.id;
                       return (
                         <option key={inst.id} value={inst.id}>
-                          #{inst.queuePosition} {inst.name} (Llegada {inst.checkInTime})
-                          {isSuggested ? ' — SUGERIDO' : ''}
+                          #{inst.queuePosition} {inst.name} (Llegada: {inst.checkInTime})
+                          {isSuggested ? ' — RECOMENDADO POR FILA' : ''}
                           {conflicts.length > 0
                             ? ` [Ocupado ${conflicts[0].startTime}–${conflicts[0].endTime}]`
-                            : ' [Disponible]'}
+                            : ' [Libre]'}
                         </option>
                       );
                     })}
@@ -835,7 +781,7 @@ export default function Module3NewClass() {
                 )}
 
                 {instructors.some((i) => !i.checkedIn) && (
-                  <optgroup label="Sin Check-in hoy (Selección manual)">
+                  <optgroup label="Instructores sin Check-in">
                     {instructors
                       .filter((i) => !i.checkedIn)
                       .map((inst) => (
@@ -847,14 +793,16 @@ export default function Module3NewClass() {
                 )}
               </select>
 
-              <p className="text-xs text-slate-500">{suggestionInfo.reason}</p>
+              <p className="ed-caption ed-muted">
+                {suggestionInfo.reason}
+              </p>
 
               {selectedInstructorConflicts.length > 0 && (
-                <div className="p-3 border border-pink-600 bg-pink-50 text-xs font-medium text-slate-900 flex items-center gap-2 rounded-none">
-                  <AlertTriangle className="w-4 h-4 text-pink-600 shrink-0" />
+                <div className="ed-notice ed-notice-alert">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
                   <span>
-                    Conflicto de horario: este instructor registra una clase entre{' '}
-                    <strong className="font-mono">
+                    Conflicto de horario: Este instructor ya tiene una clase registrada entre{' '}
+                    <strong className="ed-num">
                       {selectedInstructorConflicts[0].startTime}–{selectedInstructorConflicts[0].endTime}
                     </strong>{' '}
                     ({selectedInstructorConflicts[0].studentName}).
@@ -863,23 +811,18 @@ export default function Module3NewClass() {
               )}
             </div>
 
-            {/* ============================================================
-                PLANIFICADOR MULTI-SESIÓN CUANDO SE SELECCIONA 'CURSO PACK'
-            ============================================================ */}
+            {/* PLANIFICADOR MULTI-SESIÓN PARA CURSO PACK */}
             {category === 'curso' && (
-              <div className="p-5 bg-slate-50 border border-blue-950 border-l-4 border-l-pink-600 rounded-none space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-300">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-950">
-                      <Layers className="w-4 h-4 text-pink-600" />
-                      <span>
-                        Planificador Multi-Agendamiento Curso Pack ({totalPlannedSessions}/
-                        {MAX_COURSE_PACK_SESSIONS} sesiones)
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Todas las sesiones comparten un mismo <code className="font-mono">course_group_id</code>.
-                      Solo la Sesión #1 carga el valor a caja ({formatCurrency(finalTotal)}); las siguientes quedan pagadas ($0) y aceptan instructor opcional (&ldquo;Por definir&rdquo;).
+              <div className="p-6 border-2 border-signal-blue bg-cream-paper space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-midnight-ink">
+                  <div>
+                    <span className="ed-eyebrow">Multi-Agendamiento de Curso</span>
+                    <h3 className="ed-h3 mt-1 flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-signal-blue" />
+                      <span>Sesiones Agendadas ({totalPlannedSessions}/{MAX_COURSE_PACK_SESSIONS})</span>
+                    </h3>
+                    <p className="ed-caption ed-muted mt-1">
+                      Solo la Sesión #1 carga el monto total a caja. Las siguientes sesiones quedan con costo $0 (pagadas en pack) y el instructor puede asignarse hoy o dejarse por definir.
                     </p>
                   </div>
 
@@ -887,161 +830,139 @@ export default function Module3NewClass() {
                     <button
                       type="button"
                       onClick={handleAddFutureCourseSession}
-                      className="h-10 px-3.5 rounded-sm bg-blue-950 hover:bg-blue-900 border-b-2 border-pink-600 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                      className="ed-btn ed-btn-sm"
                     >
-                      <Plus className="w-3.5 h-3.5 text-sky-400" />
-                      Agregar Sesión #{totalPlannedSessions + 1}
+                      <Plus className="w-4 h-4 mr-1 text-signal-blue" />
+                      <span>Agregar Sesión #{totalPlannedSessions + 1}</span>
                     </button>
                   )}
                 </div>
 
-                {/* Resumen fijo de la Sesión #1 */}
-                <div className="p-3 bg-white border border-slate-300 rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <span className="px-2 py-0.5 bg-blue-950 text-white font-mono font-bold uppercase">
+                {/* Sesión #1 fija */}
+                <div className="p-4 border border-midnight-ink bg-cream-paper flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="ed-tag ed-tag-ink font-bold">
                       Sesión #1
                     </span>
-                    <span className="font-mono font-semibold text-blue-950">
+                    <span className="ed-num font-bold text-midnight-ink">
                       {formatIsoToDisplayDate(getTodayIsoDate())} · {startTime}–{endTime}
                     </span>
-                    <span className="text-slate-600">
-                      · Inst:{' '}
-                      <strong className="text-blue-950">
-                        {instructors.find((i) => i.id === selectedInstructorId)?.name || 'Asignado'}
-                      </strong>
+                    <span className="ed-muted">
+                      Instructor: <strong className="text-signal-blue">{instructors.find((i) => i.id === selectedInstructorId)?.name || 'Asignado'}</strong>
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 bg-pink-600 text-white font-mono font-bold uppercase self-start sm:self-auto">
+                  <span className="ed-tag ed-tag-blue font-bold ed-num">
                     Cargo a Caja: {formatCurrency(finalTotal)}
                   </span>
                 </div>
 
-                {/* Lista dinámica de Sesiones Futuras (#2..#8) */}
-                {extraCourseSessions.length === 0 ? (
-                  <div className="p-4 border border-dashed border-slate-300 bg-white text-center text-xs text-slate-500">
-                    Solo se agendará la Sesión #1 hoy. Haz clic en &ldquo;Agregar Sesión&rdquo; si deseas dejar programadas las próximas fechas del curso en el calendario.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {extraCourseSessions.map((ses, index) => {
-                      const sessionNumber = index + 2;
-                      const sesEndTime = addMinutesToTime(ses.startTime || '10:30', 75);
-                      return (
-                        <div
-                          key={ses.tempId}
-                          className="p-3.5 bg-white border border-slate-300 rounded-none space-y-3"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 bg-sky-600 text-white text-xs font-mono font-bold uppercase">
-                                Sesión #{sessionNumber}
-                              </span>
-                              <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-400 text-emerald-800 text-[11px] font-mono font-semibold uppercase">
-                                Pagado en Pack ($0 a Caja)
-                              </span>
-                              <span className="text-[11px] font-mono text-slate-500">
-                                status: {ses.instructorId ? 'scheduled' : 'pending_instructor'}
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveFutureSession(ses.tempId)}
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-pink-600 transition cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Quitar
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {/* Fecha de la sesión futura */}
-                            <div>
-                              <label className="block text-[11px] font-semibold uppercase text-slate-600 mb-1">
-                                Fecha en Calendario
-                              </label>
-                              <div className="relative">
-                                <Calendar className="w-3.5 h-3.5 text-sky-600 absolute left-3 top-3 pointer-events-none" />
-                                <input
-                                  type="date"
-                                  required
-                                  value={ses.operationDate}
-                                  onChange={(e) =>
-                                    handleUpdateFutureSession(
-                                      ses.tempId,
-                                      'operationDate',
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full h-10 pl-8 pr-2.5 rounded-sm border border-slate-300 bg-white text-xs font-mono font-semibold text-blue-950 focus:border-blue-950 outline-none"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Hora de inicio (+75m automático) */}
-                            <div>
-                              <label className="block text-[11px] font-semibold uppercase text-slate-600 mb-1">
-                                Inicio (Término {sesEndTime})
-                              </label>
-                              <input
-                                type="time"
-                                required
-                                value={ses.startTime}
-                                onChange={(e) =>
-                                  handleUpdateFutureSession(
-                                    ses.tempId,
-                                    'startTime',
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full h-10 px-3 rounded-sm border border-slate-300 bg-white text-xs font-mono font-semibold text-blue-950 focus:border-blue-950 outline-none"
-                              />
-                            </div>
-
-                            {/* Instructor Opcional / Por definir (nullable) */}
-                            <div>
-                              <label className="block text-[11px] font-semibold uppercase text-slate-600 mb-1">
-                                Instructor (Opcional)
-                              </label>
-                              <select
-                                value={ses.instructorId}
-                                onChange={(e) =>
-                                  handleUpdateFutureSession(
-                                    ses.tempId,
-                                    'instructorId',
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full h-10 px-2.5 rounded-sm border border-slate-300 bg-white text-xs font-semibold text-blue-950 focus:border-blue-950 outline-none cursor-pointer"
-                              >
-                                <option value="">
-                                  ⏳ Por definir (Asignar el día de la clase)
-                                </option>
-                                {instructors.map((inst) => (
-                                  <option key={inst.id} value={inst.id}>
-                                    {inst.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
+                {/* Sesiones adicionales */}
+                {extraCourseSessions.map((ses, index) => {
+                  const sessionNumber = index + 2;
+                  const sesEndTime = addMinutesToTime(ses.startTime || '10:30', 75);
+                  return (
+                    <div
+                      key={ses.tempId}
+                      className="p-5 border border-midnight-ink bg-cream-paper space-y-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="ed-tag">
+                            Sesión #{sessionNumber}
+                          </span>
+                          <span className="ed-tag ed-tag-blue">
+                            Pagado en Pack ($0)
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFutureSession(ses.tempId)}
+                          className="ed-link text-ember-red"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="ed-label mb-1">
+                            Fecha en Calendario
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={ses.operationDate}
+                            onChange={(e) =>
+                              handleUpdateFutureSession(
+                                ses.tempId,
+                                'operationDate',
+                                e.target.value
+                              )
+                            }
+                            className="ed-input ed-num"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="ed-label mb-1">
+                            Inicio (Término {sesEndTime})
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={ses.startTime}
+                            onChange={(e) =>
+                              handleUpdateFutureSession(
+                                ses.tempId,
+                                'startTime',
+                                e.target.value
+                              )
+                            }
+                            className="ed-input ed-num"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="ed-label mb-1">
+                            Instructor (Opcional)
+                          </label>
+                          <select
+                            value={ses.instructorId}
+                            onChange={(e) =>
+                              handleUpdateFutureSession(
+                                ses.tempId,
+                                'instructorId',
+                                e.target.value
+                              )
+                            }
+                            className="ed-input"
+                          >
+                            <option value="">Por definir (Asignar en recepción)</option>
+                            {instructors.map((inst) => (
+                              <option key={inst.id} value={inst.id}>
+                                {inst.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {/* Ficha de Datos del Alumno */}
-            <div className="pt-4 border-t border-slate-200 space-y-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-blue-950">
-                Datos del Alumno (Para envío de confirmación por WhatsApp)
-              </div>
+            {/* Ficha del Alumno */}
+            <div className="pt-6 border-t border-midnight-ink/15 space-y-4">
+              <span className="ed-eyebrow">Datos del Alumno</span>
+              <h3 className="ed-h3">
+                Información de Registro
+              </h3>
 
-              <div className="space-y-1.5">
-                <label htmlFor="student-name" className="block text-sm font-semibold text-blue-950">
-                  Nombre Completo del Alumno *
+              <div>
+                <label htmlFor="student-name" className="ed-label">
+                  Nombre Completo *
                 </label>
                 <input
                   id="student-name"
@@ -1050,77 +971,68 @@ export default function Module3NewClass() {
                   placeholder="Ej. Matías González"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
-                  className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-base font-medium text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
+                  className="ed-input"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="student-phone" className="block text-sm font-semibold text-blue-950">
-                    Teléfono / WhatsApp del Alumno *
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-sky-500 absolute left-3.5 top-4 pointer-events-none" />
-                    <input
-                      id="student-phone"
-                      type="tel"
-                      required
-                      placeholder="+56 9 8765 4321"
-                      value={studentPhone}
-                      onChange={(e) => setStudentPhone(e.target.value)}
-                      className="w-full h-12 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-base font-mono text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="student-email" className="block text-sm font-semibold text-blue-950">
-                    Correo Electrónico
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-sky-500 absolute left-3.5 top-4 pointer-events-none" />
-                    <input
-                      id="student-email"
-                      type="email"
-                      placeholder="alumno@correo.cl"
-                      value={studentEmail}
-                      onChange={(e) => setStudentEmail(e.target.value)}
-                      className="w-full h-12 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-base text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Contacto de Emergencia */}
-            <div className="p-4 bg-slate-50 border border-slate-300 rounded-none space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-950">
-                <ShieldAlert className="w-4 h-4 text-pink-600" />
-                <span>Contacto de Emergencia</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="emergency-name" className="block text-xs font-semibold uppercase text-slate-700">
-                    Nombre Contacto de Emergencia *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="student-phone" className="ed-label">
+                    Teléfono / WhatsApp *
                   </label>
                   <input
-                    id="emergency-name"
-                    type="text"
+                    id="student-phone"
+                    type="tel"
                     required
-                    placeholder="Ej. Carolina Soto (Madre / Pareja)"
-                    value={emergencyContactName}
-                    onChange={(e) => setEmergencyContactName(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-sm border border-slate-300 bg-white text-sm font-medium text-blue-950 focus:border-blue-950 outline-none"
+                    placeholder="+56 9 8765 4321"
+                    value={studentPhone}
+                    onChange={(e) => setStudentPhone(e.target.value)}
+                    className="ed-input ed-num"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="emergency-phone" className="block text-xs font-semibold uppercase text-slate-700">
-                    Teléfono de Emergencia *
+                <div>
+                  <label htmlFor="student-email" className="ed-label">
+                    Correo Electrónico
                   </label>
-                  <div className="relative">
-                    <Phone className="w-3.5 h-3.5 text-pink-600 absolute left-3.5 top-3.5 pointer-events-none" />
+                  <input
+                    id="student-email"
+                    type="email"
+                    placeholder="alumno@correo.cl"
+                    value={studentEmail}
+                    onChange={(e) => setStudentEmail(e.target.value)}
+                    className="ed-input"
+                  />
+                </div>
+              </div>
+
+              {/* Contacto de Emergencia */}
+              <div className="p-6 border border-midnight-ink bg-cream-paper space-y-4">
+                <span className="font-bold text-caption text-midnight-ink flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-signal-blue" />
+                  <span>Contacto de Emergencia *</span>
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="emergency-name" className="ed-label">
+                      Nombre de Contacto *
+                    </label>
+                    <input
+                      id="emergency-name"
+                      type="text"
+                      required
+                      placeholder="Ej. Carolina Soto (Madre / Pareja)"
+                      value={emergencyContactName}
+                      onChange={(e) => setEmergencyContactName(e.target.value)}
+                      className="ed-input"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="emergency-phone" className="ed-label">
+                      Teléfono de Emergencia *
+                    </label>
                     <input
                       id="emergency-phone"
                       type="tel"
@@ -1128,7 +1040,7 @@ export default function Module3NewClass() {
                       placeholder="+56 9 1234 5678"
                       value={emergencyContactPhone}
                       onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                      className="w-full h-11 pl-9 pr-3.5 rounded-sm border border-slate-300 bg-white text-sm font-mono text-blue-950 focus:border-blue-950 outline-none"
+                      className="ed-input ed-num"
                     />
                   </div>
                 </div>
@@ -1137,46 +1049,51 @@ export default function Module3NewClass() {
           </div>
         </section>
 
-        {/* Botón Final de Guardado Gigante, Rectangular con Protagonismo Azul y Acento Pink-600 */}
+        {/* Botón de Guardado */}
         <button
           type="submit"
-          className="w-full h-16 px-8 rounded-none bg-blue-950 hover:bg-blue-900 border-b-4 border-pink-600 text-white text-lg font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-3"
+          className="ed-btn ed-btn-block py-5 text-body"
         >
           <span>
             {category === 'curso'
               ? `Guardar Curso Pack (${totalPlannedSessions} ${
                   totalPlannedSessions === 1 ? 'Sesión' : 'Sesiones'
                 }) · Caja: ${formatCurrency(finalTotal)}`
-              : `Guardar Clase (${startTime}–{endTime}) · ${formatCurrency(finalTotal)}`}
+              : `Guardar Clase (${startTime} a ${endTime}) · Total: ${formatCurrency(finalTotal)}`}
           </span>
         </button>
       </form>
 
-      {/* Tabla Corporativa de Clases Registradas en el Día y Sesiones de Curso */}
-      <section className="pt-4 space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-700">
-          Registro Operativo del Día y Sesiones de Curso ({dailyClasses.length})
-        </h3>
+      {/* Bitácora de Clases Registradas */}
+      <section className="ed-card space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-midnight-ink">
+          <div>
+            <span className="ed-eyebrow">Bitácora Operativa</span>
+            <h3 className="ed-h3 mt-1">
+              Registro del Día y Sesiones de Curso ({dailyClasses.length})
+            </h3>
+          </div>
+        </div>
 
-        <div className="border border-slate-300 bg-white rounded-none overflow-x-auto">
+        <div className="overflow-x-auto border border-midnight-ink">
           {dailyClasses.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-500">
-              Sin clases registradas en la jornada actual.
+            <div className="p-8 text-center ed-body ed-muted">
+              No hay clases registradas en el día de hoy.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="ed-table">
               <thead>
-                <tr className="bg-blue-950 text-white text-xs font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Fecha / Horario</th>
-                  <th className="py-3 px-4">Alumno / Contacto</th>
-                  <th className="py-3 px-4">Emergencia</th>
-                  <th className="py-3 px-4">Modalidad / Pack</th>
-                  <th className="py-3 px-4">Instructor</th>
-                  <th className="py-3 px-4 text-right">Total Caja</th>
-                  <th className="py-3 px-3 text-center">Acciones</th>
+                <tr>
+                  <th>Fecha / Horario</th>
+                  <th>Alumno / Contacto</th>
+                  <th>Emergencia</th>
+                  <th>Modalidad / Pack</th>
+                  <th>Instructor</th>
+                  <th className="text-right">Total Caja</th>
+                  <th className="text-center">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 text-sm">
+              <tbody>
                 {dailyClasses.map((cls) => {
                   const inst = instructors.find((i) => i.id === cls.instructorId);
                   const isPaidPackSession =
@@ -1184,63 +1101,63 @@ export default function Module3NewClass() {
                     (cls.category === 'curso' && Number(cls.finalTotal) === 0);
 
                   return (
-                    <tr key={cls.id} className="even:bg-slate-50/80">
-                      <td className="py-3 px-4 font-mono font-semibold text-blue-950 whitespace-nowrap">
-                        <div>{cls.startTime}–{cls.endTime}</div>
+                    <tr key={cls.id}>
+                      <td className="ed-num">
+                        <div className="font-bold text-midnight-ink">{cls.startTime}–{cls.endTime}</div>
                         {cls.date && (
-                          <div className="text-[11px] font-normal text-slate-500">
+                          <div className="ed-caption ed-muted">
                             {cls.date}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900">{cls.studentName}</div>
+                      <td>
+                        <div className="font-bold text-midnight-ink">{cls.studentName}</div>
                         {cls.studentPhone && (
-                          <div className="text-xs font-mono text-slate-500">{cls.studentPhone}</div>
+                          <div className="ed-caption ed-num">{cls.studentPhone}</div>
                         )}
                         {cls.studentEmail && (
-                          <div className="text-xs text-slate-400">{cls.studentEmail}</div>
+                          <div className="ed-caption ed-muted">{cls.studentEmail}</div>
                         )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td>
                         {cls.emergencyContactName ? (
                           <div>
-                            <div className="text-xs font-semibold text-slate-800">
+                            <div className="font-bold text-midnight-ink">
                               {cls.emergencyContactName}
                             </div>
-                            <div className="text-xs font-mono text-pink-600">
+                            <div className="ed-caption ed-num text-signal-blue">
                               {cls.emergencyContactPhone}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="ed-muted">—</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 text-xs space-y-1">
-                        <div>
+                      <td>
+                        <div className="font-bold text-midnight-ink">
                           {cls.modality === 'grupal' ? `Grupal (${cls.pax} pax)` : 'Individual'} ·{' '}
-                          {cls.category === 'curso' ? 'Curso Pack 8' : 'Única'}
+                          {cls.category === 'curso' ? 'Curso Pack' : 'Única'}
                         </div>
                         {cls.courseGroupId && (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className="px-1.5 py-0.5 bg-blue-950 text-sky-300 text-[10px] font-mono">
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="ed-tag ed-tag-blue font-bold ed-num">
                               Sesión {cls.sessionIndex || 1}/{cls.totalSessions || 8}
                             </span>
-                            <span className="text-[10px] font-mono text-slate-400">
+                            <span className="ed-caption ed-muted ed-num">
                               #{String(cls.courseGroupId).slice(0, 6)}
                             </span>
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-semibold text-blue-950">
+                      <td>
                         {inst ? (
-                          <span>{inst.name}</span>
+                          <span className="font-bold text-midnight-ink">{inst.name}</span>
                         ) : (
                           <select
                             aria-label={`Asignar instructor a ${cls.studentName}`}
                             value={cls.instructorId || ''}
                             onChange={(e) => assignInstructorToClass(cls.id, e.target.value)}
-                            className="h-8 px-2 rounded-sm border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-900 outline-none cursor-pointer"
+                            className="ed-input h-10 text-caption font-bold"
                           >
                             <option value="">Por definir</option>
                             {instructors.map((itemInst) => (
@@ -1251,20 +1168,20 @@ export default function Module3NewClass() {
                           </select>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-semibold text-blue-950">
+                      <td className="text-right ed-num font-bold">
                         <div>{formatCurrency(cls.finalTotal)}</div>
                         {isPaidPackSession ? (
-                          <span className="inline-block px-1.5 py-0.5 bg-emerald-50 border border-emerald-400 text-emerald-700 text-[10px] font-mono uppercase">
+                          <span className="ed-tag ed-tag-blue font-normal mt-1">
                             Pagado en Pack
                           </span>
                         ) : (
-                          <div className="text-[11px] font-sans font-normal text-slate-400">
+                          <div className="ed-caption ed-muted font-normal">
                             {cls.paymentMethod}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                      <td className="text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() =>
@@ -1277,19 +1194,19 @@ export default function Module3NewClass() {
                                 total: cls.finalTotal,
                               })
                             }
-                            className="p-1.5 text-sky-600 hover:text-blue-950 transition cursor-pointer"
-                            title="Enviar confirmación por WhatsApp al alumno"
+                            className="p-1 cursor-pointer hover:text-signal-blue"
+                            title="Confirmación WhatsApp"
                           >
-                            <MessageSquare className="w-4 h-4" />
+                            <MessageSquare className="w-5 h-5 text-signal-blue" />
                           </button>
 
                           <button
                             type="button"
                             onClick={() => removeDailyClass(cls.id)}
-                            className="p-1.5 text-slate-400 hover:text-pink-600 transition cursor-pointer"
-                            title="Eliminar registro"
+                            className="p-1 cursor-pointer hover:text-ember-red text-midnight-ink/40"
+                            title="Eliminar"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       </td>

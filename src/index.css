@@ -2,10 +2,481 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   SurfOp Design System — basado en el Style Reference "Earlydog" (Bauhaus)
+   Ver DESIGN.md en la raíz del repositorio.
+   ========================================================================== */
+
+:root {
+  /* Colors */
+  --color-cream-paper: #fff9f0;
+  --color-midnight-ink: #000609;
+  --color-signal-blue: #0a65db;
+  --color-ember-red: #ee4623;
+  --color-saffron-yellow: #ffd23f;
+  --color-blush-pink: #f4c6c6;
+
+  /* Typography — Font Families */
+  --font-degular-display: 'Space Grotesk', 'Archivo Black', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-usual: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-caption: 16px;
+  --leading-caption: 1.78;
+  --tracking-caption: 0px;
+  --text-body: 18px;
+  --leading-body: 1.82;
+  --tracking-body: 0px;
+  --text-subheading: 22px;
+  --leading-subheading: 1.82;
+  --tracking-subheading: 0px;
+  --text-heading-sm: 52px;
+  --leading-heading-sm: 1.23;
+  --tracking-heading-sm: 0.47px;
+  --text-heading: 80px;
+  --leading-heading: 1.1;
+  --tracking-heading: 1.04px;
+  --text-display: 116px;
+  --leading-display: 1.03;
+  --tracking-display: 2.2px;
+
+  /* Typography — Weights */
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-44: 44px;
+  --spacing-48: 48px;
+  --spacing-96: 96px;
+  --spacing-104: 104px;
+  --spacing-120: 120px;
+  --spacing-128: 128px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+  --section-gap: 96px;
+  --card-padding: 32px;
+
+  /* Border Radius */
+  --radius-full: 9999px;
+  --radius-cards: 0px;
+  --radius-buttons: 9999px;
+  --radius-illustrations: 0px;
+
+  /* Surfaces */
+  --surface-cream-canvas: #fff9f0;
+  --surface-signal-blue-panel: #0a65db;
+}
+
 @layer base {
+  html,
+  body {
+    background-color: var(--surface-cream-canvas);
+    color: var(--color-midnight-ink);
+    font-family: var(--font-usual);
+    font-size: var(--text-caption);
+    line-height: var(--leading-caption);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--color-signal-blue);
+    color: var(--color-cream-paper);
+  }
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+  }
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #000609 50%),
+      linear-gradient(135deg, #000609 50%, transparent 50%);
+    background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 40px !important;
+  }
+}
+
+@layer components {
+  /* ---------- Layout ---------- */
+  .ed-page {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .ed-page {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  .ed-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+  @media (min-width: 1024px) {
+    .ed-stack {
+      gap: 6rem;
+    }
+  }
+
+  /* ---------- Tipografía ---------- */
+  .ed-display {
+    font-family: var(--font-degular-display);
+    font-weight: 700;
+    color: var(--color-midnight-ink);
+    font-size: 52px;
+    line-height: 1.1;
+    letter-spacing: 0.47px;
+  }
+  @media (min-width: 768px) {
+    .ed-display {
+      font-size: var(--text-heading);
+      line-height: var(--leading-heading);
+      letter-spacing: var(--tracking-heading);
+    }
+  }
+
+  .ed-h1 {
+    font-family: var(--font-degular-display);
+    font-weight: 700;
+    color: var(--color-midnight-ink);
+    font-size: 36px;
+    line-height: 1.15;
+    letter-spacing: 0.3px;
+  }
+  @media (min-width: 768px) {
+    .ed-h1 {
+      font-size: var(--text-heading-sm);
+      line-height: var(--leading-heading-sm);
+      letter-spacing: var(--tracking-heading-sm);
+    }
+  }
+
+  .ed-h2 {
+    font-family: var(--font-degular-display);
+    font-weight: 700;
+    color: var(--color-midnight-ink);
+    font-size: 32px;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+  }
+
+  .ed-h3 {
+    font-family: var(--font-degular-display);
+    font-weight: 700;
+    color: var(--color-midnight-ink);
+    font-size: var(--text-subheading);
+    line-height: 1.4;
+    letter-spacing: 0.2px;
+  }
+
+  .ed-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-usual);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    color: var(--color-signal-blue);
+  }
+  .ed-eyebrow::before {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 9px solid currentColor;
+  }
+
+  .ed-body {
+    font-family: var(--font-usual);
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
+    color: var(--color-midnight-ink);
+  }
+
+  .ed-measure {
+    max-width: 480px;
+  }
+
+  .ed-caption {
+    font-family: var(--font-usual);
+    font-size: var(--text-caption);
+    line-height: var(--leading-caption);
+    color: var(--color-midnight-ink);
+  }
+
+  .ed-muted {
+    color: rgba(0, 6, 9, 0.6);
+  }
+
+  .ed-num {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .ed-accent {
+    color: var(--color-signal-blue);
+  }
+
+  /* ---------- Superficies ---------- */
+  .ed-card {
+    background-color: var(--color-cream-paper);
+    border: 1px solid var(--color-midnight-ink);
+    padding: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .ed-card {
+      padding: 2rem;
+    }
+  }
+
+  .ed-card-ink {
+    background-color: var(--color-midnight-ink);
+    color: var(--color-cream-paper);
+    border: 1px solid var(--color-midnight-ink);
+    padding: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .ed-card-ink {
+      padding: 2rem;
+    }
+  }
+
+  .ed-card-blue {
+    background-color: var(--color-signal-blue);
+    color: var(--color-cream-paper);
+    border: 1px solid var(--color-midnight-ink);
+    padding: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .ed-card-blue {
+      padding: 2rem;
+    }
+  }
+
+  .ed-rule {
+    border-top: 1px solid var(--color-midnight-ink);
+  }
+  .ed-rule-soft {
+    border-top: 1px solid rgba(0, 6, 9, 0.15);
+  }
+
+  /* ---------- Botones ---------- */
+  .ed-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-midnight-ink);
+    background-color: var(--color-cream-paper);
+    color: var(--color-midnight-ink);
+    font-family: var(--font-usual);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    line-height: 1;
+    padding: 14px 30px;
+    transition: background-color 150ms ease, color 150ms ease;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ed-btn:hover:not(:disabled) {
+    background-color: var(--color-midnight-ink);
+    color: var(--color-cream-paper);
+  }
+  .ed-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .ed-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-cream-paper), 0 0 0 4px var(--color-signal-blue);
+  }
+  .ed-btn-sm {
+    padding: 10px 20px;
+  }
+  .ed-btn-block {
+    width: 100%;
+  }
+  .ed-btn-active {
+    background-color: var(--color-midnight-ink);
+    color: var(--color-cream-paper);
+  }
+  .ed-btn-danger {
+    border-color: var(--color-ember-red);
+    color: var(--color-ember-red);
+  }
+  .ed-btn-danger:hover:not(:disabled) {
+    background-color: var(--color-ember-red);
+    color: var(--color-cream-paper);
+  }
+
+  /* Ghost Link with Triangle */
+  .ed-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-usual);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    color: var(--color-midnight-ink);
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    transition: color 150ms ease;
+  }
+  .ed-link:hover {
+    color: var(--color-signal-blue);
+  }
+  .ed-link::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid currentColor;
+  }
+
+  /* Tags / chips — siempre pill */
+  .ed-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-midnight-ink);
+    padding: 2px 12px;
+    font-family: var(--font-usual);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    line-height: 1.6;
+    color: var(--color-midnight-ink);
+    white-space: nowrap;
+  }
+  .ed-tag-blue {
+    border-color: var(--color-signal-blue);
+    color: var(--color-signal-blue);
+  }
+  .ed-tag-ink {
+    background-color: var(--color-midnight-ink);
+    color: var(--color-cream-paper);
+  }
+  .ed-tag-alert {
+    border-color: var(--color-ember-red);
+    background-color: var(--color-ember-red);
+    color: var(--color-cream-paper);
+  }
+
+  /* ---------- Formularios ---------- */
+  .ed-label {
+    display: block;
+    font-family: var(--font-usual);
+    font-weight: 700;
+    font-size: var(--text-caption);
+    color: var(--color-midnight-ink);
+    margin-bottom: 0.5rem;
+  }
+  .ed-input {
+    width: 100%;
+    height: 3rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background-color: var(--color-cream-paper);
+    border: 1px solid var(--color-midnight-ink);
+    border-radius: 0;
+    font-family: var(--font-usual);
+    font-size: var(--text-caption);
+    color: var(--color-midnight-ink);
+    outline: none;
+    transition: border-color 150ms ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .ed-input::placeholder {
+    color: rgba(0, 6, 9, 0.4);
+  }
+  .ed-input:focus {
+    border-color: var(--color-signal-blue);
+    box-shadow: 0 0 0 1px var(--color-signal-blue);
+  }
+  .ed-input:disabled {
+    opacity: 0.5;
+  }
+  .ed-help {
+    margin-top: 0.5rem;
+    font-family: var(--font-usual);
+    font-size: var(--text-caption);
+    color: rgba(0, 6, 9, 0.6);
+  }
+
+  /* ---------- Tablas ---------- */
+  .ed-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+    font-family: var(--font-usual);
+    font-size: var(--text-caption);
+    font-variant-numeric: tabular-nums;
+  }
+  .ed-table thead th {
+    padding: 1rem 1rem;
+    font-weight: 700;
+    color: var(--color-midnight-ink);
+    border-bottom: 1px solid var(--color-midnight-ink);
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  .ed-table tbody td {
+    padding: 1rem 1rem;
+    border-bottom: 1px solid rgba(0, 6, 9, 0.15);
+    vertical-align: top;
+  }
+  .ed-table tfoot td {
+    padding: 1rem 1rem;
+    border-top: 1px solid var(--color-midnight-ink);
+    font-weight: 700;
+  }
+
+  /* ---------- Avisos ---------- */
+  .ed-notice {
+    border: 1px solid var(--color-midnight-ink);
+    background-color: var(--color-cream-paper);
+    padding: 1rem 1.25rem;
+    font-family: var(--font-usual);
+    font-size: var(--text-caption);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .ed-notice-blue {
+    border-color: var(--color-signal-blue);
+    color: var(--color-signal-blue);
+  }
+  .ed-notice-alert {
+    border-color: var(--color-ember-red);
+    color: var(--color-ember-red);
+  }
+
+  /* ---------- Barras de datos (gráficos planos) ---------- */
+  .ed-bar-track {
+    width: 100%;
+    height: 0.75rem;
+    background-color: var(--color-cream-paper);
+    border: 1px solid var(--color-midnight-ink);
+    overflow: hidden;
   }
 }

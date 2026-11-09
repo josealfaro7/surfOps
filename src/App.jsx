@@ -8,7 +8,6 @@ import {
   Database,
   RotateCcw,
   Trash2,
-  LogOut,
 } from 'lucide-react';
 import { SurfSchoolProvider, useSurfSchool } from './context/SurfSchoolContext';
 import Login from './components/auth/Login';
@@ -42,7 +41,7 @@ function SurfSchoolWorkspace() {
 
   const brandPrimary = schoolBranding?.themePalette?.primary || '#172554';
   const brandSecondary = schoolBranding?.themePalette?.secondary || '#0284c7';
-  const brandAccent = schoolBranding?.themePalette?.accent || '#db2777';
+  const brandAccent = schoolBranding?.themePalette?.accent || '#38bdf8';
 
   // Inyectar dinámicamente las variables CSS (--brand-primary, --brand-secondary, --brand-accent)
   // directamente en document.documentElement.style
@@ -66,8 +65,8 @@ function SurfSchoolWorkspace() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-700 text-xs font-mono uppercase tracking-widest">
-        Verificando sesión de escuela en Supabase...
+      <div className="min-h-screen flex items-center justify-center bg-cream-paper">
+        <span className="ed-eyebrow">Verificando sesión de escuela en Supabase</span>
       </div>
     );
   }
@@ -78,114 +77,126 @@ function SurfSchoolWorkspace() {
   }
 
   const tabs = [
-    {
-      id: 'mod1',
-      code: '01',
-      label: 'Configuración',
-      icon: Sliders,
-    },
+    { id: 'mod1', code: '01', label: 'Configuración', icon: Sliders },
     {
       id: 'mod2',
       code: '02',
-      label: `Fila de Asistencia (${virtualQueue.length}/${instructors.length})`,
+      label: 'Asistencia',
+      count: `${virtualQueue.length}/${instructors.length}`,
       icon: UserCheck,
     },
-    {
-      id: 'mod3',
-      code: '03',
-      label: 'Ingreso de Clase',
-      icon: PlusSquare,
-    },
+    { id: 'mod3', code: '03', label: 'Ingreso de Clase', icon: PlusSquare },
     {
       id: 'mod4',
       code: '04',
-      label: `Cierre Diario (${dailyClasses.length})`,
+      label: 'Cierre Diario',
+      count: dailyClasses.length,
       icon: BarChart2,
     },
     {
       id: 'mod5',
       code: '05',
-      label: `🏄‍♂️ Arriendos (${activeRentals.length})`,
+      label: 'Arriendos',
+      count: activeRentals.length,
       icon: Shield,
     },
   ];
 
+  const displayName = schoolBranding?.displayName || 'POISSON';
+
   return (
     <div
-      className="min-h-screen flex flex-col bg-slate-50 text-slate-900"
+      className="min-h-screen bg-cream-paper text-midnight-ink font-usual lg:pl-20"
       style={{
         '--brand-primary': brandPrimary,
         '--brand-secondary': brandSecondary,
         '--brand-accent': brandAccent,
       }}
     >
-      {/* Barra Superior ERP Dinámica con schoolBranding.displayName y schoolBranding.monogram */}
-      <header className="bg-white border-b border-slate-300 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="h-16 flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 sm:py-0">
-            {/* Identidad Corporativa Dinámica (schoolBranding) */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[var(--brand-primary)] border-b-2 border-[var(--brand-accent)] text-white font-bold text-sm flex items-center justify-center tracking-wider rounded-none uppercase">
+      {/* Riel izquierdo: hamburguesa + glifo geométrico + wordmark vertical (schoolBranding) */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-20 border-r border-midnight-ink bg-cream-paper flex-col items-center py-11 gap-10 z-40">
+        <button
+          type="button"
+          onClick={() => setShowStateInspector((v) => !v)}
+          title={showStateInspector ? 'Ocultar estado en memoria' : 'Inspeccionar memoria'}
+          className="flex flex-col gap-[6px] cursor-pointer p-2"
+        >
+          <span className="block w-7 h-[3px] bg-midnight-ink" />
+          <span className="block w-7 h-[3px] bg-midnight-ink" />
+        </button>
+
+        {/* Glifo geométrico con los colores de marca de la escuela */}
+        <div className="w-10 h-10 grid grid-cols-2 border border-midnight-ink" aria-hidden="true">
+          <span style={{ background: 'var(--brand-primary)' }} />
+          <span className="bg-cream-paper flex items-center justify-center">
+            <span className="w-3 h-3 rounded-full" style={{ background: 'var(--brand-accent)' }} />
+          </span>
+          <span className="bg-saffron-yellow" />
+          <span style={{ background: 'var(--brand-secondary)' }} />
+        </div>
+
+        <div className="flex-1 flex items-start justify-center">
+          <span
+            className="font-usual font-bold text-caption uppercase tracking-[0.2em] whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            {displayName} · SurfOp ERP
+          </span>
+        </div>
+
+        <span className="font-display font-bold text-subheading">
+          {schoolBranding?.monogram || 'P'}
+        </span>
+      </aside>
+
+      {/* Barra superior */}
+      <header className="sticky top-0 z-30 bg-cream-paper border-b border-midnight-ink">
+        <div className="ed-page">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-5">
+            <div className="flex items-center gap-4">
+              <div className="lg:hidden w-10 h-10 bg-midnight-ink text-cream-paper font-display font-bold text-subheading flex items-center justify-center">
                 {schoolBranding?.monogram || 'P'}
               </div>
-              <div className="flex items-baseline gap-2.5">
-                <span className="text-lg font-bold tracking-tight text-[var(--brand-primary)] uppercase">
-                  {schoolBranding?.displayName || 'POISSON'}
-                </span>
-                <span className="w-1.5 h-1.5 bg-[var(--brand-accent)] rounded-none self-center" />
-                <span className="text-xs font-medium text-[var(--brand-secondary)] uppercase tracking-widest">
+              <div>
+                <div className="font-display font-bold text-subheading leading-none uppercase tracking-[0.04em]">
+                  {displayName}
+                </div>
+                <div className="ed-caption ed-muted leading-tight mt-1">
                   {schoolBranding?.tagline || 'Sistema de Gestión Operativa'}
-                </span>
+                </div>
               </div>
             </div>
 
-            {/* Controles de Estado en Memoria y Sesión */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => setShowStateInspector((v) => !v)}
-                className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border text-xs font-medium transition cursor-pointer ${
-                  showStateInspector
-                    ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-                }`}
+                className={`ed-btn ed-btn-sm ${showStateInspector ? 'ed-btn-active' : ''}`}
               >
-                <Database className="w-3.5 h-3.5 text-[var(--brand-secondary)]" />
-                {showStateInspector ? 'Ocultar Estado' : 'Inspeccionar Memoria'}
+                <Database className="w-4 h-4" />
+                {showStateInspector ? 'Ocultar Estado' : 'Memoria'}
               </button>
-
-              <button
-                type="button"
-                onClick={resetDayEmpty}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-300 bg-white hover:bg-slate-100 text-xs font-medium text-slate-700 transition cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-[var(--brand-accent)]" />
+              <button type="button" onClick={resetDayEmpty} className="ed-btn ed-btn-sm">
+                <Trash2 className="w-4 h-4" />
                 Reiniciar Día
               </button>
-
-              <button
-                type="button"
-                onClick={restoreDemoData}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-300 bg-white hover:bg-slate-100 text-xs font-medium text-slate-700 transition cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-[var(--brand-secondary)]" />
+              <button type="button" onClick={restoreDemoData} className="ed-btn ed-btn-sm">
+                <RotateCcw className="w-4 h-4" />
                 Cargar Demo
               </button>
-
               <button
                 type="button"
                 onClick={signOutSchool}
                 title={session ? 'Cerrar sesión de Supabase Auth' : 'Ir a Login de Escuela'}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-300 bg-white hover:bg-slate-100 text-xs font-medium text-slate-700 transition cursor-pointer"
+                className="ed-link ml-2"
               >
-                <LogOut className="w-3.5 h-3.5 text-[var(--brand-accent)]" />
                 {session ? 'Salir' : 'Login'}
               </button>
             </div>
           </div>
 
-          {/* Navegación Estructurada Rectangular (5 Módulos) */}
-          <nav className="grid grid-cols-2 lg:grid-cols-5 border-t border-slate-200 -mx-4 sm:mx-0">
+          {/* Navegación de módulos: links usuales, activo en Signal Blue */}
+          <nav className="flex gap-8 overflow-x-auto -mb-px">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -194,27 +205,24 @@ function SurfSchoolWorkspace() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`h-12 px-4 border-r last:border-r-0 border-slate-200 text-sm font-semibold transition flex items-center justify-between cursor-pointer rounded-none ${
+                  className={`group flex items-center gap-2 py-4 border-b-2 font-usual font-bold text-caption whitespace-nowrap transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-[var(--brand-primary)] text-white border-b-2 border-b-[var(--brand-accent)]'
-                      : 'bg-white hover:bg-sky-50 text-slate-800'
+                      ? 'border-signal-blue text-signal-blue'
+                      : 'border-transparent text-midnight-ink hover:text-signal-blue'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Icon
-                      className={`w-4 h-4 shrink-0 ${
-                        isActive ? 'text-sky-400' : 'text-[var(--brand-secondary)]'
+                  <span className="ed-num">{tab.code}</span>
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span
+                      className={`ed-num rounded-pill border px-2 leading-[1.5] ${
+                        isActive ? 'border-signal-blue' : 'border-midnight-ink'
                       }`}
-                    />
-                    <span className="truncate">{tab.label}</span>
-                  </div>
-                  <span
-                    className={`text-xs font-mono ${
-                      isActive ? 'text-pink-400 font-bold' : 'text-slate-400'
-                    }`}
-                  >
-                    {tab.code}
-                  </span>
+                    >
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -227,44 +235,38 @@ function SurfSchoolWorkspace() {
 
       {/* Inspector de Objetos Globales en Memoria (con idPhotoBase64 truncado) */}
       {showStateInspector && (
-        <div className="bg-[var(--brand-primary)] text-slate-100 border-b border-slate-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
-            <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
-              <div className="font-semibold text-sky-400 mb-1.5">
-                1. SchoolBranding & Config
+        <div className="bg-midnight-ink text-cream-paper border-b border-midnight-ink">
+          <div className="ed-page py-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {[
+              {
+                title: '1. SchoolBranding & Config',
+                data: { schoolBranding, schoolConfig, rentalRates },
+              },
+              { title: '2. Instructors', data: instructors },
+              { title: `3. DailyClasses (${dailyClasses.length})`, data: dailyClasses },
+              {
+                title: `4. ActiveRentals (${activeRentals.length}) · Caja: $${rentalsTotalRevenue}`,
+                data: sanitizedRentalsForInspector,
+              },
+            ].map((block) => (
+              <div
+                key={block.title}
+                className="p-5 border border-cream-paper/30 overflow-auto max-h-64"
+              >
+                <div className="font-bold text-caption text-saffron-yellow mb-2">
+                  {block.title}
+                </div>
+                <pre className="text-caption leading-snug text-cream-paper/80">
+                  {JSON.stringify(block.data, null, 2)}
+                </pre>
               </div>
-              <pre className="text-[11px] text-slate-300">
-                {JSON.stringify({ schoolBranding, schoolConfig, rentalRates }, null, 2)}
-              </pre>
-            </div>
-            <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
-              <div className="font-semibold text-sky-400 mb-1.5">2. Instructors</div>
-              <pre className="text-[11px] text-slate-300">
-                {JSON.stringify(instructors, null, 2)}
-              </pre>
-            </div>
-            <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
-              <div className="font-semibold text-pink-400 mb-1.5">
-                3. DailyClasses ({dailyClasses.length})
-              </div>
-              <pre className="text-[11px] text-slate-300">
-                {JSON.stringify(dailyClasses, null, 2)}
-              </pre>
-            </div>
-            <div className="p-3 bg-slate-900 border border-slate-800 rounded-none overflow-auto max-h-52">
-              <div className="font-semibold text-emerald-400 mb-1.5">
-                4. ActiveRentals ({activeRentals.length}) · Caja: ${rentalsTotalRevenue}
-              </div>
-              <pre className="text-[11px] text-slate-300">
-                {JSON.stringify(sanitizedRentalsForInspector, null, 2)}
-              </pre>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Área Operativa Principal */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+      <main className="ed-page py-12 lg:py-16">
         {activeTab === 'mod1' && <Module1Config />}
         {activeTab === 'mod2' && (
           <Module2Attendance onGoToNewClass={() => setActiveTab('mod3')} />
