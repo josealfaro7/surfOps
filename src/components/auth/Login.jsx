@@ -47,7 +47,6 @@ export default function Login() {
         throw new Error('No se pudo obtener el auth.uid() de la sesión.');
       }
 
-      // Utilizar auth.uid() como school_id para cargar public.schools y guardar en surfops_school_branding
       const branding = await loadSchoolBranding(authUid);
       applySchoolThemeToDOM(branding);
       setSchoolBrandingState(branding);
@@ -63,43 +62,43 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 px-4 py-12 text-slate-900">
-      <div className="w-full max-w-md border border-slate-300 bg-white rounded-none">
-        {/* Cabecera Corporativa */}
-        <div className="px-6 py-4 bg-[var(--brand-primary,#172554)] text-white border-b border-slate-300 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-100 px-4 py-12 text-slate-900 font-inter">
+      <div className="w-full max-w-md bg-white border border-slate-200 border-t-4 border-t-blue-950 shadow-sm p-6 sm:p-8">
+        {/* Cabecera Corporativa B2B */}
+        <div className="flex items-center justify-between pb-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-white/10 border-b-2 border-[var(--brand-accent,#db2777)] text-white font-bold text-xs flex items-center justify-center tracking-wider rounded-none uppercase">
+            <div className="w-10 h-10 bg-blue-950 border-b-2 border-sky-500 text-white font-bold text-sm flex items-center justify-center tracking-wider uppercase shadow-sm">
               {schoolBranding?.monogram || 'P'}
             </div>
             <div>
-              <h1 className="text-xs font-bold uppercase tracking-wider">
-                {schoolBranding?.displayName || 'POISSON'} · SurfOps ERP
+              <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                SURFOPS ERP · ACCESO
+              </div>
+              <h1 className="text-lg font-bold tracking-tight text-blue-950 uppercase">
+                {schoolBranding?.displayName || 'POISSON SURF'}
               </h1>
-              <p className="text-[10px] text-sky-300 uppercase tracking-widest">
-                Acceso Multitenant de Escuela
-              </p>
             </div>
           </div>
-          <Lock className="w-4 h-4 text-sky-400 shrink-0" />
+          <Lock className="w-5 h-5 text-sky-600 shrink-0" />
         </div>
 
-        {/* Formulario directo Supabase Auth (Email / Password) */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Formulario de Autenticación */}
+        <form onSubmit={handleSubmit} className="pt-6 space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-blue-950">
-              Iniciar Sesión Operativa
+            <h2 className="text-2xl font-bold tracking-tight text-blue-950">
+              Iniciar Sesión
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Ingresa con las credenciales de tu escuela para cargar tu configuración, identidad visual y registros del día.
+            <p className="text-sm font-light text-slate-600 leading-relaxed mt-1">
+              Ingresa las credenciales corporativas para cargar la configuración de escuela y operaciones del día.
             </p>
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="school-login-email"
-              className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+              className="block text-xs font-bold uppercase tracking-widest text-sky-700"
             >
-              Correo Electrónico de la Escuela
+              Correo Electrónico
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -108,10 +107,10 @@ export default function Login() {
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="admin@poisson.cl"
+                placeholder="operaciones@escuela.cl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-sm font-medium text-slate-900 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                className="w-full h-11 pl-10 pr-4 border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
               />
             </div>
           </div>
@@ -119,7 +118,7 @@ export default function Login() {
           <div className="space-y-1.5">
             <label
               htmlFor="school-login-password"
-              className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+              className="block text-xs font-bold uppercase tracking-widest text-sky-700"
             >
               Contraseña
             </label>
@@ -133,14 +132,14 @@ export default function Login() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 rounded-sm border border-slate-300 bg-white text-sm font-medium text-slate-900 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                className="w-full h-11 pl-10 pr-4 border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
               />
             </div>
           </div>
 
           {errorMessage && (
-            <div className="p-3 border border-pink-600 bg-pink-50 text-xs font-semibold text-pink-700 flex items-start gap-2 rounded-none">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3 border border-rose-300 bg-rose-50 text-xs font-semibold text-rose-700 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
           )}
@@ -148,24 +147,24 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 px-6 rounded-none bg-[var(--brand-primary,#172554)] hover:opacity-95 border-b-2 border-[var(--brand-accent,#db2777)] text-white text-xs font-bold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full h-12 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            <span>{loading ? 'Autenticando Escuela...' : 'Ingresar al ERP'}</span>
+            <span>{loading ? 'Autenticando...' : 'Acceder al Sistema'}</span>
             <ArrowRight className="w-4 h-4 text-sky-400" />
           </button>
 
-          {/* Acceso directo a sesión Demo local (útil en GitHub Pages o sin credenciales) */}
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">
-              ¿Evaluando en GitHub Pages / Local?
+          {/* Acceso a Modo Demo */}
+          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-xs text-slate-500">
+              ¿Modo evaluación sin backend?
             </span>
             <button
               type="button"
               onClick={enterDemoSession}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary,#0284c7)] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-700 hover:text-sky-900 cursor-pointer"
             >
-              <Play className="w-3.5 h-3.5" />
-              Entrar con Datos Semilla Demo
+              <Play className="w-3.5 h-3.5 text-sky-600" />
+              Cargar Sesión Demo
             </button>
           </div>
         </form>

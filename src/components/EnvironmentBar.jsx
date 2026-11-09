@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Waves, Wind, Sun, ArrowUpRight, ArrowDownRight, Compass } from 'lucide-react';
 import { useSurfSchool } from '../context/SurfSchoolContext';
 
 const LAT = -29.9533;
 const LNG = -71.3394;
 
-// Offset de calibración entre MLLW (modelo global TPXO de Stormglass) y el NRS
-// (Nivel de Reducción de Sondas del SHOA para Puerto de Coquimbo / La Serena)
 const SHOA_NRS_OFFSET_FROM_MLLW = 0.28;
 
 const FALLBACK_TIDES = [
@@ -98,66 +97,78 @@ export default function EnvironmentBar() {
     const sunCacheKey = `sun_cache_${today}`;
     const swellCacheKey = `swell_cache_${today}`;
 
-    // 1. Mareas (Stormglass API con datum=MLLW calibrado a NRS del SHOA y caché en localStorage)
     const loadTides = async () => {
       try {
         const cached = localStorage.getItem(tidesCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
-          // Verifica que el caché ya esté en datum NRS del SHOA y tenga los hitos completos del día local
-          const isValidNRSCache =
-            Array.isArray(parsed) &&
-            parsed.length >= 3 &&
-            parsed.every((item) => item?.datum === 'NRS' && Number(item?.height) >= 0);
-
-          if (isValidNRSCache) {
-            return parsed.slice(0, 4).map((item) => formatTideItem(item, true));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
           }
         }
       } catch {
         // continuar con fetch
       }
 
-      const apiKey = import.meta.env.VITE_STORMGLASS_API_KEY;
-      if (!apiKey) return FALLBACK_TIDES;
-
-      try {
-        // Construir inicio y fin del día local (Chile) convertidos a UTC para no cortar la pleamar nocturna (>21:00 hrs)
-        const now = new Date();
-        const localStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-        const localEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-        const url = `https://api.stormglass.io/v2/tide/extremes/point?lat=${LAT}&lng=${LNG}&datum=MLLW&start=${encodeURIComponent(
-          localStart.toISOString()
-        )}&end=${encodeURIComponent(localEnd.toISOString())}`;
-
-        const res = await fetch(url, {
-          headers: { Authorization: apiKey },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const rawList = Array.isArray(json?.data) ? json.data : [];
-        if (rawList.length > 0) {
-          const formatted = rawList.slice(0, 4).map((item) => formatTideItem(item, false));
-          try {
-            localStorage.setItem(tidesCacheKey, JSON.stringify(formatted));
-          } catch {
-            // ignorar
-          }
-          return formatted;
-        }
-      } catch {
-        // Si se alcanza la cuota diaria gratuita de Stormglass, guardar y retornar los hitos NRS del día
+      const stormglassApiKey = import.meta.env.VITE_STORMGLASS_API_KEY;
+      if (stormglassApiKey) {
         try {
-          localStorage.setItem(tidesCacheKey, JSON.stringify(FALLBACK_TIDES));
+          const startIso = `${today}T00:00:00Z`;
+          const endIso = `${today}T23:59:59Z`;
+          const sgUrl = `https://api.stormglass.io/v2/tide/extremes/point?lat=${LAT}&lng=${LNG}&start=${startIso}&end=${endIso}&datum=mllw`;
+
+          const res = await fetch(sgUrl, {
+            headers: {
+              Authorization: stormglassApiKey,
+            },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.data) && data.data.length > 0) {
+              const formatted = data.data.map((item) => formatTideItem(item, false));
+              try {
+                localStorage.setItem(tidesCacheKey, JSON.stringify(formatted));
+              } catch {
+                // ignorar
+              }
+              return formatted;
+            }
+          }
         } catch {
-          // ignorar
+          // continuar con scraping o fallback
         }
       }
+
+      try {
+        const directShoaUrl = 'https://www.shoa.cl/php/mareas.php';
+        const shoaRes = await fetch(directShoaUrl);
+        if (shoaRes.ok) {
+          const html = await shoaRes.text();
+          const regex = /(\d{1,2}:\d{2})\s*hrs?[^\d]*([0-9.,]+)\s*m/gi;
+          const matches = [...html.matchAll(regex)];
+          if (matches.length >= 2) {
+            const parsedShoa = matches.slice(0, 4).map((m, idx) => ({
+              type: idx % 2 === 0 ? 'low' : 'high',
+              time: m[1],
+              height: Number(m[2].replace(',', '.')).toFixed(2),
+              datum: 'NRS',
+            }));
+            try {
+              localStorage.setItem(tidesCacheKey, JSON.stringify(parsedShoa));
+            } catch {
+              // ignorar
+            }
+            return parsedShoa;
+          }
+        }
+      } catch {
+        // continuar a fallback
+      }
+
       return FALLBACK_TIDES;
     };
 
-    // 2. Amanecer y Ocaso (Sunrise-Sunset API con caché estricta sun_cache_YYYY-MM-DD)
     const loadSun = async () => {
       try {
         const cached = localStorage.getItem(sunCacheKey);
@@ -168,25 +179,26 @@ export default function EnvironmentBar() {
           }
         }
       } catch {
-        // continuar con fetch
+        // continuar
       }
 
       try {
-        const url = `https://api.sunrise-sunset.org/json?lat=${LAT}&lng=${LNG}&formatted=0`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (json?.status === 'OK' && json?.results) {
-          const sunObj = {
-            sunrise: isoToLocalHHMM(json.results.sunrise) || FALLBACK_SUN.sunrise,
-            sunset: isoToLocalHHMM(json.results.sunset) || FALLBACK_SUN.sunset,
-          };
-          try {
-            localStorage.setItem(sunCacheKey, JSON.stringify(sunObj));
-          } catch {
-            // ignorar
+        const sunriseUrl = `https://api.sunrise-sunset.org/json?lat=${LAT}&lng=${LNG}&formatted=0&date=today`;
+        const res = await fetch(sunriseUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.results?.sunrise && data?.results?.sunset) {
+            const sunObj = {
+              sunrise: isoToLocalHHMM(data.results.sunrise),
+              sunset: isoToLocalHHMM(data.results.sunset),
+            };
+            try {
+              localStorage.setItem(sunCacheKey, JSON.stringify(sunObj));
+            } catch {
+              // ignorar
+            }
+            return sunObj;
           }
-          return sunObj;
         }
       } catch {
         // fallback
@@ -194,7 +206,6 @@ export default function EnvironmentBar() {
       return FALLBACK_SUN;
     };
 
-    // 3. Oleaje y Viento (Open-Meteo Marine & Forecast API con caché estricta swell_cache_YYYY-MM-DD)
     const loadSwellAndWind = async () => {
       try {
         const cached = localStorage.getItem(swellCacheKey);
@@ -267,59 +278,79 @@ export default function EnvironmentBar() {
   }, [setSunsetTime]);
 
   return (
-    <div className="w-full bg-slate-50 border-y border-slate-200 rounded-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-sm font-medium tabular-nums text-slate-800">
+    <div className="w-full bg-white border-b border-slate-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
         {loading ? (
-          <span className="text-slate-500 animate-pulse">
-            Cargando condiciones de mareas, oleaje, viento y luz del día...
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 animate-pulse">
+            Sincronizando telemetría marítima y solar (SHOA / NOAA)...
           </span>
         ) : (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {/* Bloque 1: Mareas */}
-            <div className="flex flex-wrap items-center gap-x-2">
-              <span className="font-bold text-slate-900">🌊 Mareas:</span>
-              {tides.map((t, idx) => (
-                <span key={`${t.type}-${t.time}-${idx}`} className="inline-flex items-center gap-1">
-                  <span>{t.type === 'high' ? '🔵' : '📉'}</span>
-                  <span className="text-slate-900 font-semibold">{t.time}</span>
-                  <span className="text-slate-500">({t.height}m)</span>
-                </span>
-              ))}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {/* Mareas */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-sky-700">
+                <Waves className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">Mareas</span>
+              </div>
+              <div className="flex items-center gap-2 tabular-nums font-medium text-slate-800">
+                {tides.map((t, idx) => (
+                  <span
+                    key={`${t.type}-${t.time}-${idx}`}
+                    className="inline-flex items-center gap-0.5 bg-slate-50 px-1.5 py-0.5 rounded-sm border border-slate-200 text-xs"
+                  >
+                    {t.type === 'high' ? (
+                      <ArrowUpRight className="w-3 h-3 text-sky-600" />
+                    ) : (
+                      <ArrowDownRight className="w-3 h-3 text-slate-500" />
+                    )}
+                    <span className="font-semibold text-slate-900">{t.time}</span>
+                    <span className="text-slate-500 font-light">({t.height}m)</span>
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <span className="text-slate-300 select-none" aria-hidden="true">
-              |
-            </span>
+            <span className="text-slate-200 hidden sm:inline" aria-hidden="true">|</span>
 
-            {/* Bloque 2: Oleaje */}
-            <div className="inline-flex items-center gap-1.5">
-              <span className="font-bold text-slate-900">🏄‍♂️ Oleaje:</span>
-              <span className="text-slate-900 font-semibold">{swell.waveHeight}m</span>
-              <span className="text-slate-500">({swell.wavePeriod}s)</span>
+            {/* Oleaje */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-sky-700">
+                <Compass className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">Oleaje</span>
+              </div>
+              <div className="tabular-nums font-medium text-slate-800 text-xs bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200">
+                <span className="font-semibold text-slate-900">{swell.waveHeight}m</span>
+                <span className="text-slate-500 font-light ml-1">· {swell.wavePeriod}s</span>
+              </div>
             </div>
 
-            <span className="text-slate-300 select-none" aria-hidden="true">
-              |
-            </span>
+            <span className="text-slate-200 hidden sm:inline" aria-hidden="true">|</span>
 
-            {/* Bloque 3: Viento */}
-            <div className="inline-flex items-center gap-1.5">
-              <span className="font-bold text-slate-900">💨 Viento:</span>
-              <span className="text-slate-900 font-semibold">
-                {swell.windSpeedKts}kts {swell.windDirectionLabel}
-              </span>
+            {/* Viento */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-sky-700">
+                <Wind className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">Viento</span>
+              </div>
+              <div className="tabular-nums font-medium text-slate-800 text-xs bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200">
+                <span className="font-semibold text-slate-900">{swell.windSpeedKts} kts</span>
+                <span className="text-slate-500 font-light ml-1">· {swell.windDirectionLabel}</span>
+              </div>
             </div>
 
-            <span className="text-slate-300 select-none" aria-hidden="true">
-              |
-            </span>
+            <span className="text-slate-200 hidden sm:inline" aria-hidden="true">|</span>
 
-            {/* Bloque 4: Luz (Amanecer y Ocaso) */}
-            <div className="inline-flex items-center gap-1.5">
-              <span className="font-bold text-slate-900">☀️ Luz:</span>
-              <span className="text-slate-900 font-semibold">
-                {sun.sunrise} - {sun.sunset} hrs
-              </span>
+            {/* Ventana Solar */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-sky-700">
+                <Sun className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">Luz Operativa</span>
+              </div>
+              <div className="tabular-nums font-medium text-slate-800 text-xs bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200">
+                <span className="font-semibold text-slate-900">{sun.sunrise}</span>
+                <span className="text-slate-400 mx-1">→</span>
+                <span className="font-semibold text-slate-900">{sun.sunset}</span>
+              </div>
             </div>
           </div>
         )}

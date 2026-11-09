@@ -9,6 +9,7 @@ import {
   Trophy,
   Calendar,
   Waves,
+  Download,
 } from 'lucide-react';
 import { useSurfSchool, getTodayDateString } from '../context/SurfSchoolContext';
 import {
@@ -37,7 +38,7 @@ export default function Module4ClosingDashboard() {
   } = useSurfSchool();
   const [expandedId, setExpandedId] = useState(null);
 
-  // 1. Resumen General del Día (Clases + Arriendos con Silo Financiero para Instructores)
+  // 1. Resumen General del Día
   const summary = useMemo(() => {
     const totalClasses = dailyClasses.length;
     const totalRevenue = dailyClasses.reduce((acc, c) => acc + (Number(c.finalTotal) || 0), 0);
@@ -59,7 +60,7 @@ export default function Module4ClosingDashboard() {
     };
   }, [dailyClasses, rentalsTotalRevenue]);
 
-  // 1B. Resumen y Distribución de Arriendos del Día (Módulo 05)
+  // 1B. Resumen y Distribución de Arriendos del Día
   const rentalSummary = useMemo(() => {
     const allRentals = [...activeRentals, ...completedRentals];
     const activeCount = activeRentals.length;
@@ -70,9 +71,9 @@ export default function Module4ClosingDashboard() {
 
     const itemColors = {
       tabla_surf: 'bg-blue-950',
-      traje_surf: 'bg-sky-500',
-      bodyboard: 'bg-pink-600',
-      aletas: 'bg-slate-600',
+      traje_surf: 'bg-sky-600',
+      bodyboard: 'bg-sky-400',
+      aletas: 'bg-slate-500',
     };
 
     const byItemMap = {};
@@ -84,7 +85,7 @@ export default function Module4ClosingDashboard() {
         units: 0,
         hours: 0,
         amount: 0,
-        color: itemColors[rate.id] || 'bg-sky-500',
+        color: itemColors[rate.id] || 'bg-sky-600',
       };
     });
 
@@ -98,7 +99,7 @@ export default function Module4ClosingDashboard() {
           units: 0,
           hours: 0,
           amount: 0,
-          color: itemColors[key] || 'bg-sky-500',
+          color: itemColors[key] || 'bg-sky-600',
         };
       }
       byItemMap[key].count += 1;
@@ -118,7 +119,7 @@ export default function Module4ClosingDashboard() {
     };
   }, [activeRentals, completedRentals, rentalRates, rentalsTotalRevenue]);
 
-  // 2. Leaderboard de Instructores (Liquidación Diaria ordenada de mayor a menor)
+  // 2. Leaderboard de Instructores
   const leaderboardSettlements = useMemo(() => {
     const rows = instructors.map((inst) => {
       const classes = dailyClasses.filter((c) => c.instructorId === inst.id);
@@ -191,18 +192,18 @@ export default function Module4ClosingDashboard() {
     );
   }, [weeklyData]);
 
-  // 4. Desglose Diario para Gráficos (Medios de Pago y Modalidad)
+  // 4. Desglose Diario para Gráficos
   const dailyBreakdowns = useMemo(() => {
     const byPayment = {
       Transferencia: { count: 0, amount: 0, color: 'bg-blue-950' },
-      Tarjeta: { count: 0, amount: 0, color: 'bg-sky-500' },
-      Efectivo: { count: 0, amount: 0, color: 'bg-pink-600' },
+      Tarjeta: { count: 0, amount: 0, color: 'bg-sky-600' },
+      Efectivo: { count: 0, amount: 0, color: 'bg-sky-400' },
     };
 
     const byType = {
-      Individual: { count: 0, amount: 0, color: 'bg-sky-500' },
+      Individual: { count: 0, amount: 0, color: 'bg-sky-600' },
       Grupal: { count: 0, amount: 0, color: 'bg-blue-950' },
-      'Curso Pack 8': { count: 0, amount: 0, color: 'bg-pink-600' },
+      'Curso Pack 8': { count: 0, amount: 0, color: 'bg-slate-700' },
     };
 
     dailyClasses.forEach((cls) => {
@@ -229,7 +230,6 @@ export default function Module4ClosingDashboard() {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  // Exportación estructurada de DailyClasses a archivo CSV (caja_diaria_poisson.csv)
   const handleExportCSV = () => {
     const todayStr = getTodayDateString();
     const headers = [
@@ -298,7 +298,7 @@ export default function Module4ClosingDashboard() {
 
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'caja_diaria_poisson.csv');
+    link.setAttribute('download', `caja_diaria_${todayStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -306,111 +306,114 @@ export default function Module4ClosingDashboard() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Cabecera con Botón de Exportar Caja (CSV) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-slate-300">
+    <div className="max-w-6xl mx-auto space-y-8 font-inter">
+      {/* Cabecera */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-600">
-            <span className="w-2 h-2 bg-pink-600 inline-block" />
-            Módulo 04 · Liquidación y Reportes
+          <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+            Módulo 04 · Inteligencia de Negocio & Liquidación
           </span>
-          <h1 className="text-2xl font-bold text-blue-950 mt-1">
-            Cierre Diario, Leaderboard de Instructores y Métricas
+          <h1 className="text-2xl font-bold tracking-tight text-blue-950 mt-1">
+            Cierre Diario y Balance Operativo
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Estado de resultados del día, tabla de liquidación por instructor y evolución semanal de ingresos.
+          <p className="text-sm font-light text-slate-600 leading-relaxed mt-1">
+            Estado de resultados de la jornada, balance de nómina a transferir y proyección semanal consolidada.
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleExportCSV}
-          className="h-11 px-5 rounded-none border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 text-sm font-semibold transition self-start md:self-auto cursor-pointer shrink-0"
+          className="inline-flex items-center gap-2 h-10 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-700 shadow-sm transition-colors self-start md:self-auto cursor-pointer"
         >
-          ⬇ Exportar Caja (CSV)
+          <Download className="w-4 h-4 text-sky-600" />
+          Exportar Caja (CSV)
         </button>
       </div>
 
-      {/* 1. RESUMEN EJECUTIVO DEL DÍA (CLASES + ARRIENDOS CON SILO FINANCIERO) */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-slate-300 bg-white divide-y sm:divide-y-0 sm:divide-x divide-slate-300 rounded-none">
-        <div className="p-6">
+      {/* 1. RESUMEN EJECUTIVO (4 KPI Cards) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
               Caja Clases (Hoy)
             </span>
-            <Wallet className="w-4 h-4 text-sky-500" />
+            <Wallet className="w-4 h-4 text-sky-600" />
           </div>
-          <div className="mt-2 text-3xl font-mono font-bold text-blue-950">
+          <div className="mt-3 text-3xl font-mono font-bold tabular-nums text-blue-950">
             {formatCurrency(summary.totalRevenue)}
           </div>
-          <div className="mt-1 text-xs font-medium text-slate-500">
+          <div className="mt-1 text-xs font-light text-slate-500">
             {summary.totalClasses} {summary.totalClasses === 1 ? 'clase registrada' : 'clases registradas'} hoy
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
               Caja Arriendos (Hoy)
             </span>
-            <Waves className="w-4 h-4 text-sky-500" />
+            <Waves className="w-4 h-4 text-sky-600" />
           </div>
-          <div className="mt-2 text-3xl font-mono font-bold text-blue-950">
+          <div className="mt-3 text-3xl font-mono font-bold tabular-nums text-blue-950">
             {formatCurrency(rentalSummary.totalRevenue)}
           </div>
-          <div className="mt-1 text-xs font-medium text-slate-500">
-            {rentalSummary.totalRentals}{' '}
-            {rentalSummary.totalRentals === 1 ? 'arriendo' : 'arriendos'} hoy ({rentalSummary.activeCount}{' '}
-            en curso · {rentalSummary.completedCount} devueltos)
+          <div className="mt-1 text-xs font-light text-slate-500">
+            {rentalSummary.totalRentals} {rentalSummary.totalRentals === 1 ? 'arriendo' : 'arriendos'} ({rentalSummary.activeCount} en curso)
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Total a Repartir (Staff)
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Nómina a Liquidar Staff
             </span>
-            <Users className="w-4 h-4 text-pink-600" />
+            <Users className="w-4 h-4 text-sky-600" />
           </div>
-          <div className="mt-2 text-3xl font-mono font-bold text-sky-600">
+          <div className="mt-3 text-3xl font-mono font-bold tabular-nums text-sky-700">
             {formatCurrency(summary.totalInstructorPayout)}
           </div>
-          <div className="mt-1 text-xs font-medium text-slate-500">
-            Nómina acumulada (exclusiva de clases)
+          <div className="mt-1 text-xs font-light text-slate-500">
+            Liquidación neta exclusiva de clases
           </div>
         </div>
 
-        <div className="p-6 bg-blue-950 text-white border-b-4 border-b-pink-600">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider text-sky-400">
+        <div className="bg-blue-950 text-white border-t-4 border-sky-400 shadow-sm p-6">
+          <div className="flex items-center justify-between text-sky-300">
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-400">
               Ganancia Neta Total
             </span>
             <TrendingUp className="w-4 h-4 text-sky-400" />
           </div>
-          <div className="mt-2 text-3xl font-mono font-bold text-white">
+          <div className="mt-3 text-3xl font-mono font-bold tabular-nums text-white">
             {formatCurrency(summary.combinedNetProfit)}
           </div>
-          <div className="mt-1 text-xs font-medium text-slate-300">
-            Caja total {formatCurrency(summary.combinedRevenue)} menos nómina staff
+          <div className="mt-1 text-xs font-light text-slate-300">
+            Caja bruta {formatCurrency(summary.combinedRevenue)} menos staff
           </div>
         </div>
       </section>
 
-      {/* 2. LEADERBOARD DE INSTRUCTORES (TABLA DE LIQUIDACIÓN CORPORATIVA CON ZEBRA STRIPING) */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* 2. LEADERBOARD DE INSTRUCTORES */}
+      <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-sky-600" />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-blue-950">
-              Leaderboard de Instructores · Liquidación Diaria
-            </h2>
+            <Trophy className="w-5 h-5 text-sky-600" />
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                Liquidación Operativa
+              </span>
+              <h2 className="text-lg font-bold tracking-tight text-blue-950">
+                Leaderboard de Instructores
+              </h2>
+            </div>
           </div>
           <span className="text-xs text-slate-500">
-            Haz clic en una fila para desplegar el detalle de clases
+            Haz clic en una fila para desplegar el desglose
           </span>
         </div>
 
-        <div className="border border-slate-300 bg-white rounded-none overflow-x-auto">
+        <div className="border border-slate-200 overflow-x-auto shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-blue-950 text-white text-xs font-semibold uppercase tracking-wider">
@@ -421,7 +424,7 @@ export default function Module4ClosingDashboard() {
                 <th className="py-3.5 px-6 text-right">Monto a Pagar Hoy</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-sm">
+            <tbody className="divide-y divide-slate-100 text-sm">
               {leaderboardSettlements.map((row, index) => {
                 const isExpanded = expandedId === row.instructor.id;
                 const barPercent =
@@ -433,22 +436,20 @@ export default function Module4ClosingDashboard() {
                   <React.Fragment key={row.instructor.id}>
                     <tr
                       onClick={() => toggleExpand(row.instructor.id)}
-                      className="even:bg-slate-50/80 hover:bg-sky-50/60 cursor-pointer transition"
+                      className="hover:bg-slate-50/80 cursor-pointer transition"
                     >
-                      {/* Ranking */}
                       <td className="py-4 px-4 text-center font-mono">
                         <span
-                          className={`inline-block w-8 py-1 text-xs font-bold text-center rounded-none ${
+                          className={`inline-block w-8 py-1 text-xs font-bold text-center tabular-nums ${
                             index === 0 && row.totalToTransfer > 0
-                              ? 'bg-blue-950 text-white border-b-2 border-pink-600'
-                              : 'bg-slate-200 text-slate-800'
+                              ? 'bg-blue-950 text-white border-l-2 border-sky-400'
+                              : 'bg-slate-100 text-slate-700'
                           }`}
                         >
                           #{index + 1}
                         </span>
                       </td>
 
-                      {/* Instructor y barra plana */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
                           {isExpanded ? (
@@ -456,76 +457,70 @@ export default function Module4ClosingDashboard() {
                           ) : (
                             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                           )}
-                          <span className="font-semibold text-base text-blue-950">
+                          <span className="font-semibold text-sm text-blue-950">
                             {row.instructor.name}
                           </span>
                           {index === 0 && row.totalToTransfer > 0 && (
-                            <span className="px-2 py-0.5 bg-pink-600 text-white text-[10px] font-semibold uppercase tracking-wider rounded-none">
-                              Líder Día
+                            <span className="px-2 py-0.5 bg-blue-950 text-sky-300 text-xs font-bold uppercase tracking-wider">
+                              Líder del Día
                             </span>
                           )}
                         </div>
 
                         <div className="mt-2 pl-6 max-w-xs">
-                          <div className="w-full h-1.5 bg-slate-200 rounded-none overflow-hidden">
+                          <div className="w-full h-1.5 bg-slate-100 border border-slate-200 overflow-hidden">
                             <div
-                              className={`h-full ${
-                                index === 0 ? 'bg-blue-950' : 'bg-sky-500'
-                              }`}
+                              className="h-full bg-blue-950 transition-all duration-300"
                               style={{ width: `${barPercent}%` }}
                             />
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-1">
-                            Recaudación en caja: {formatCurrency(row.revenueGenerated)}
+                          <div className="text-xs text-slate-500 mt-1 tabular-nums font-light">
+                            Recaudado en caja: {formatCurrency(row.revenueGenerated)}
                           </div>
                         </div>
                       </td>
 
-                      {/* Cantidad de Clases */}
-                      <td className="py-4 px-4 text-center font-mono font-semibold text-base text-blue-950">
+                      <td className="py-4 px-4 text-center tabular-nums font-semibold text-sm text-blue-950">
                         {row.classCount}
                       </td>
 
-                      {/* Desglose */}
-                      <td className="py-4 px-4 font-medium text-slate-700">
+                      <td className="py-4 px-4 font-light text-slate-600 text-xs">
                         {row.breakdown}
                       </td>
 
-                      {/* Monto a Pagar Destacado en Negrita y Azul Oscuro */}
-                      <td className="py-4 px-6 text-right font-mono font-bold text-lg text-blue-950">
+                      <td className="py-4 px-6 text-right tabular-nums font-bold text-base text-blue-950">
                         {formatCurrency(row.totalToTransfer)}
                       </td>
                     </tr>
 
-                    {/* Sub-tabla de trazabilidad de clases */}
                     {isExpanded && row.classes.length > 0 && (
                       <tr>
-                        <td colSpan={5} className="bg-slate-100 px-8 py-4 border-t border-slate-300">
-                          <div className="space-y-1.5">
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                              Detalle de sesiones dictadas por {row.instructor.name}:
+                        <td colSpan={5} className="bg-slate-50 px-8 py-4 border-t border-slate-200">
+                          <div className="space-y-2">
+                            <div className="text-xs font-bold uppercase tracking-widest text-sky-700 mb-2">
+                              Detalle de clases asignadas a {row.instructor.name}:
                             </div>
                             {row.classes.map((cls) => (
                               <div
                                 key={cls.id}
-                                className="px-4 py-2.5 bg-white border border-slate-300 rounded-none flex items-center justify-between text-xs"
+                                className="px-4 py-2.5 bg-white border border-slate-200 flex items-center justify-between text-xs shadow-sm"
                               >
                                 <div className="flex items-center gap-4">
-                                  <span className="font-mono font-semibold text-blue-950">
-                                    {cls.startTime}–{cls.endTime}
+                                  <span className="font-mono font-medium tabular-nums text-blue-950">
+                                    {cls.startTime}–{cls.endTime} hrs
                                   </span>
-                                  <span className="font-semibold text-slate-900">
+                                  <span className="font-semibold text-slate-800">
                                     {cls.studentName}
                                   </span>
-                                  <span className="text-slate-500">
+                                  <span className="text-slate-500 font-light">
                                     {cls.category === 'curso'
-                                      ? 'Curso (Pack 8)'
+                                      ? 'Curso Pack 8'
                                       : cls.modality === 'grupal'
-                                      ? `Grupal [${cls.pax} pax]`
-                                      : 'Individual (1 pax)'}
+                                      ? `Grupal (${cls.pax} pax)`
+                                      : 'Individual'}
                                   </span>
                                 </div>
-                                <span className="font-mono font-bold text-blue-950">
+                                <span className="font-mono font-semibold tabular-nums text-blue-950">
                                   +{formatCurrency(cls.instructorPay)}
                                 </span>
                               </div>
@@ -539,15 +534,15 @@ export default function Module4ClosingDashboard() {
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-slate-100 border-t-2 border-slate-300 text-sm font-bold text-blue-950">
-                <td colSpan={2} className="py-4 px-4 uppercase tracking-wider">
+              <tr className="bg-slate-50 border-t-2 border-slate-300 text-sm font-semibold text-blue-950">
+                <td colSpan={2} className="py-4 px-4 uppercase tracking-wider text-xs font-bold">
                   Total Liquidación Staff
                 </td>
-                <td className="py-4 px-4 text-center font-mono">{summary.totalClasses}</td>
-                <td className="py-4 px-4 text-xs font-medium text-slate-500">
-                  Suma exacta según tarifas vigentes en SchoolConfig
+                <td className="py-4 px-4 text-center tabular-nums font-mono">{summary.totalClasses}</td>
+                <td className="py-4 px-4 text-xs font-light text-slate-500">
+                  Suma computable según tarifas vigentes
                 </td>
-                <td className="py-4 px-6 text-right font-mono text-xl font-bold text-blue-950">
+                <td className="py-4 px-6 text-right font-mono text-lg font-bold tabular-nums text-blue-950">
                   {formatCurrency(summary.totalInstructorPayout)}
                 </td>
               </tr>
@@ -556,18 +551,17 @@ export default function Module4ClosingDashboard() {
         </div>
       </section>
 
-      {/* 3. GRÁFICOS DE DISTRIBUCIÓN DIARIA (MEDIOS DE PAGO Y MODALIDADES) */}
+      {/* 3. GRÁFICOS DE DISTRIBUCIÓN DIARIA */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Distribución por Medio de Pago */}
-        <div className="border border-slate-300 bg-white rounded-none">
-          <div className="px-5 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Distribución por Medio de Pago (Hoy)
+        <div className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Medios de Pago (Hoy)
             </span>
-            <BarChart2 className="w-4 h-4 text-sky-400" />
+            <BarChart2 className="w-4 h-4 text-sky-600" />
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 pt-1">
             {Object.entries(dailyBreakdowns.byPayment).map(([method, info]) => {
               const pct =
                 summary.totalRevenue > 0
@@ -576,17 +570,17 @@ export default function Module4ClosingDashboard() {
               return (
                 <div key={method} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-medium text-slate-800">
                       {method}{' '}
-                      <span className="text-xs font-normal text-slate-500">
+                      <span className="text-xs font-light text-slate-500">
                         ({info.count} {info.count === 1 ? 'operación' : 'operaciones'})
                       </span>
                     </span>
-                    <span className="font-mono font-semibold text-blue-950">
+                    <span className="tabular-nums font-semibold text-blue-950">
                       {formatCurrency(info.amount)} ({pct}%)
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-100 border border-slate-300 rounded-none overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 border border-slate-200 overflow-hidden">
                     <div
                       className={`h-full ${info.color} transition-all duration-300`}
                       style={{ width: `${pct}%` }}
@@ -598,16 +592,15 @@ export default function Module4ClosingDashboard() {
           </div>
         </div>
 
-        {/* Distribución por Modalidad / Categoría */}
-        <div className="border border-slate-300 bg-white rounded-none">
-          <div className="px-5 py-3.5 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Distribución por Tipo de Clase (Hoy)
+        <div className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Tipo de Servicio (Hoy)
             </span>
-            <BarChart2 className="w-4 h-4 text-sky-400" />
+            <BarChart2 className="w-4 h-4 text-sky-600" />
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 pt-1">
             {Object.entries(dailyBreakdowns.byType).map(([typeLabel, info]) => {
               const pct =
                 summary.totalRevenue > 0
@@ -616,17 +609,17 @@ export default function Module4ClosingDashboard() {
               return (
                 <div key={typeLabel} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-medium text-slate-800">
                       {typeLabel}{' '}
-                      <span className="text-xs font-normal text-slate-500">
+                      <span className="text-xs font-light text-slate-500">
                         ({info.count} {info.count === 1 ? 'clase' : 'clases'})
                       </span>
                     </span>
-                    <span className="font-mono font-semibold text-blue-950">
+                    <span className="tabular-nums font-semibold text-blue-950">
                       {formatCurrency(info.amount)} ({pct}%)
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-100 border border-slate-300 rounded-none overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 border border-slate-200 overflow-hidden">
                     <div
                       className={`h-full ${info.color} transition-all duration-300`}
                       style={{ width: `${pct}%` }}
@@ -639,81 +632,82 @@ export default function Module4ClosingDashboard() {
         </div>
       </section>
 
-      {/* 3B. MÉTRICAS Y DISTRIBUCIÓN DE ARRIENDOS DE EQUIPAMIENTO (HOY - MÓDULO 05) */}
-      <section className="border border-slate-300 bg-white rounded-none">
-        <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* 3B. ARRIENDOS DE EQUIPAMIENTO */}
+      <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
-            <Waves className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Métricas y Distribución de Arriendos de Equipamiento (Hoy · Módulo 05)
-            </span>
+            <Waves className="w-5 h-5 text-sky-600" />
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                Equipamiento
+              </span>
+              <h2 className="text-lg font-bold tracking-tight text-blue-950">
+                Métricas de Arriendos
+              </h2>
+            </div>
           </div>
-
-          <span className="text-xs font-mono text-sky-300">
-            100% Margen Escuela · Silo Financiero Independiente de Instructores
+          <span className="text-xs text-slate-500 font-light">
+            Margen neto directo de escuela (independiente de staff)
           </span>
         </div>
 
-        {/* Sub-KPIs de Arriendos */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-slate-300 divide-y sm:divide-y-0 sm:divide-x divide-slate-300 bg-slate-50">
-          <div className="p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Total Arriendos (Hoy)
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-slate-50 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Total Arriendos
             </div>
-            <div className="mt-1 text-2xl font-mono font-bold text-blue-950">
+            <div className="mt-1 text-2xl font-mono font-bold tabular-nums text-blue-950">
               {rentalSummary.totalRentals}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              {rentalSummary.totalUnits}{' '}
-              {rentalSummary.totalUnits === 1 ? 'unidad entregada' : 'unidades entregadas'}
+            <div className="text-xs font-light text-slate-500 mt-0.5">
+              {rentalSummary.totalUnits} {rentalSummary.totalUnits === 1 ? 'unidad' : 'unidades'} entregadas
             </div>
           </div>
 
-          <div className="p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              En Curso (En Agua)
+          <div className="p-4 bg-slate-50 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              En Uso (En Agua)
             </div>
-            <div className="mt-1 text-2xl font-mono font-bold text-sky-600">
+            <div className="mt-1 text-2xl font-mono font-bold tabular-nums text-sky-700">
               {rentalSummary.activeCount}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
+            <div className="text-xs font-light text-slate-500 mt-0.5">
               Equipos actualmente activos
             </div>
           </div>
 
-          <div className="p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Devueltos (Cerrados)
+          <div className="p-4 bg-slate-50 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Devueltos
             </div>
-            <div className="mt-1 text-2xl font-mono font-bold text-emerald-700">
+            <div className="mt-1 text-2xl font-mono font-bold tabular-nums text-emerald-700">
               {rentalSummary.completedCount}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Recepción conforme registrada
+            <div className="text-xs font-light text-slate-500 mt-0.5">
+              Cierre conforme registrado
             </div>
           </div>
 
-          <div className="p-4 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Total Recaudado Arriendos
+          <div className="p-4 bg-slate-50 border border-slate-200">
+            <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Recaudación Arriendos
             </div>
-            <div className="mt-1 text-2xl font-mono font-bold text-blue-950">
+            <div className="mt-1 text-2xl font-mono font-bold tabular-nums text-blue-950">
               {formatCurrency(rentalSummary.totalRevenue)}
             </div>
-            <div className="text-xs text-pink-600 font-semibold mt-0.5">
-              {rentalSummary.totalHours} {rentalSummary.totalHours === 1 ? 'hora contratada' : 'horas contratadas'}
+            <div className="text-xs font-light text-slate-500 mt-0.5">
+              {rentalSummary.totalHours} {rentalSummary.totalHours === 1 ? 'hora' : 'horas'} contratadas
             </div>
           </div>
         </div>
 
-        {/* Gráfico de Barras por Ítem de Equipamiento */}
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 pt-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-              Recaudación y Demanda por Tipo de Equipamiento
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+              Demanda por Tipo de Equipamiento
             </span>
             <span className="text-xs text-slate-500">
-              Porcentaje sobre caja de arriendos ({formatCurrency(rentalSummary.totalRevenue)})
+              Participación sobre total arriendos
             </span>
           </div>
 
@@ -727,18 +721,17 @@ export default function Module4ClosingDashboard() {
               return (
                 <div key={item.id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-medium text-slate-800">
                       {item.label}{' '}
-                      <span className="text-xs font-normal text-slate-500">
-                        ({item.count} {item.count === 1 ? 'arriendo' : 'arriendos'} · {item.units}{' '}
-                        {item.units === 1 ? 'ud.' : 'uds.'})
+                      <span className="text-xs font-light text-slate-500">
+                        ({item.count} {item.count === 1 ? 'arriendo' : 'arriendos'})
                       </span>
                     </span>
-                    <span className="font-mono font-semibold text-blue-950">
+                    <span className="tabular-nums font-semibold text-blue-950">
                       {formatCurrency(item.amount)} ({pct}%)
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-100 border border-slate-300 rounded-none overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 border border-slate-200 overflow-hidden">
                     <div
                       className={`h-full ${item.color} transition-all duration-300`}
                       style={{ width: `${pct}%` }}
@@ -751,33 +744,38 @@ export default function Module4ClosingDashboard() {
         </div>
       </section>
 
-      {/* 4. GRÁFICO DE EVOLUCIÓN SEMANAL (LUNES A DOMINGO) */}
-      <section className="border border-slate-300 bg-white rounded-none">
-        <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* 4. EVOLUCIÓN SEMANAL */}
+      <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
-            <Calendar className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Rendimiento Semanal de la Escuela (Lunes a Domingo)
-            </span>
+            <Calendar className="w-5 h-5 text-sky-600" />
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                Tendencia & Proyección
+              </span>
+              <h2 className="text-lg font-bold tracking-tight text-blue-950">
+                Evolución Semanal Consolidada
+              </h2>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-blue-950 border border-pink-500 inline-block" />
+          <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 text-slate-700">
+              <span className="w-3 h-3 bg-blue-950 inline-block" />
               Hoy (En Vivo)
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 bg-sky-500 inline-block" />
-              Días Cerrados
+            <span className="inline-flex items-center gap-1.5 text-slate-700">
+              <span className="w-3 h-3 bg-sky-600 inline-block" />
+              Cerrados
             </span>
-            <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5 text-slate-700">
               <span className="w-3 h-3 bg-slate-300 inline-block" />
-              Proyección
+              Proyectados
             </span>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           <div className="grid grid-cols-7 gap-3 sm:gap-5 items-end h-64 pt-6 pb-2 px-2 border-b border-slate-200">
             {weeklyData.map((day) => {
               const heightPercent = Math.max(
@@ -793,21 +791,21 @@ export default function Module4ClosingDashboard() {
                   className="h-full flex flex-col items-center justify-end"
                 >
                   <div
-                    className={`text-[11px] sm:text-xs font-mono font-semibold mb-2 text-center ${
-                      day.isToday ? 'text-blue-950 font-bold' : 'text-slate-700'
+                    className={`text-xs font-mono tabular-nums font-semibold mb-2 text-center ${
+                      day.isToday ? 'text-blue-950 font-bold' : 'text-slate-600'
                     }`}
                   >
                     {formatCurrency(day.revenue)}
                   </div>
 
-                  <div className="w-full max-w-[3.75rem] h-44 bg-slate-100 border border-slate-300 flex items-end rounded-none">
+                  <div className="w-full max-w-[3.75rem] h-44 bg-slate-100 border border-slate-200 flex items-end">
                     <div
-                      className={`w-full transition-all duration-300 flex flex-col justify-end rounded-none ${
+                      className={`w-full transition-all duration-300 flex flex-col justify-end ${
                         day.isToday
-                          ? 'bg-blue-950 border-t-4 border-t-pink-600'
+                          ? 'bg-blue-950 border-t-2 border-sky-400'
                           : day.isProjected
                           ? 'bg-slate-300'
-                          : 'bg-sky-500'
+                          : 'bg-sky-600'
                       }`}
                       style={{ height: `${heightPercent}%` }}
                       title={`${day.dayName}: Caja ${formatCurrency(day.revenue)} | Staff ${formatCurrency(
@@ -815,7 +813,7 @@ export default function Module4ClosingDashboard() {
                       )} | Neta ${formatCurrency(day.netProfit)}`}
                     >
                       <div
-                        className="w-full bg-pink-600/85 border-t border-white/20"
+                        className="w-full bg-sky-400/80 border-t border-white/20"
                         style={{ height: `${staffPercentOfBar}%` }}
                       />
                     </div>
@@ -823,13 +821,13 @@ export default function Module4ClosingDashboard() {
 
                   <div className="mt-2.5 text-center">
                     <div
-                      className={`text-xs font-mono font-bold ${
-                        day.isToday ? 'text-pink-600' : 'text-blue-950'
+                      className={`text-xs font-bold uppercase tracking-wider ${
+                        day.isToday ? 'text-sky-700' : 'text-blue-950'
                       }`}
                     >
                       {day.dayShort}
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-xs font-light text-slate-500 tabular-nums">
                       {day.classes} {day.classes === 1 ? 'clase' : 'clases'}
                     </div>
                   </div>
@@ -838,36 +836,35 @@ export default function Module4ClosingDashboard() {
             })}
           </div>
 
-          {/* Totales Acumulados de la Semana */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 border border-slate-300 bg-slate-50 rounded-none flex items-center justify-between">
+            <div className="p-4 border border-slate-200 bg-slate-50 flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold uppercase text-slate-500">
+                <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
                   Facturación Semanal
                 </div>
-                <div className="text-xl font-mono font-bold text-blue-950 mt-0.5">
+                <div className="text-xl font-mono font-bold tabular-nums text-blue-950 mt-1">
                   {formatCurrency(weeklyTotals.revenue)}
                 </div>
               </div>
-              <span className="text-xs font-mono font-semibold px-2.5 py-1 bg-white border border-slate-300 text-blue-950">
+              <span className="text-xs font-mono font-semibold px-2.5 py-1 bg-white border border-slate-200 text-blue-950">
                 {weeklyTotals.classes} CLASES
               </span>
             </div>
 
-            <div className="p-4 border border-slate-300 bg-slate-50 rounded-none">
-              <div className="text-xs font-semibold uppercase text-slate-500">
+            <div className="p-4 border border-slate-200 bg-slate-50">
+              <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
                 Nómina Semanal Staff
               </div>
-              <div className="text-xl font-mono font-bold text-sky-600 mt-0.5">
+              <div className="text-xl font-mono font-bold tabular-nums text-sky-700 mt-1">
                 {formatCurrency(weeklyTotals.staffPay)}
               </div>
             </div>
 
-            <div className="p-4 border border-blue-950 bg-blue-950 border-b-2 border-b-pink-600 text-white rounded-none">
-              <div className="text-xs font-semibold uppercase text-sky-400">
+            <div className="p-4 border border-slate-200 bg-blue-950 text-white">
+              <div className="text-xs font-bold uppercase tracking-widest text-sky-400">
                 Ganancia Neta Semanal
               </div>
-              <div className="text-xl font-mono font-bold text-white mt-0.5">
+              <div className="text-xl font-mono font-bold tabular-nums text-white mt-1">
                 {formatCurrency(weeklyTotals.netProfit)}
               </div>
             </div>
