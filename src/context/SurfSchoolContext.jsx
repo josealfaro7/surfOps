@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   calculateInstructorPayment,
   calculateRentalTotals,
@@ -6,6 +6,16 @@ import {
   timeToMinutes,
   addMinutesToTime,
 } from '../utils/calculations';
+import {
+  supabase,
+  isSupabaseConfigured,
+  getCachedSchoolBranding,
+  loadSchoolBranding,
+  cacheSchoolBranding,
+  applySchoolThemeToDOM,
+  uploadIdCardPhoto,
+  DEFAULT_POISSON_BRANDING,
+} from '../lib/supabaseClient';
 
 const SurfSchoolContext = createContext(null);
 
@@ -374,7 +384,25 @@ export const INITIAL_COMPLETED_RENTALS = [
   },
 ];
 
+export const getTodayIsoDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function SurfSchoolProvider({ children }) {
+  // 0. Sesión de Supabase Auth e Identidad Corporativa Multitenant (Zero-FOUC desde surfops_school_branding)
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+  const [isDemoSession, setIsDemoSession] = useState(!isSupabaseConfigured);
+  const [schoolBranding, setSchoolBranding] = useState(() => {
+    const cached = getCachedSchoolBranding();
+    applySchoolThemeToDOM(cached);
+    return cached;
+  });
+
   // 1. SchoolConfig
   const [schoolConfig, setSchoolConfig] = useState(INITIAL_SCHOOL_CONFIG);
 
@@ -407,6 +435,275 @@ export function SurfSchoolProvider({ children }) {
   // Hora del ocaso compartida desde EnvironmentBar para validación de luz en Módulo 3
   const [sunsetTime, setSunsetTime] = useState('20:15');
 
+  // Sincroniza variables CSS en document.documentElement.style cada vez que cambia schoolBranding
+  useEffect(() => {
+    applySchoolThemeToDOM(schoolBranding);
+  }, [schoolBranding]);
+
+  // Carga los datos operativos de la escuela (schoolId = auth.uid()) desde Supabase
+  const hydrateSchoolData = async (schoolId) => {
+    if (!isSupabaseConfigured || !supabase || !schoolId) return;
+
+    const todayIso = getTodayIsoDate();
+
+    try {
+      const [
+        configRes,
+        ratesRes,
+        instructorsRes,
+        attendanceRes,
+        classesRes,
+        rentalsRes,
+      ] = await Promise.all([
+        supabase
+          .from('school_configs')
+          .select('*')
+          .eq('school_id', schoolId)
+          .maybeSingle(),
+        supabase
+          .from('rental_rates')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('item_code', { ascending: true }),
+        supabase
+          .from('instructors')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('instructor_attendance')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('attendance_date', todayIso),
+        supabase
+          .from('surf_classes')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('operation_date', todayIso)
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('equipment_rentals')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('operation_date', todayIso)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      if (configRes.data) {
+        setSchoolConfig({
+          priceIndividual: Number(configRes.data.price_individual),
+          priceGroupBase: Number(configRes.data.price_group_base),
+          priceGroupExtraPax: Number(configRes.data.price_group_extra_pax),
+          priceCoursePack8: Number(configRes.data.price_course_pack_8),
+          payIndividual: Number(configRes.data.pay_individual),
+          payGroupBase: Number(configRes.data.pay_group_base),
+          payGroupExtraPax: Number(configRes.data.pay_group_extra_pax),
+          payCourseSingleClass: Number(configRes.data.pay_course_single_class),
+        });
+      }
+
+      if (Array.isArray(ratesRes.data) && ratesRes.data.length > 0) {
+        const mappedRates = ratesRes.data.map((r) => ({
+          uuid: r.id,
+          id: r.item_code,
+          label: r.label,
+          pricePerHour: Number(r.price_per_hour),
+          enabled: Boolean(r.enabled),
+        }));
+        setRentalRates(mappedRates);
+        safeSaveToLocalStorage(RENTAL_RATES_STORAGE_KEY, mappedRates);
+      }
+
+      if (Array.isArray(instructorsRes.data) && instructorsRes.data.length > 0) {
+        const attendanceMap = new Map(
+          (attendanceRes.data || []).map((att) => [att.instructor_id, att])
+        );
+        const mappedInstructors = instructorsRes.data.map((inst) => {
+          const att = attendanceMap.get(inst.id);
+          const checkedIn = Boolean(att?.checked_in);
+          const checkInTime = att?.check_in_time
+            ? String(att.check_in_time).slice(0, 5)
+            : null;
+          const checkInTimestamp = att?.check_in_at
+            ? new Date(att.check_in_at).getTime()
+            : checkInTime
+            ? getBaseTimestamp(checkInTime)
+            : null;
+
+          return {
+            id: inst.id,
+            name: inst.name,
+            checkedIn,
+            checkInTime,
+            checkInTimestamp,
+          };
+        });
+        setInstructors(mappedInstructors);
+      }
+
+      if (Array.isArray(classesRes.data)) {
+        const mappedClasses = classesRes.data.map((cls) => ({
+          id: cls.id,
+          date: getTodayDateString(),
+          modality: cls.modality,
+          pax: Number(cls.pax),
+          category: cls.category,
+          subtotal: Number(cls.subtotal),
+          discount: Number(cls.discount),
+          paymentMethod: cls.payment_method,
+          finalTotal: Number(cls.final_total),
+          startTime: String(cls.start_time).slice(0, 5),
+          endTime: String(cls.end_time).slice(0, 5),
+          instructorId: cls.instructor_id,
+          wasSuggestedByQueue: Boolean(cls.was_suggested_by_queue),
+          studentName: cls.student_name,
+          studentPhone: cls.student_phone,
+          studentEmail: cls.student_email,
+          emergencyContactName: cls.emergency_contact_name,
+          emergencyContactPhone: cls.emergency_contact_phone,
+          instructorPay: Number(cls.instructor_pay),
+        }));
+        setDailyClasses(mappedClasses);
+      }
+
+      if (Array.isArray(rentalsRes.data)) {
+        const mappedRentals = rentalsRes.data.map((r) => ({
+          id: r.id,
+          date: getTodayDateString(),
+          itemId: r.item_code,
+          itemLabel: r.item_label,
+          unitPricePerHour: Number(r.unit_price_per_hour),
+          quantity: Number(r.quantity),
+          hours: Number(r.hours),
+          checkInTime: String(r.check_in_time).slice(0, 5),
+          estimatedReturnTime: String(r.estimated_return_time).slice(0, 5),
+          returnedAt: r.returned_time ? String(r.returned_time).slice(0, 5) : undefined,
+          subtotal: Number(r.subtotal),
+          discount: Number(r.discount),
+          finalTotal: Number(r.final_total),
+          customerName: r.customer_name,
+          customerEmail: r.customer_email,
+          customerPhone: r.customer_phone,
+          emergencyContact: r.emergency_contact,
+          idPhotoStoragePath: r.id_photo_storage_path,
+          idPhotoBase64: r.id_photo_storage_path || DEMO_ID_PHOTO_SVG,
+          status: r.status,
+        }));
+        setActiveRentals(mappedRentals.filter((r) => r.status === 'active'));
+        setCompletedRentals(
+          mappedRentals.filter((r) => r.status === 'completed')
+        );
+      }
+    } catch {
+      // Mantiene estado local de respaldo si la consulta falla
+    }
+  };
+
+  // Listener de sesión de Supabase Auth y carga de branding por auth.uid()
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthLoading(false);
+      return undefined;
+    }
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!isMounted) return;
+      const currentSession = data?.session || null;
+      setSession(currentSession);
+
+      if (currentSession?.user?.id) {
+        const branding = await loadSchoolBranding(currentSession.user.id);
+        if (isMounted) {
+          setSchoolBranding(branding);
+          await hydrateSchoolData(currentSession.user.id);
+        }
+      }
+      if (isMounted) {
+        setAuthLoading(false);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (!isMounted) return;
+      setSession(nextSession);
+
+      if (nextSession?.user?.id) {
+        setIsDemoSession(false);
+        const branding = await loadSchoolBranding(nextSession.user.id);
+        if (isMounted) {
+          setSchoolBranding(branding);
+          await hydrateSchoolData(nextSession.user.id);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Actualizar branding en public.schools, actualizar caché local (surfops_school_branding)
+  // y refrescar el estado global + DOM al instante
+  const updateSchoolBranding = async (partialBranding) => {
+    const nextBranding = {
+      ...schoolBranding,
+      ...partialBranding,
+      themePalette: {
+        ...(schoolBranding?.themePalette || {}),
+        ...(partialBranding?.themePalette || {}),
+      },
+    };
+
+    // 1. Refrescar estado global y DOM al instante
+    setSchoolBranding(nextBranding);
+    applySchoolThemeToDOM(nextBranding);
+
+    // 2. Actualizar caché local surfops_school_branding
+    cacheSchoolBranding(nextBranding);
+
+    // 3. Ejecutar UPDATE en public.schools filtrando por schoolId (auth.uid())
+    const targetSchoolId = session?.user?.id || nextBranding.schoolId;
+    if (isSupabaseConfigured && supabase && targetSchoolId) {
+      const { error } = await supabase
+        .from('schools')
+        .update({
+          display_name: nextBranding.displayName,
+          monogram: nextBranding.monogram,
+          tagline: nextBranding.tagline,
+          theme_palette: nextBranding.themePalette,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetSchoolId);
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    return nextBranding;
+  };
+
+  const enterDemoSession = () => {
+    const cached = getCachedSchoolBranding();
+    setSchoolBranding(cached);
+    applySchoolThemeToDOM(cached);
+    setIsDemoSession(true);
+  };
+
+  const signOutSchool = async () => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
+    setSession(null);
+    setIsDemoSession(false);
+  };
+
   // Fila Virtual ordenada por hora de llegada (checkInTimestamp ascendente)
   const virtualQueue = useMemo(() => {
     return instructors
@@ -431,28 +728,50 @@ export function SurfSchoolProvider({ children }) {
     return activeSum + completedSum;
   }, [activeRentals, completedRentals]);
 
-  // Actualizar configuración de clases y recalcular pagos del día en base a las nuevas tarifas
-  const updateSchoolConfig = (newValues) => {
+  // Actualizar configuración de clases únicamente en school_configs sin sobrescribir
+  // retroactivamente el instructor_pay de clases históricas cerradas (Inmutabilidad Financiera)
+  const updateSchoolConfig = async (newValues) => {
     const updatedConfig = { ...schoolConfig, ...newValues };
     setSchoolConfig(updatedConfig);
 
-    setDailyClasses((prev) =>
-      prev.map((cls) => ({
-        ...cls,
-        instructorPay: calculateInstructorPayment(updatedConfig, {
-          modality: cls.modality,
-          pax: cls.pax,
-          category: cls.category,
-        }),
-      }))
-    );
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      await supabase.from('school_configs').upsert(
+        {
+          school_id: schoolBranding.schoolId,
+          price_individual: updatedConfig.priceIndividual,
+          price_group_base: updatedConfig.priceGroupBase,
+          price_group_extra_pax: updatedConfig.priceGroupExtraPax,
+          price_course_pack_8: updatedConfig.priceCoursePack8,
+          pay_individual: updatedConfig.payIndividual,
+          pay_group_base: updatedConfig.payGroupBase,
+          pay_group_extra_pax: updatedConfig.payGroupExtraPax,
+          pay_course_single_class: updatedConfig.payCourseSingleClass,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'school_id' }
+      );
+    }
   };
 
-  // Actualizar tarifas de arriendo de equipamiento y guardar en localStorage
-  const updateRentalRates = (newRates) => {
+  // Actualizar tarifas de arriendo de equipamiento en Supabase y en caché local
+  const updateRentalRates = async (newRates) => {
     const normalized = Array.isArray(newRates) ? newRates : INITIAL_RENTAL_RATES;
     setRentalRates(normalized);
     safeSaveToLocalStorage(RENTAL_RATES_STORAGE_KEY, normalized);
+
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      const payload = normalized.map((rate) => ({
+        school_id: schoolBranding.schoolId,
+        item_code: rate.id,
+        label: rate.label,
+        price_per_hour: Number(rate.pricePerHour) || 0,
+        enabled: Boolean(rate.enabled),
+        updated_at: new Date().toISOString(),
+      }));
+      await supabase
+        .from('rental_rates')
+        .upsert(payload, { onConflict: 'school_id,item_code' });
+    }
   };
 
   // Registrar nuevo arriendo activo (Módulo 05) reutilizando addMinutesToTime(checkIn, hours * 60)
@@ -478,9 +797,15 @@ export function SurfSchoolProvider({ children }) {
 
     // Reutilización estricta de addMinutesToTime multiplicando horas * 60
     const estimatedReturnTime = addMinutesToTime(checkInTime, hours * 60);
+    const rentalId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `rnt-${Date.now()}`;
+    const schoolId = schoolBranding?.schoolId || '00000000-0000-0000-0000-000000000001';
+    const idPhotoStoragePath = `${schoolId}/${rentalId}.jpg`;
 
     const newRentalRecord = {
-      id: `rnt-${Date.now()}`,
+      id: rentalId,
       date: getTodayDateString(),
       itemId: rateItem?.id || 'tabla_surf',
       itemLabel: rateItem?.label || 'Tabla de Surf',
@@ -496,6 +821,7 @@ export function SurfSchoolProvider({ children }) {
       customerEmail: rentalForm.customerEmail?.trim() || '',
       customerPhone: rentalForm.customerPhone?.trim() || '',
       emergencyContact: rentalForm.emergencyContact?.trim() || '',
+      idPhotoStoragePath,
       idPhotoBase64: rentalForm.idPhotoBase64 || '',
       status: 'active',
     };
@@ -504,6 +830,49 @@ export function SurfSchoolProvider({ children }) {
     const savedOk = safeSaveToLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, nextActive);
     if (savedOk) {
       setActiveRentals(nextActive);
+
+      if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+        (async () => {
+          try {
+            const uploadedPath = await uploadIdCardPhoto(
+              schoolBranding.schoolId,
+              rentalId,
+              rentalForm.idPhotoBase64
+            );
+            const estimatedReturnAt = new Date(
+              now.getTime() + hours * 60 * 60 * 1000
+            ).toISOString();
+
+            await supabase.from('equipment_rentals').insert({
+              id: rentalId,
+              school_id: schoolBranding.schoolId,
+              rental_rate_id: rateItem?.uuid || null,
+              operation_date: getTodayIsoDate(),
+              item_code: newRentalRecord.itemId,
+              item_label: newRentalRecord.itemLabel,
+              unit_price_per_hour: unitPricePerHour,
+              quantity,
+              hours,
+              check_in_time: checkInTime,
+              estimated_return_time: estimatedReturnTime,
+              check_in_at: now.toISOString(),
+              estimated_return_at: estimatedReturnAt,
+              subtotal,
+              discount,
+              final_total: finalTotal,
+              customer_name: newRentalRecord.customerName,
+              customer_phone: newRentalRecord.customerPhone,
+              customer_email: newRentalRecord.customerEmail,
+              emergency_contact: newRentalRecord.emergencyContact,
+              id_photo_storage_path: uploadedPath,
+              status: 'active',
+            });
+          } catch {
+            // Mantiene el registro en estado local si falla la subida en segundo plano
+          }
+        })();
+      }
+
       return newRentalRecord;
     }
     return null;
@@ -520,7 +889,6 @@ export function SurfSchoolProvider({ children }) {
     ).padStart(2, '0')}`;
 
     const nextActive = activeRentals.filter((r) => r.id !== rentalId);
-    // Se conserva idPhotoBase64 en sesión o se libera espacio en localStorage si es necesario
     const completedRecord = {
       ...target,
       status: 'completed',
@@ -532,6 +900,19 @@ export function SurfSchoolProvider({ children }) {
     setCompletedRentals(nextCompleted);
     safeSaveToLocalStorage(ACTIVE_RENTALS_STORAGE_KEY, nextActive);
     safeSaveToLocalStorage(COMPLETED_RENTALS_STORAGE_KEY, nextCompleted);
+
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      supabase
+        .from('equipment_rentals')
+        .update({
+          status: 'completed',
+          returned_time: returnedAt,
+          returned_at: now.toISOString(),
+        })
+        .eq('id', rentalId)
+        .eq('school_id', schoolBranding.schoolId)
+        .then(() => {});
+    }
   };
 
   // Check-in de instructor
@@ -563,6 +944,24 @@ export function SurfSchoolProvider({ children }) {
           : inst
       )
     );
+
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      supabase
+        .from('instructor_attendance')
+        .upsert(
+          {
+            school_id: schoolBranding.schoolId,
+            instructor_id: instructorId,
+            attendance_date: getTodayIsoDate(),
+            checked_in: true,
+            check_in_time: timeStr,
+            check_in_at: new Date(timestamp).toISOString(),
+            checked_out_at: null,
+          },
+          { onConflict: 'school_id,instructor_id,attendance_date' }
+        )
+        .then(() => {});
+    }
   };
 
   // Quitar Check-in de instructor
@@ -579,6 +978,21 @@ export function SurfSchoolProvider({ children }) {
           : inst
       )
     );
+
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      supabase
+        .from('instructor_attendance')
+        .update({
+          checked_in: false,
+          check_in_time: null,
+          check_in_at: null,
+          checked_out_at: new Date().toISOString(),
+        })
+        .eq('school_id', schoolBranding.schoolId)
+        .eq('instructor_id', instructorId)
+        .eq('attendance_date', getTodayIsoDate())
+        .then(() => {});
+    }
   };
 
   // Sugerir el Instructor #1 de la Fila Virtual que esté libre en el bloque horario
@@ -626,15 +1040,20 @@ export function SurfSchoolProvider({ children }) {
     const discount = Math.max(0, Number(classForm.discount) || 0);
     const finalTotal = Math.max(0, subtotal - discount);
 
-    // Background Math: calcula cuánto gana el instructor según SchoolConfig
+    // Background Math: calcula cuánto gana el instructor según SchoolConfig vigente al momento del registro
     const instructorPay = calculateInstructorPayment(schoolConfig, {
       modality,
       pax,
       category,
     });
 
+    const classId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `cls-${Date.now()}`;
+
     const newClassRecord = {
-      id: `cls-${Date.now()}`,
+      id: classId,
       date: classForm.date || getTodayDateString(),
       modality,
       pax,
@@ -661,11 +1080,48 @@ export function SurfSchoolProvider({ children }) {
       )
     );
 
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      supabase
+        .from('surf_classes')
+        .insert({
+          id: classId,
+          school_id: schoolBranding.schoolId,
+          instructor_id: newClassRecord.instructorId,
+          operation_date: getTodayIsoDate(),
+          modality: newClassRecord.modality,
+          pax: newClassRecord.pax,
+          category: newClassRecord.category,
+          subtotal: newClassRecord.subtotal,
+          discount: newClassRecord.discount,
+          payment_method: newClassRecord.paymentMethod,
+          final_total: newClassRecord.finalTotal,
+          instructor_pay: newClassRecord.instructorPay,
+          start_time: newClassRecord.startTime,
+          end_time: newClassRecord.endTime,
+          was_suggested_by_queue: newClassRecord.wasSuggestedByQueue,
+          student_name: newClassRecord.studentName,
+          student_phone: newClassRecord.studentPhone,
+          student_email: newClassRecord.studentEmail,
+          emergency_contact_name: newClassRecord.emergencyContactName,
+          emergency_contact_phone: newClassRecord.emergencyContactPhone,
+        })
+        .then(() => {});
+    }
+
     return newClassRecord;
   };
 
   const removeDailyClass = (classId) => {
     setDailyClasses((prev) => prev.filter((c) => c.id !== classId));
+
+    if (isSupabaseConfigured && supabase && schoolBranding?.schoolId) {
+      supabase
+        .from('surf_classes')
+        .delete()
+        .eq('id', classId)
+        .eq('school_id', schoolBranding.schoolId)
+        .then(() => {});
+    }
   };
 
   const resetDayEmpty = () => {
@@ -697,6 +1153,15 @@ export function SurfSchoolProvider({ children }) {
   };
 
   const value = {
+    session,
+    authLoading,
+    isDemoSession,
+    enterDemoSession,
+    signOutSchool,
+    schoolBranding,
+    setSchoolBrandingState: setSchoolBranding,
+    loadSchoolBranding,
+    updateSchoolBranding,
     schoolConfig,
     updateSchoolConfig,
     rentalRates,

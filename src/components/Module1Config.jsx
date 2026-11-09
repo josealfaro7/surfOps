@@ -1,22 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Check, RotateCcw, Lock, Unlock, AlertCircle, Shield } from 'lucide-react';
+import { Check, RotateCcw, Lock, Unlock, AlertCircle, Shield, Palette } from 'lucide-react';
 import {
   useSurfSchool,
   INITIAL_SCHOOL_CONFIG,
   INITIAL_RENTAL_RATES,
 } from '../context/SurfSchoolContext';
+import {
+  SCHOOL_THEME_PRESETS,
+  DEFAULT_POISSON_BRANDING,
+} from '../lib/supabaseClient';
 import { formatCurrency } from '../utils/calculations';
 
 const ADMIN_PIN = '0000';
 
 export default function Module1Config() {
   const {
+    schoolBranding,
+    updateSchoolBranding,
     schoolConfig,
     updateSchoolConfig,
     rentalRates,
     updateRentalRates,
   } = useSurfSchool();
 
+  const [brandingForm, setBrandingForm] = useState(() => ({
+    schoolId: schoolBranding?.schoolId || DEFAULT_POISSON_BRANDING.schoolId,
+    displayName: schoolBranding?.displayName || DEFAULT_POISSON_BRANDING.displayName,
+    monogram: schoolBranding?.monogram || DEFAULT_POISSON_BRANDING.monogram,
+    tagline: schoolBranding?.tagline || DEFAULT_POISSON_BRANDING.tagline,
+    themeId: schoolBranding?.themeId || 'poisson_default',
+    themePalette:
+      schoolBranding?.themePalette || DEFAULT_POISSON_BRANDING.themePalette,
+  }));
   const [formData, setFormData] = useState(schoolConfig);
   const [rentalRatesForm, setRentalRatesForm] = useState(rentalRates);
   const [saved, setSaved] = useState(false);
@@ -25,6 +40,21 @@ export default function Module1Config() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+
+  useEffect(() => {
+    if (schoolBranding) {
+      setBrandingForm({
+        schoolId: schoolBranding.schoolId || DEFAULT_POISSON_BRANDING.schoolId,
+        displayName:
+          schoolBranding.displayName || DEFAULT_POISSON_BRANDING.displayName,
+        monogram: schoolBranding.monogram || DEFAULT_POISSON_BRANDING.monogram,
+        tagline: schoolBranding.tagline || DEFAULT_POISSON_BRANDING.tagline,
+        themeId: schoolBranding.themeId || 'poisson_default',
+        themePalette:
+          schoolBranding.themePalette || DEFAULT_POISSON_BRANDING.themePalette,
+      });
+    }
+  }, [schoolBranding]);
 
   useEffect(() => {
     setFormData(schoolConfig);
@@ -77,19 +107,68 @@ export default function Module1Config() {
     setSaved(false);
   };
 
-  const handleSave = (e) => {
+  const handleThemeSelect = (preset) => {
+    setBrandingForm((prev) => ({
+      ...prev,
+      themeId: preset.id,
+      themePalette: { ...preset.palette },
+    }));
+    setSaved(false);
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    updateSchoolConfig(formData);
-    updateRentalRates(rentalRatesForm);
+    const cleanedName =
+      brandingForm.displayName?.trim() || DEFAULT_POISSON_BRANDING.displayName;
+    const cleanedMonogram = (
+      brandingForm.monogram?.trim() ||
+      cleanedName.slice(0, 1) ||
+      'P'
+    )
+      .slice(0, 2)
+      .toUpperCase();
+
+    try {
+      await updateSchoolBranding({
+        schoolId: brandingForm.schoolId,
+        displayName: cleanedName,
+        monogram: cleanedMonogram,
+        tagline:
+          brandingForm.tagline?.trim() || DEFAULT_POISSON_BRANDING.tagline,
+        themeId: brandingForm.themeId,
+        themePalette: brandingForm.themePalette,
+      });
+    } catch {
+      // Mantiene la actualización en caché local y estado global si Supabase retorna error de RLS en modo demo
+    }
+
+    await updateSchoolConfig(formData);
+    await updateRentalRates(rentalRatesForm);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    setBrandingForm({
+      schoolId: schoolBranding?.schoolId || DEFAULT_POISSON_BRANDING.schoolId,
+      displayName: DEFAULT_POISSON_BRANDING.displayName,
+      monogram: DEFAULT_POISSON_BRANDING.monogram,
+      tagline: DEFAULT_POISSON_BRANDING.tagline,
+      themeId: 'poisson_default',
+      themePalette: { ...DEFAULT_POISSON_BRANDING.themePalette },
+    });
     setFormData(INITIAL_SCHOOL_CONFIG);
     setRentalRatesForm(INITIAL_RENTAL_RATES);
-    updateSchoolConfig(INITIAL_SCHOOL_CONFIG);
-    updateRentalRates(INITIAL_RENTAL_RATES);
+    try {
+      await updateSchoolBranding({
+        ...DEFAULT_POISSON_BRANDING,
+        schoolId: schoolBranding?.schoolId || DEFAULT_POISSON_BRANDING.schoolId,
+      });
+    } catch {
+      // Ignorar error de red en reset demo
+    }
+    await updateSchoolConfig(INITIAL_SCHOOL_CONFIG);
+    await updateRentalRates(INITIAL_RENTAL_RATES);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -232,6 +311,153 @@ export default function Module1Config() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">
+        {/* Bloque Identidad de la Escuela y Tema Visual */}
+        <section className="border border-slate-300 rounded-none bg-white">
+          <div className="px-6 py-4 bg-[var(--brand-primary,#172554)] text-white border-b border-slate-300 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-1.5 h-4 bg-[var(--brand-accent,#db2777)] inline-block" />
+              <Palette className="w-4 h-4 text-sky-400" />
+              <h2 className="text-sm font-semibold uppercase tracking-wider">
+                Identidad de la Escuela y Tema Visual
+              </h2>
+            </div>
+            <span className="text-xs font-mono text-sky-300">
+              public.schools · surfops_school_branding
+            </span>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* School ID (Solo lectura) */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="school-id-readonly"
+                className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+              >
+                School ID (UUID · Solo Lectura)
+              </label>
+              <input
+                id="school-id-readonly"
+                type="text"
+                readOnly
+                value={brandingForm.schoolId}
+                className="w-full h-11 px-4 rounded-sm border border-slate-300 bg-slate-100 text-xs font-mono font-semibold text-slate-600 cursor-not-allowed outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Nombre de la Escuela (displayName) */}
+              <div className="md:col-span-2 space-y-1.5">
+                <label
+                  htmlFor="school-display-name"
+                  className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+                >
+                  Nombre de la Escuela (displayName)
+                </label>
+                <input
+                  id="school-display-name"
+                  type="text"
+                  maxLength={36}
+                  value={brandingForm.displayName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      displayName: val,
+                      monogram:
+                        val.trim().slice(0, 1).toUpperCase() || prev.monogram,
+                    }));
+                    setSaved(false);
+                  }}
+                  placeholder="Ej. POISSON"
+                  className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-base font-bold uppercase text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                />
+              </div>
+
+              {/* Inicial / Monograma (monogram) */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="school-monogram"
+                  className="block text-xs font-semibold uppercase tracking-wider text-blue-950"
+                >
+                  Monograma (monogram)
+                </label>
+                <input
+                  id="school-monogram"
+                  type="text"
+                  maxLength={2}
+                  value={brandingForm.monogram}
+                  onChange={(e) => {
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      monogram: e.target.value.toUpperCase(),
+                    }));
+                    setSaved(false);
+                  }}
+                  placeholder="P"
+                  className="w-full h-12 px-4 rounded-sm border border-slate-300 bg-white text-center text-base font-bold uppercase text-blue-950 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                />
+              </div>
+            </div>
+
+            {/* Selector de las 4 Paletas de SCHOOL_THEME_PRESETS */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-blue-950">
+                  Selector de Tema Visual (SCHOOL_THEME_PRESETS)
+                </span>
+                <span className="text-xs text-slate-500">
+                  Elige una de las 4 paletas corporativas
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.values(SCHOOL_THEME_PRESETS).map((preset) => {
+                  const isSelected =
+                    brandingForm.themeId === preset.id ||
+                    brandingForm.themePalette?.primary ===
+                      preset.palette.primary;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleThemeSelect(preset)}
+                      className={`p-3.5 border text-left rounded-none transition cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'border-blue-950 bg-sky-50/70 ring-1 ring-blue-950'
+                          : 'border-slate-300 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-blue-950">
+                          {preset.name}
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-500">
+                          {preset.palette.primary} · {preset.palette.secondary} ·{' '}
+                          {preset.palette.accent}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span
+                          className="w-5 h-5 border border-slate-300 inline-block"
+                          style={{ backgroundColor: preset.palette.primary }}
+                        />
+                        <span
+                          className="w-5 h-5 border border-slate-300 inline-block"
+                          style={{ backgroundColor: preset.palette.secondary }}
+                        />
+                        <span
+                          className="w-5 h-5 border border-slate-300 inline-block"
+                          style={{ backgroundColor: preset.palette.accent }}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Bloque A: Precios de Venta */}
         <section className="border border-slate-300 rounded-none bg-white">
           <div className="px-6 py-4 bg-blue-950 text-white border-b border-slate-300 flex items-center justify-between">
