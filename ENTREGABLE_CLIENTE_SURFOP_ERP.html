@@ -73,11 +73,11 @@
 </head>
 <body>
 
-  <!-- Botón flotante para imprimir cuando se abre en navegador (se oculta en el PDF final, pero la navbar sí queda dentro de la Lámina 1) -->
+  <!-- Botón flotante para imprimir cuando se abre en navegador (se oculta en el PDF final) -->
   <div class="no-print fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-blue-950 text-white px-5 py-3 border-2 border-sky-400 shadow-2xl">
     <span class="text-xs font-semibold text-slate-200">Vista Previa 8 Láminas (A4 Horizontal)</span>
     <button onclick="window.print()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold uppercase tracking-wider cursor-pointer">
-      🖨️ Guardar como PDF (8 Páginas Exactas)
+      Guardar como PDF (8 Páginas Exactas)
     </button>
   </div>
 
@@ -85,19 +85,19 @@
   <!-- LÁMINA 1: PORTADA + NAVBAR CON LINK A LA DEMO EN VIVO -->
   <!-- ========================================================= -->
   <section class="slide">
-    <!-- Navbar superior incluida en el PDF con link directo a la Demo -->
-    <div style="background-color: #172554; border-bottom: 4px solid #0ea5e9;" class="text-white px-6 py-3.5 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div style="background-color: #38bdf8;" class="w-3.5 h-3.5"></div>
-        <div>
+    <!-- Navbar superior incluida en el PDF con link directo a la Demo en una sola línea -->
+    <div style="background-color: #172554; border-bottom: 4px solid #0ea5e9;" class="text-white px-6 py-3.5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <div style="background-color: #38bdf8;" class="w-3.5 h-3.5 shrink-0"></div>
+        <div class="truncate">
           <span style="color: #7dd3fc;" class="text-[10px] font-bold uppercase tracking-widest block">Sistema de Gestión Operativa para Escuelas de Surf</span>
           <span class="text-base font-extrabold tracking-tight text-white">SurfOp ERP — Dossier Comercial y Guía Paso a Paso</span>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <span class="text-xs text-slate-300">Demo interactiva disponible en:</span>
-        <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="background-color: #0284c7;" class="px-4 py-2 text-white text-xs font-bold uppercase tracking-wider underline decoration-white/60">
-          🔗 https://josealfaro7.github.io/surfOps/ ↗
+      <div class="flex items-center gap-3 shrink-0 whitespace-nowrap">
+        <span class="text-[11px] text-slate-300 whitespace-nowrap">Demo interactiva disponible en:</span>
+        <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="background-color: #0284c7;" class="inline-block px-3.5 py-1.5 text-white text-[11px] font-bold tracking-wide underline decoration-white/60 whitespace-nowrap">
+          https://josealfaro7.github.io/surfOps/
         </a>
       </div>
     </div>
@@ -112,7 +112,7 @@
           SurfOp <span style="color: #0284c7;" class="text-3xl font-bold align-baseline">ERP</span>
         </h1>
         <p class="text-sm text-slate-700 leading-relaxed max-w-xl mb-5">
-          Control total de tarifas, fila justa de prioridad de instructores, agendamiento rápido en recepción, control de arriendos con foto de carnet en garantía, seguridad marina en vivo y cuadratura automática de caja diaria.
+          Control total de tarifas, fila justa de prioridad de instructores, agendamiento rápido en recepción, control de arriendos con fotografía de documento en garantía, seguridad marina en vivo y cuadratura automática de caja diaria.
         </p>
 
         <div class="grid grid-cols-2 gap-3">
@@ -126,7 +126,7 @@
           </div>
           <div style="border-left: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-2.5">
             <div style="color: #172554;" class="text-xs font-bold uppercase">03 · Clases en 3 Pasos + Arriendos</div>
-            <p class="text-[11px] text-slate-600 mt-0.5">Cobro automático, aviso WhatsApp al alumno, y control de arriendos con foto de carnet y reloj de atrasos.</p>
+            <p class="text-[11px] text-slate-600 mt-0.5">Cobro automático, aviso WhatsApp al alumno, y control de arriendos con garantía digital y reloj de atrasos.</p>
           </div>
           <div style="border-left: 4px solid #38bdf8; background-color: #f8fafc;" class="p-2.5">
             <div style="color: #172554;" class="text-xs font-bold uppercase">04 · Cierre Consolidado y Mar en Vivo</div>
@@ -172,11 +172,11 @@
             <span style="background-color: #0284c7;" class="px-2 py-0.5 text-white text-xs font-bold tabular-nums shrink-0">05</span>
             <div>
               <strong class="block text-white">5.- Gestión de Arriendos y Garantías</strong>
-              <span class="text-slate-300 text-[11px]">Tablas, trajes, bodyboards y aletas con foto de carnet y monitor de atrasos en vivo.</span>
+              <span class="text-slate-300 text-[11px]">Tablas, trajes, bodyboards y aletas con respaldo de carnet y monitor de atrasos en vivo.</span>
             </div>
           </li>
           <li class="flex items-start gap-3">
-            <span style="background-color: #38bdf8; color: #0f172a;" class="px-2 py-0.5 text-xs font-bold tabular-nums shrink-0">🌊</span>
+            <span style="background-color: #38bdf8; color: #0f172a;" class="px-2 py-0.5 text-xs font-bold tabular-nums shrink-0">06</span>
             <div>
               <strong class="block text-white">Extras: Condiciones de Mar y Luz Solar</strong>
               <span class="text-slate-300 text-[11px]">Mareas (SHOA), oleaje, viento y alerta de seguridad por puesta de sol.</span>
@@ -201,8 +201,8 @@
         <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 01</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">1.- Configuración.</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -235,7 +235,7 @@
         </div>
 
         <div style="border-left: 4px solid #38bdf8; background-color: #f0f9ff;" class="p-3">
-          <h4 style="color: #0369a1;" class="text-xs font-bold uppercase">🔒 Protegido con PIN de Seguridad</h4>
+          <h4 style="color: #0369a1;" class="text-xs font-bold uppercase">Protegido con PIN de Seguridad</h4>
           <p class="text-xs text-slate-700 mt-1">
             Este módulo se encuentra protegido con un <strong>PIN de seguridad</strong>, para que únicamente el administrador pueda modificar precios o tarifas.
           </p>
@@ -250,22 +250,22 @@
           <div class="p-1.5 text-center text-slate-600 bg-slate-50">02 · Asistencia (3/5)</div>
           <div class="p-1.5 text-center text-slate-600 bg-slate-50">03 · Ingreso Clase</div>
           <div class="p-1.5 text-center text-slate-600 bg-slate-50">04 · Cierre Diario (6)</div>
-          <div class="p-1.5 text-center text-slate-600 bg-slate-50">05 · 🏄‍♂️ Arriendos (2)</div>
+          <div class="p-1.5 text-center text-slate-600 bg-slate-50">05 · Arriendos (2)</div>
         </div>
 
         <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-2.5">
           <div>
-            <span style="color: #0284c7;" class="text-[10px] font-bold uppercase tracking-widest">■ MÓDULO 01 · PARÁMETROS FINANCIEROS Y EQUIPAMIENTO</span>
+            <span style="color: #0284c7;" class="text-[10px] font-bold uppercase tracking-widest">MÓDULO 01 · PARÁMETROS FINANCIEROS Y EQUIPAMIENTO</span>
             <h3 class="text-sm font-bold text-slate-900">Configuración de Precios y Tarifas</h3>
           </div>
           <div class="flex gap-1.5">
-            <span class="px-2 py-1 border border-slate-300 text-[10px] font-semibold text-slate-700">↺ Restaurar Valores Base</span>
-            <span class="px-2 py-1 border border-slate-300 text-[10px] font-semibold text-slate-700">🔒 Bloquear</span>
+            <span class="px-2 py-1 border border-slate-300 text-[10px] font-semibold text-slate-700">Restaurar Valores Base</span>
+            <span class="px-2 py-1 border border-slate-300 text-[10px] font-semibold text-slate-700">Bloquear Panel</span>
           </div>
         </div>
 
         <div style="background-color: #172554;" class="text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex justify-between mb-1.5">
-          <span>▌ A. PRECIOS DE VENTA AL ALUMNO (INGRESOS CAJA)</span>
+          <span>A. PRECIOS DE VENTA AL ALUMNO (INGRESOS CAJA)</span>
           <span class="text-sky-300 font-mono">SchoolConfig.Sales</span>
         </div>
         <div class="divide-y divide-slate-200 border border-slate-200 mb-2.5 text-xs">
@@ -293,7 +293,7 @@
         </div>
 
         <div style="background-color: #172554;" class="text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex justify-between mb-1.5">
-          <span>▌ B. TARIFAS DE PAGO A INSTRUCTORES (NÓMINA STAFF)</span>
+          <span>B. TARIFAS DE PAGO A INSTRUCTORES (NÓMINA STAFF)</span>
           <span class="text-sky-300 font-mono">SchoolConfig.Rates</span>
         </div>
         <div class="border border-slate-200 p-2 flex justify-between items-center text-xs mb-2.5">
@@ -305,7 +305,7 @@
         </div>
 
         <div style="background-color: #172554;" class="text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex justify-between mb-1.5">
-          <span>▌ C. TARIFAS DE ARRIENDO (EQUIPAMIENTO POR HORA)</span>
+          <span>C. TARIFAS DE ARRIENDO (EQUIPAMIENTO POR HORA)</span>
           <span class="text-sky-300 font-mono">surfops_rental_rates</span>
         </div>
         <div class="grid grid-cols-2 gap-1.5 text-[10px] tabular-nums">
@@ -344,8 +344,8 @@
         <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 02</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">2.- Fila de Asistencia.</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -378,10 +378,10 @@
       <div class="col-span-7 border border-slate-300 bg-white p-4">
         <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 mb-3">
           <div>
-            <span style="color: #0284c7;" class="text-[10px] font-bold uppercase tracking-widest">■ MÓDULO 02 · CONTROL DE PERSONAL</span>
+            <span style="color: #0284c7;" class="text-[10px] font-bold uppercase tracking-widest">MÓDULO 02 · CONTROL DE PERSONAL</span>
             <h3 class="text-sm font-bold text-slate-900">Asistencia y Fila Virtual de Instructores</h3>
           </div>
-          <span style="background-color: #172554;" class="px-3 py-1.5 text-white text-[10px] font-bold">Ir a Ingreso de Clase →</span>
+          <span style="background-color: #172554;" class="px-3 py-1.5 text-white text-[10px] font-bold">Ir a Ingreso de Clase</span>
         </div>
 
         <div class="text-[10px] font-bold uppercase text-slate-500 mb-1.5 flex justify-between">
@@ -394,35 +394,35 @@
               <strong class="text-xs text-white">Diego</strong>
               <span style="background-color: #0284c7;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#1</span>
             </div>
-            <div class="text-[10px] text-slate-300">🕒 Check-in 08:10</div>
+            <div class="text-[10px] text-slate-300">Check-in 08:10</div>
           </div>
           <div style="background-color: #172554;" class="text-white p-2.5">
             <div class="flex justify-between items-center mb-1.5">
               <strong class="text-xs text-white">Jose</strong>
               <span style="background-color: #0ea5e9;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#2</span>
             </div>
-            <div class="text-[10px] text-slate-300">🕒 Check-in 08:20</div>
+            <div class="text-[10px] text-slate-300">Check-in 08:20</div>
           </div>
           <div style="background-color: #172554;" class="text-white p-2.5">
             <div class="flex justify-between items-center mb-1.5">
               <strong class="text-xs text-white">Vitoco</strong>
               <span style="background-color: #0ea5e9;" class="px-1.5 py-0.5 text-white text-[10px] font-bold">#3</span>
             </div>
-            <div class="text-[10px] text-slate-300">🕒 Check-in 08:35</div>
+            <div class="text-[10px] text-slate-300">Check-in 08:35</div>
           </div>
           <div class="bg-white text-slate-500 p-2.5 border border-slate-200">
             <div class="flex justify-between items-center mb-1.5">
               <strong class="text-xs text-slate-800">Caco</strong>
               <span class="text-[9px] uppercase">Ausente</span>
             </div>
-            <div class="text-[10px] text-slate-400">🕒 Marcar entrada</div>
+            <div class="text-[10px] text-slate-400">Marcar entrada</div>
           </div>
           <div class="bg-white text-slate-500 p-2.5 border border-slate-200">
             <div class="flex justify-between items-center mb-1.5">
               <strong class="text-xs text-slate-800">Alfred</strong>
               <span class="text-[9px] uppercase">Ausente</span>
             </div>
-            <div class="text-[10px] text-slate-400">🕒 Marcar entrada</div>
+            <div class="text-[10px] text-slate-400">Marcar entrada</div>
           </div>
         </div>
 
@@ -481,8 +481,8 @@
         <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 03</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">3.- Ingreso de Clase.</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -514,17 +514,17 @@
         <!-- Columna Izquierda: Paso 1 y 2 -->
         <div class="col-span-4 border border-slate-300 p-3 bg-white flex flex-col justify-between text-xs">
           <div>
-            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">▌ PASO 01 · NATURALEZA DE LA CLASE</div>
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">PASO 01 · NATURALEZA DE LA CLASE</div>
             <div class="grid grid-cols-2 gap-1.5 mb-2">
-              <div style="background-color: #172554;" class="text-white p-1.5 text-center font-bold text-[10px]">👤 Individual</div>
-              <div class="border border-slate-300 p-1.5 text-center text-slate-600 text-[10px]">👥 Grupal</div>
+              <div style="background-color: #172554;" class="text-white p-1.5 text-center font-bold text-[10px]">Individual (1 pax)</div>
+              <div class="border border-slate-300 p-1.5 text-center text-slate-600 text-[10px]">Grupal (2+ pax)</div>
             </div>
             <div class="grid grid-cols-2 gap-1.5 mb-2.5">
               <div style="background-color: #172554;" class="text-white p-1.5 text-center font-bold text-[10px]">Clase Única · $25.000</div>
               <div class="border border-slate-300 p-1.5 text-center text-slate-600 text-[10px]">Curso Pack</div>
             </div>
 
-            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">▌ PASO 02 · FINANZAS Y COBRO</div>
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">PASO 02 · FINANZAS Y COBRO</div>
             <div style="background-color: #f8fafc;" class="flex justify-between items-center border border-slate-200 p-1.5 mb-2">
               <span class="text-[10px] font-bold text-slate-600">SUBTOTAL AUTOMÁTICO</span>
               <strong class="text-xs tabular-nums">$25.000</strong>
@@ -544,11 +544,11 @@
         <!-- Columna Central: Paso 3 -->
         <div class="col-span-4 border border-slate-300 p-3 bg-white flex flex-col justify-between text-xs">
           <div>
-            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">▌ PASO 03 · ASIGNACIÓN, ALUMNO Y EMERGENCIA</div>
+            <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2">PASO 03 · ASIGNACIÓN, ALUMNO Y EMERGENCIA</div>
             <div class="grid grid-cols-2 gap-1.5 mb-2">
               <div class="border border-slate-300 p-1.5">
                 <span class="block text-[9px] text-slate-400 uppercase">Hora de Inicio</span>
-                <strong class="tabular-nums text-[11px]">🕒 10:30 AM</strong>
+                <strong class="tabular-nums text-[11px]">10:30 AM</strong>
               </div>
               <div style="background-color: #f8fafc;" class="border border-slate-300 p-1.5">
                 <span class="block text-[9px] text-slate-400 uppercase">Término (+1h 15m)</span>
@@ -564,7 +564,7 @@
               <div class="text-[10px] font-semibold text-slate-800 mt-0.5">Matías González · +56 9 8765 4321</div>
             </div>
             <div style="background-color: #f0f9ff; border: 1px solid #bae6fd;" class="p-1.5">
-              <span style="color: #0369a1;" class="block text-[9px] font-bold uppercase">🚨 Contacto de Emergencia</span>
+              <span style="color: #0369a1;" class="block text-[9px] font-bold uppercase">Contacto de Emergencia</span>
               <div class="text-[10px] text-slate-700 mt-0.5">Carolina Soto (Madre) · +56 9 1234 5678</div>
             </div>
           </div>
@@ -578,7 +578,7 @@
           <div>
             <div class="flex justify-between items-center mb-1">
               <span class="text-[10px] font-bold uppercase text-slate-800">REGISTRO OPERATIVO DEL DÍA (6)</span>
-              <span style="color: #0284c7;" class="text-[10px] font-bold">**Última visual de la página</span>
+              <span style="color: #0284c7;" class="text-[10px] font-bold">Vista Inferior</span>
             </div>
             <p class="text-[10px] text-slate-600 mb-1.5">
               Muestra en tiempo real todas las clases agendadas en el día:
@@ -621,7 +621,7 @@
             </table>
           </div>
           <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7;" class="p-1.5 text-[10px] flex justify-between items-center mt-2">
-            <span class="font-bold text-slate-800">✓ Clase Registrada</span>
+            <span class="font-bold text-slate-800">Clase Registrada</span>
             <span style="background-color: #0284c7;" class="px-2 py-1 text-white font-bold">Enviar Confirmación WhatsApp</span>
           </div>
         </div>
@@ -643,8 +643,8 @@
         <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 04</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">4.- Cierre Diario Consolidado (Clases + Arriendos).</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -682,7 +682,7 @@
         <div class="col-span-6 space-y-2.5">
           <div class="border border-slate-300 bg-white p-2.5">
             <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[9px] font-bold uppercase mb-2 flex justify-between">
-              <span>🏄‍♂️ MÉTRICAS Y DISTRIBUCIÓN DE ARRIENDOS DE EQUIPAMIENTO (HOY)</span>
+              <span>MÉTRICAS Y DISTRIBUCIÓN DE ARRIENDOS DE EQUIPAMIENTO (HOY)</span>
               <span style="color: #7dd3fc;">100% Utilidad Escuela · $56.000</span>
             </div>
             <div class="grid grid-cols-4 gap-1.5 mb-2 text-[9px] tabular-nums">
@@ -725,7 +725,7 @@
 
           <div class="border border-slate-300 bg-white p-2.5">
             <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[9px] font-bold uppercase mb-1.5 flex justify-between">
-              <span>📊 RENDIMIENTO SEMANAL (LUNES A DOMINGO)</span>
+              <span>RENDIMIENTO SEMANAL (LUNES A DOMINGO)</span>
               <span style="color: #7dd3fc;">Hoy en Vivo</span>
             </div>
             <div class="grid grid-cols-3 gap-2 text-[10px] tabular-nums">
@@ -750,10 +750,10 @@
           <div>
             <div class="flex justify-between items-center mb-2">
               <div>
-                <span style="color: #0284c7;" class="text-[9px] font-bold uppercase">■ LIQUIDACIÓN DE STAFF Y EXPORTACIÓN CSV</span>
+                <span style="color: #0284c7;" class="text-[9px] font-bold uppercase">LIQUIDACIÓN DE STAFF Y EXPORTACIÓN CSV</span>
                 <h4 class="text-xs font-bold text-slate-900">Leaderboard de Instructores (Sueldos del Día)</h4>
               </div>
-              <span class="px-2 py-1 border border-slate-300 text-[9px] font-bold text-slate-800">⬇ Exportar Caja (CSV)</span>
+              <span class="px-2 py-1 border border-slate-300 text-[9px] font-bold text-slate-800">Exportar Caja (CSV)</span>
             </div>
 
             <table class="w-full text-left border border-slate-200 text-[10px] tabular-nums mb-2.5">
@@ -831,8 +831,8 @@
         <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">MÓDULO 05</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">5.- Gestión de Arriendos y Control de Devoluciones.</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -845,7 +845,7 @@
           </p>
         </div>
         <div style="border-top: 4px solid #0284c7; background-color: #f0f9ff;" class="p-2.5">
-          <div style="color: #0369a1;" class="text-xs font-extrabold uppercase mb-1">B. Foto de Carnet en Garantía</div>
+          <div style="color: #0369a1;" class="text-xs font-extrabold uppercase mb-1">B. Respaldo de Carnet en Garantía</div>
           <p class="text-[11px] text-slate-700 leading-relaxed">
             Captura fotografía del carnet o documento en garantía desde el celular o cámara web, comprimiéndola automáticamente para consulta inmediata en recepción.
           </p>
@@ -864,8 +864,8 @@
         <div class="col-span-5 border border-slate-300 bg-white p-3 flex flex-col justify-between">
           <div>
             <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2 flex justify-between">
-              <span>▌ A. REGISTRAR NUEVO ARRIENDO</span>
-              <span class="text-sky-300 font-mono">Paso 1 → 3</span>
+              <span>A. REGISTRAR NUEVO ARRIENDO</span>
+              <span class="text-sky-300 font-mono">Paso 1 al 3</span>
             </div>
             <div class="grid grid-cols-2 gap-1.5 mb-2 text-[10px]">
               <div style="background-color: #172554; border-bottom: 2px solid #38bdf8;" class="text-white p-1.5">
@@ -893,7 +893,7 @@
             </div>
             <div class="border border-sky-300 bg-sky-50/70 p-2 mb-2 flex items-center justify-between text-[10px]">
               <div>
-                <strong class="text-blue-950 block">📷 Carnet Capturado en Garantía</strong>
+                <strong class="text-blue-950 block">Documento Capturado en Garantía</strong>
                 <span class="text-sky-800">Lucas Valenzuela · +56 9 8412 3390</span>
               </div>
               <span class="px-1.5 py-0.5 bg-white border border-sky-300 text-[9px] font-mono text-sky-800">VERIFICADO</span>
@@ -908,8 +908,8 @@
         <div class="col-span-7 border border-slate-300 bg-white p-3 flex flex-col justify-between">
           <div>
             <div style="background-color: #172554;" class="text-white px-2.5 py-1 text-[10px] font-bold uppercase mb-2.5 flex justify-between">
-              <span>▌ B. MONITOR DE ARRIENDOS ACTIVOS (SEGUIMIENTO EN TIEMPO REAL)</span>
-              <span class="text-sky-300 font-mono">🕒 Hora Actual: 11:25</span>
+              <span>B. MONITOR DE ARRIENDOS ACTIVOS (SEGUIMIENTO EN TIEMPO REAL)</span>
+              <span class="text-sky-300 font-mono">Hora Actual: 11:25</span>
             </div>
 
             <div class="grid grid-cols-2 gap-2.5">
@@ -917,13 +917,13 @@
               <div class="border border-slate-300 bg-white p-2.5">
                 <div class="flex justify-between items-center mb-1.5">
                   <span style="background-color: #172554;" class="text-white px-1.5 py-0.5 text-[9px] font-bold uppercase">Tabla de Surf × 2</span>
-                  <span class="px-1.5 py-0.5 bg-sky-50 border border-sky-300 text-sky-800 text-[9px] font-bold">✓ EN TIEMPO (65 min)</span>
+                  <span class="px-1.5 py-0.5 bg-sky-50 border border-sky-300 text-sky-800 text-[9px] font-bold">EN TIEMPO (65 min)</span>
                 </div>
                 <div class="text-xs font-bold text-slate-900">Lucas Valenzuela</div>
-                <div class="text-[10px] text-slate-500 mb-2">📞 +56 9 8412 3390 · Salida 10:30 → Retorno 12:30</div>
+                <div class="text-[10px] text-slate-500 mb-2">Tel: +56 9 8412 3390 · Salida 10:30 / Retorno 12:30</div>
                 <div class="flex justify-between items-center border-t border-slate-200 pt-2">
-                  <span class="px-2 py-1 border border-slate-300 text-[9px] font-bold text-slate-700">👁️ Ver Carnet</span>
-                  <span style="background-color: #0284c7;" class="px-2 py-1 text-white text-[9px] font-bold">✓ Devolución Recibida</span>
+                  <span class="px-2 py-1 border border-slate-300 text-[9px] font-bold text-slate-700">Ver Carnet</span>
+                  <span style="background-color: #0284c7;" class="px-2 py-1 text-white text-[9px] font-bold">Devolución Recibida</span>
                 </div>
               </div>
 
@@ -931,13 +931,13 @@
               <div style="border: 2px solid #0284c7; background-color: #f0f9ff;" class="p-2.5">
                 <div class="flex justify-between items-center mb-1.5">
                   <span style="background-color: #172554;" class="text-white px-1.5 py-0.5 text-[9px] font-bold uppercase">Traje de Surf × 1</span>
-                  <span style="background-color: #0369a1;" class="px-1.5 py-0.5 text-white text-[9px] font-extrabold">⚠️ ATRASADO (+25 min)</span>
+                  <span style="background-color: #0369a1;" class="px-1.5 py-0.5 text-white text-[9px] font-extrabold">ATRASADO (+25 min)</span>
                 </div>
                 <div class="text-xs font-bold text-slate-900">Martina Gómez</div>
-                <div class="text-[10px] text-slate-600 mb-2">📞 +56 9 7621 4410 · Salida 09:00 → Retorno 11:00</div>
+                <div class="text-[10px] text-slate-600 mb-2">Tel: +56 9 7621 4410 · Salida 09:00 / Retorno 11:00</div>
                 <div class="flex justify-between items-center border-t border-sky-200 pt-2">
-                  <span class="px-2 py-1 bg-white border border-slate-300 text-[9px] font-bold text-slate-800">👁️ Ver Carnet</span>
-                  <span style="background-color: #172554;" class="px-2 py-1 text-white text-[9px] font-bold">✓ Devolución Recibida</span>
+                  <span class="px-2 py-1 bg-white border border-slate-300 text-[9px] font-bold text-slate-800">Ver Carnet</span>
+                  <span style="background-color: #172554;" class="px-2 py-1 text-white text-[9px] font-bold">Devolución Recibida</span>
                 </div>
               </div>
             </div>
@@ -966,8 +966,8 @@
         <span style="background-color: #0284c7;" class="px-2.5 py-1 text-white text-xs font-bold">EXTRAS · SEGURIDAD MARINA</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">6.- Extras (Condiciones del Mar y Seguridad Solar).</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -986,21 +986,21 @@
           <div class="p-2 text-center text-slate-600 bg-white">02 · Fila de Asistencia (3/5)</div>
           <div class="p-2 text-center text-slate-600 bg-white">03 · Ingreso de Clase</div>
           <div class="p-2 text-center text-slate-600 bg-white">04 · Cierre Diario (6)</div>
-          <div style="background-color: #172554; border-bottom: 2px solid #38bdf8;" class="text-white p-2 text-center">05 · 🏄‍♂️ Arriendos (2)</div>
+          <div style="background-color: #172554; border-bottom: 2px solid #38bdf8;" class="text-white p-2 text-center">05 · Arriendos (2)</div>
         </div>
-        <div style="background-color: #f0f9ff; border: 2px solid #0284c7;" class="py-3 px-4 flex flex-wrap items-center justify-between text-sm font-medium tabular-nums text-slate-800">
+        <div style="background-color: #f0f9ff; border: 2px solid #0284c7;" class="py-3 px-4 flex flex-wrap items-center justify-between text-xs font-medium tabular-nums text-slate-800">
           <div class="flex flex-wrap items-center gap-x-3">
-            <span class="font-bold text-slate-900">🌊 Mareas:</span>
-            <span>📉 <strong class="text-slate-900">02:41</strong> <span class="text-slate-500">(0.30m)</span></span>
-            <span>🔵 <strong class="text-slate-900">08:44</strong> <span class="text-slate-500">(1.23m)</span></span>
-            <span>📉 <strong class="text-slate-900">14:58</strong> <span class="text-slate-500">(0.21m)</span></span>
-            <span>🔵 <strong class="text-slate-900">21:17</strong> <span class="text-slate-500">(1.32m)</span></span>
+            <span class="font-bold text-slate-900">Mareas:</span>
+            <span>[Baja] <strong class="text-slate-900">02:41</strong> <span class="text-slate-500">(0.30m)</span></span>
+            <span>[Alta] <strong class="text-slate-900">08:44</strong> <span class="text-slate-500">(1.23m)</span></span>
+            <span>[Baja] <strong class="text-slate-900">14:58</strong> <span class="text-slate-500">(0.21m)</span></span>
+            <span>[Alta] <strong class="text-slate-900">21:17</strong> <span class="text-slate-500">(1.32m)</span></span>
             <span class="text-slate-400">|</span>
-            <span><strong class="text-slate-900">🏄‍♂️ Oleaje:</strong> <strong>1.5m</strong> <span class="text-slate-500">(8s)</span></span>
+            <span><strong class="text-slate-900">Oleaje:</strong> <strong>1.5m</strong> <span class="text-slate-500">(8s)</span></span>
             <span class="text-slate-400">|</span>
-            <span><strong class="text-slate-900">💨 Viento:</strong> <strong>6kts Oeste</strong></span>
+            <span><strong class="text-slate-900">Viento:</strong> <strong>6kts Oeste</strong></span>
             <span class="text-slate-400">|</span>
-            <span><strong class="text-slate-900">☀️ Luz:</strong> <strong>06:46 - 20:11 hrs</strong></span>
+            <span><strong class="text-slate-900">Luz Solar:</strong> <strong>06:46 - 20:11 hrs</strong></span>
           </div>
         </div>
       </div>
@@ -1008,25 +1008,25 @@
       <!-- 4 Tarjetas explicativas de los indicadores -->
       <div class="grid grid-cols-4 gap-4">
         <div style="border-top: 4px solid #172554; background-color: #f8fafc;" class="p-3.5">
-          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">🌊 4 Hitos de Marea (SHOA)</div>
+          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">4 Hitos de Marea (SHOA)</div>
           <p class="text-xs text-slate-600 leading-relaxed">
-            Indica las 2 bajamares (📉) y 2 pleamares (🔵) del día con su hora local y altura en metros calibrada al Nivel de Reducción de Sondas (NRS).
+            Indica las 2 bajamares y 2 pleamares del día con su hora local y altura en metros calibrada al Nivel de Reducción de Sondas (NRS).
           </p>
         </div>
         <div style="border-top: 4px solid #0284c7; background-color: #f8fafc;" class="p-3.5">
-          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">🏄‍♂️ Altura y Periodo de Ola</div>
+          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">Altura y Periodo de Ola</div>
           <p class="text-xs text-slate-600 leading-relaxed">
             Muestra en vivo la altura del swell en metros y el periodo en segundos (<code>s</code>) para elegir el equipamiento y nivel de clase adecuado.
           </p>
         </div>
         <div style="border-top: 4px solid #0ea5e9; background-color: #f8fafc;" class="p-3.5">
-          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">💨 Viento en Nudos y Rumbo</div>
+          <div style="color: #172554;" class="text-xs font-bold uppercase mb-1">Viento en Nudos y Rumbo</div>
           <p class="text-xs text-slate-600 leading-relaxed">
             Velocidad del viento en nudos (<code>kts</code>) y dirección cardinal en español (<em>Oeste, Suroeste, Sur</em>) según las coordenadas de la playa.
           </p>
         </div>
         <div style="border-top: 4px solid #38bdf8; background-color: #f0f9ff;" class="p-3.5">
-          <div style="color: #0369a1;" class="text-xs font-bold uppercase mb-1">☀️ Alerta de Luz Solar (Ocaso)</div>
+          <div style="color: #0369a1;" class="text-xs font-bold uppercase mb-1">Alerta de Luz Solar (Ocaso)</div>
           <p class="text-xs text-slate-700 leading-relaxed">
             Conectada al Módulo 3: si se agenda una clase que termine después de la última luz del día (<code>20:11 hrs</code>), el sistema emite alerta preventiva.
           </p>
@@ -1049,8 +1049,8 @@
         <span style="background-color: #172554;" class="px-2.5 py-1 text-white text-xs font-bold">PROPUESTA COMERCIAL</span>
         <h2 style="color: #172554;" class="text-2xl font-extrabold">Plan de Pago.</h2>
       </div>
-      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline">
-        Demo en vivo: josealfaro7.github.io/surfOps ↗
+      <a href="https://josealfaro7.github.io/surfOps/" target="_blank" style="color: #0284c7;" class="text-xs font-bold uppercase tracking-wider underline whitespace-nowrap">
+        Demo en vivo: josealfaro7.github.io/surfOps
       </a>
     </div>
 
@@ -1091,7 +1091,7 @@
               Posteriormente pasaríamos a un <strong>contrato beta por un mes</strong>, el cual cuenta con la implementación de mejoras posterior al mes de prueba y feedback de los usuarios.
             </p>
             <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7;" class="p-2 text-[11px] text-slate-700 mb-3">
-              <strong>✓ Se abona al Contrato Anual:</strong> Los <strong>$100.000</strong> del mes Beta se abonan íntegramente al contrato anual siguiente.
+              <strong>Se abona al Contrato Anual:</strong> Los <strong>$100.000</strong> del mes Beta se abonan íntegramente al contrato anual siguiente.
             </div>
           </div>
           <div class="border-t border-slate-200 pt-3">
