@@ -39,176 +39,120 @@ function ActiveRentalsMonitor({
   return (
     <div className="space-y-8">
       {/* SECCIÓN B: MONITOR ACTIVO */}
-      <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-4">
+      <section className="bg-white border border-slate-200 rounded-lg p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-sky-600" />
+            <Clock aria-hidden="true" className="w-5 h-5 text-sky-700" />
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Sección B · Monitoreo en Tiempo Real
-              </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                Equipamiento en Uso (En Agua)
+                Equipos en el agua
               </h2>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs font-mono tabular-nums">
-            <span className="text-slate-500">
-              Hora del sistema: <strong className="text-blue-950 font-semibold">{currentHHMM} hrs</strong>
-            </span>
-            <span className="px-2.5 py-1 bg-blue-950 text-white font-bold uppercase tracking-wider text-xs">
-              Activos: {activeRentals.length}
+          <div className="flex items-center gap-3 text-sm tabular-nums">
+            <span className="text-base text-slate-700">
+              {activeRentals.length} {activeRentals.length === 1 ? 'arriendo activo' : 'arriendos activos'}
             </span>
           </div>
         </div>
 
         {activeRentals.length === 0 ? (
-          <div className="p-8 text-center text-sm font-light text-slate-500">
-            No hay arriendos de equipamiento en curso en este momento.
+          <div className="p-8 text-center text-sm text-slate-600">
+            No hay equipos afuera en este momento.
           </div>
         ) : (
-          <div className="border border-slate-200 overflow-x-auto shadow-sm">
-            <table className="w-full text-left border-collapse text-sm tabular-nums">
-              <thead>
-                <tr className="bg-blue-950 text-white text-xs font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Cliente / Emergencia</th>
-                  <th className="py-3 px-4">Teléfono</th>
-                  <th className="py-3 px-4">Item</th>
-                  <th className="py-3 px-4 text-center">Cant.</th>
-                  <th className="py-3 px-4 text-center">Horas</th>
-                  <th className="py-3 px-4">Devolución Estimada</th>
-                  <th className="py-3 px-4 text-right">Total</th>
-                  <th className="py-3 px-4 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {activeRentals.map((rental) => {
-                  const isOverdue = isRentalOverdue(rental, currentHHMM, todayIso);
-                  const isFromPreviousDay = rental.operationDate && rental.operationDate < todayIso;
-
-                  return (
-                    <tr
-                      key={rental.id}
-                      className={
-                        isOverdue
-                          ? 'bg-rose-50/50 hover:bg-rose-50'
-                          : 'hover:bg-slate-50/80 transition'
-                      }
+          <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {activeRentals.map((rental) => {
+              const isOverdue = isRentalOverdue(rental, currentHHMM, todayIso);
+              const isFromPreviousDay = rental.operationDate && rental.operationDate < todayIso;
+              return (
+                <li
+                  key={rental.id}
+                  className={`rounded-lg border p-4 space-y-3 ${
+                    isOverdue ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-slate-700">Entrega</div>
+                      <div className={`figure text-3xl ${isOverdue ? 'text-rose-800' : 'text-blue-950'}`}>
+                        {rental.estimatedReturnTime}
+                      </div>
+                      <div className="text-sm text-slate-700">
+                        Salió {rental.checkInTime}
+                        {isFromPreviousDay && ` del ${formatIsoToDisplayDate(rental.operationDate)}`}
+                      </div>
+                    </div>
+                    {isOverdue ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-md bg-rose-700 text-white text-sm font-semibold">
+                        <AlertTriangle aria-hidden="true" className="w-4 h-4" />
+                        {isFromPreviousDay ? 'No devuelto' : 'Atrasado'}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-3 h-9 rounded-md border border-emerald-400 bg-emerald-50 text-emerald-900 text-sm font-semibold">
+                        En el agua
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-slate-900 break-words">{rental.customerName}</div>
+                    <div className="text-base text-slate-800">
+                      {rental.quantity} × {rental.itemLabel} · {rental.hours} {rental.hours === 1 ? 'hora' : 'horas'}
+                    </div>
+                    <div className="text-base text-slate-700">{rental.customerPhone}</div>
+                    {rental.emergencyContact && (
+                      <div className="text-sm text-slate-700">Emergencia: {rental.emergencyContact}</div>
+                    )}
+                    <div className="text-sm text-slate-700 tabular-nums">
+                      {formatCurrency(rental.finalTotal)} · {rental.paymentMethod}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onInspectPhoto(rental)}
+                      className="inline-flex items-center justify-center gap-2 h-11 px-4 border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-base font-semibold cursor-pointer"
                     >
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-blue-950">{rental.customerName}</div>
-                        {rental.customerEmail && (
-                          <div className="text-xs text-slate-500 font-light">{rental.customerEmail}</div>
-                        )}
-                        {rental.emergencyContact && (
-                          <div className="text-xs font-medium text-rose-700 mt-0.5">
-                            Em: {rental.emergencyContact}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-xs tabular-nums text-slate-700">
-                        {rental.customerPhone}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-medium text-slate-900">
-                          {rental.itemLabel}
-                        </span>
-                        <span className="block text-xs font-mono text-slate-500">
-                          {formatCurrency(rental.unitPricePerHour)} / hr
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-semibold text-blue-950">
-                        {rental.quantity}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 text-xs font-medium text-slate-800">
-                          {rental.hours} {rental.hours === 1 ? 'hr' : 'hrs'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="text-xs font-light text-slate-500">
-                          Salida: {rental.checkInTime} hrs
-                        </div>
-                        <div
-                          className={`text-sm font-semibold tabular-nums ${
-                            isOverdue ? 'text-rose-700 font-bold' : 'text-blue-950'
-                          }`}
-                        >
-                          Entrega: {rental.estimatedReturnTime} hrs
-                          {isFromPreviousDay && ` · salió el ${formatIsoToDisplayDate(rental.operationDate)}`}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-semibold text-blue-950">
-                        {formatCurrency(rental.finalTotal)}
-                        <div className="text-xs font-normal text-slate-400">{rental.paymentMethod}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {isOverdue ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white text-xs font-bold uppercase tracking-wider animate-pulse">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            {isFromPreviousDay ? 'No devuelto (día anterior)' : 'Atrasado'}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold uppercase tracking-wider">
-                            En Curso
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="inline-flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => onInspectPhoto(rental)}
-                            title="Ver Foto de Carnet de Identidad"
-                            className="inline-flex items-center gap-1.5 h-8 px-2.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-sky-600" />
-                            Carnet
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onCompleteRental(rental.id)}
-                            className="inline-flex items-center gap-1.5 h-8 px-3 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" />
-                            Recepcionar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      <Eye aria-hidden="true" className="w-5 h-5 text-sky-700" />
+                      Ver carnet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onCompleteRental(rental.id)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 bg-blue-950 hover:bg-blue-900 text-white text-base font-semibold cursor-pointer"
+                    >
+                      <CheckCircle2 aria-hidden="true" className="w-5 h-5" />
+                      Recibir equipo
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 
       {/* HISTORIAL DE ARRIENDOS COMPLETADOS */}
       {completedRentals.length > 0 && (
-        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-4">
+        <section className="bg-white border border-slate-200 rounded-lg p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-emerald-600" />
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                  Registro Conforme
-                </span>
                 <h3 className="text-lg font-bold tracking-tight text-blue-950">
-                  Equipos Devueltos Hoy ({completedRentals.length})
+                  Devueltos hoy ({completedRentals.length})
                 </h3>
               </div>
             </div>
-            <span className="text-xs font-mono text-slate-400">
+            <span className="text-sm text-slate-600">
               Hoy
             </span>
           </div>
 
-          <div className="border border-slate-200 overflow-x-auto shadow-sm">
-            <table className="w-full text-left border-collapse text-xs tabular-nums">
+          <div className="border border-slate-200 rounded-md overflow-x-auto" tabIndex={0} role="region" aria-label="Equipos devueltos hoy">
+            <table className="w-full text-left border-collapse text-sm tabular-nums">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <tr className="bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-700">
                   <th className="py-3 px-4">Cliente</th>
                   <th className="py-3 px-4">Equipamiento</th>
                   <th className="py-3 px-4">Horario (Salida → Devolución)</th>
@@ -221,21 +165,21 @@ function ActiveRentalsMonitor({
                   <tr key={item.id} className="hover:bg-slate-50/50 transition">
                     <td className="py-3 px-4 font-semibold text-blue-950">
                       {item.customerName}{' '}
-                      <span className="text-slate-400 font-normal">
+                      <span className="text-slate-600 font-normal">
                         ({item.customerPhone})
                       </span>
                     </td>
                     <td className="py-3 px-4 text-slate-700">
                       {item.quantity}x {item.itemLabel} ({item.hours}h)
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
+                    <td className="py-3 px-4 text-slate-600">
                       {item.checkInTime} → {item.returnedAt || item.estimatedReturnTime} hrs
                     </td>
                     <td className="py-3 px-4 text-right font-semibold text-blue-950">
                       {formatCurrency(item.finalTotal)}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <span className="inline-block px-2 py-0.5 bg-emerald-50 border border-emerald-300 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                      <span className="inline-block px-2 py-0.5 bg-emerald-50 border border-emerald-300 text-sm font-semibold text-emerald-700">
                         Devuelto
                       </span>
                     </td>
@@ -382,7 +326,7 @@ export default function Module5Rentals() {
     setFormError('');
 
     if (!selectedRateItem) {
-      setFormError('No hay equipamiento habilitado. Habilita al menos un ítem en el Módulo 01 (Configuración).');
+      setFormError('No hay equipamiento habilitado. Habilita al menos un ítem en Configuración.');
       return;
     }
     if (!customerName.trim() || !customerPhone.trim()) {
@@ -438,32 +382,29 @@ export default function Module5Rentals() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 font-inter">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Cabecera del Módulo 05 */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-            Módulo 05 · Operaciones de Equipamiento & Despacho
-          </span>
           <h1 className="text-2xl font-bold tracking-tight text-blue-950 mt-1">
-            Gestión de Arriendos y Control de Devoluciones
+            Arriendos de equipo
           </h1>
-          <p className="text-sm font-light text-slate-600 leading-relaxed mt-1">
-            Registra salidas de equipamiento con verificación de Carnet de Identidad y control de horarios de entrega en tiempo real.
+          <p className="text-sm text-slate-600 leading-relaxed mt-1">
+            Registra cada salida con foto del carnet y revisa qué equipos siguen en el agua.
           </p>
         </div>
 
         <div className="flex items-center gap-3 self-start md:self-auto">
-          <div className="px-4 py-2 bg-white border border-slate-200 shadow-sm tabular-nums">
-            <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+          <div className="px-4 py-2 bg-white border border-slate-200 tabular-nums">
+            <span className="block text-sm font-bold text-slate-600">
               En Curso / Devueltos
             </span>
             <span className="text-sm font-bold text-blue-950">
               {activeRentals.length} activos · {completedRentals.length} devueltos
             </span>
           </div>
-          <div className="px-4 py-2 bg-blue-950 text-white border-t-2 border-sky-400 shadow-sm tabular-nums">
-            <span className="block text-xs font-bold uppercase tracking-wider text-sky-400">
+          <div className="px-4 py-2 bg-blue-950 text-white border-t-2 border-sky-400 tabular-nums">
+            <span className="block text-sm font-bold text-sky-400">
               Caja Arriendos Hoy
             </span>
             <span className="text-base font-bold">
@@ -475,9 +416,9 @@ export default function Module5Rentals() {
 
       {/* Banner de confirmación */}
       {successMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-300 border-l-4 border-l-emerald-600 flex items-center justify-between text-sm font-semibold text-blue-950 shadow-sm">
+        <div role="status" className="p-4 bg-emerald-50 border border-emerald-300 border-l-4 border-l-emerald-600 flex items-center justify-between text-sm font-semibold text-blue-950">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>
               Arriendo registrado exitosamente y agregado al monitor de arriendos en curso.
             </span>
@@ -488,21 +429,18 @@ export default function Module5Rentals() {
       {/* SECCIÓN A: REGISTRO DE ARRIENDOS (INGRESO) */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-6"
+        className="bg-white border border-slate-200 rounded-lg p-6 space-y-6"
       >
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
-            <Shield className="w-5 h-5 text-sky-600" />
+            <Shield aria-hidden="true" className="w-5 h-5 text-sky-700" />
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Sección A · Despacho de Equipos
-              </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                Formulario de Despacho
+                Nuevo arriendo
               </h2>
             </div>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-sm text-slate-600">
             Atención {schoolConfig.openTime}–{schoolConfig.closeTime}
           </span>
         </div>
@@ -511,24 +449,21 @@ export default function Module5Rentals() {
           {/* COLUMNA IZQUIERDA: 1. DATOS DE ARRIENDO */}
           <div className="lg:col-span-6 space-y-5">
             <div className="pb-2 border-b border-slate-200 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                1. Equipamiento y Horario
-              </span>
-              <span className="text-xs text-slate-500 font-light">
-                Tarifario Módulo 01
+              <span className="text-sm font-bold text-sky-700">
+                Equipo y horario
               </span>
             </div>
 
             {enabledItems.length === 0 ? (
-              <div className="p-4 border border-rose-300 bg-rose-50 text-xs font-semibold text-rose-700">
-                Todos los ítems de arriendo están deshabilitados en el Módulo 01 (Configuración).
+              <div className="p-4 border border-rose-300 bg-rose-50 text-sm font-semibold text-rose-700">
+                Todos los ítems de arriendo están deshabilitados en Configuración.
               </div>
             ) : (
               <>
                 <div className="space-y-1.5">
                   <label
                     htmlFor="rental-item-select"
-                    className="block text-xs font-semibold uppercase text-slate-700"
+                    className="block text-sm font-semibold text-slate-700"
                   >
                     Equipamiento
                   </label>
@@ -536,7 +471,7 @@ export default function Module5Rentals() {
                     id="rental-item-select"
                     value={selectedItemId}
                     onChange={(e) => setSelectedItemId(e.target.value)}
-                    className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-blue-950 outline-none"
+                    className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-blue-950"
                   >
                     {enabledItems.map((item) => (
                       <option key={item.id} value={item.id}>
@@ -550,7 +485,7 @@ export default function Module5Rentals() {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="rental-quantity-input"
-                      className="block text-xs font-semibold uppercase text-slate-700"
+                      className="block text-sm font-semibold text-slate-700"
                     >
                       Cantidad
                     </label>
@@ -564,14 +499,14 @@ export default function Module5Rentals() {
                       onChange={(e) =>
                         setQuantity(Math.max(1, Number(e.target.value) || 1))
                       }
-                      className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                      className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <label
                       htmlFor="rental-hours-select"
-                      className="block text-xs font-semibold uppercase text-slate-700"
+                      className="block text-sm font-semibold text-slate-700"
                     >
                       Horas (máx. {Math.max(0, maxHours)} hasta el cierre)
                     </label>
@@ -579,7 +514,7 @@ export default function Module5Rentals() {
                       id="rental-hours-select"
                       value={hours}
                       onChange={(e) => setHours(Number(e.target.value) || 1)}
-                      className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                      className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
                     >
                       {Array.from({ length: Math.max(1, maxHours) }, (_, idx) => idx + 1).map(
                         (h) => (
@@ -596,7 +531,7 @@ export default function Module5Rentals() {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="rental-checkin-input"
-                      className="block text-xs font-semibold uppercase text-slate-700"
+                      className="block text-sm font-semibold text-slate-700"
                     >
                       Hora de Salida (Check-in)
                     </label>
@@ -606,9 +541,9 @@ export default function Module5Rentals() {
                       required
                       value={checkInTime}
                       onChange={(e) => setCheckInTime(e.target.value)}
-                      className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                      className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
                     />
-                    <p className={`text-xs font-medium tabular-nums ${maxHours < 1 ? 'text-rose-700' : 'text-sky-700'}`}>
+                    <p className={`text-sm font-medium tabular-nums ${maxHours < 1 ? 'text-rose-700' : 'text-sky-700'}`}>
                       {maxHours < 1
                         ? `Sin horas disponibles antes del cierre (${schoolConfig.closeTime}).`
                         : `Devolución estimada: ${estimatedReturnTime} hrs`}
@@ -618,12 +553,12 @@ export default function Module5Rentals() {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="rental-discount-input"
-                      className="block text-xs font-semibold uppercase text-slate-700"
+                      className="block text-sm font-semibold text-slate-700"
                     >
                       Descuento Manual (CLP)
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-sm font-medium text-slate-400 select-none">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-sm font-medium text-slate-600 select-none">
                         $
                       </span>
                       <input
@@ -639,21 +574,21 @@ export default function Module5Rentals() {
                               : Math.max(0, Number(e.target.value))
                           )
                         }
-                        className="w-full h-11 pl-7 pr-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                        className="w-full h-11 pl-7 pr-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase text-slate-700">Medio de Pago</span>
+                  <span className="block text-sm font-semibold text-slate-700">Medio de Pago</span>
                   <div className="grid grid-cols-3 gap-2" role="radiogroup">
                     {PAYMENT_METHODS.map((m) => (
                       <button
                         key={m}
                         type="button"
                         onClick={() => setPaymentMethod(m)}
-                        className={`h-10 border text-xs font-semibold uppercase tracking-wider cursor-pointer ${
+                        className={`h-11 border text-sm font-semibold cursor-pointer ${
                           paymentMethod === m
                             ? 'bg-blue-950 text-white border-blue-950'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -666,7 +601,7 @@ export default function Module5Rentals() {
                 </div>
 
                 <div className="p-4 bg-slate-50 border border-slate-200 border-l-4 border-l-sky-500 space-y-2 tabular-nums">
-                  <div className="flex items-center justify-between text-xs text-slate-600">
+                  <div className="flex items-center justify-between text-sm text-slate-600">
                     <span>
                       Subtotal ({formatCurrency(unitPricePerHour)} × {quantity}{' '}
                       un. × {hours} {hours === 1 ? 'hr' : 'hrs'})
@@ -675,15 +610,15 @@ export default function Module5Rentals() {
                       {formatCurrency(subtotal)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-slate-600">
+                  <div className="flex items-center justify-between text-sm text-slate-600">
                     <span>Descuento Manual</span>
                     <span className="font-semibold text-sky-700">
                       - {formatCurrency(validDiscount)}
                     </span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-950">
-                      TOTAL A PERCIBIR
+                    <span className="text-sm font-bold text-blue-950">
+                      Total a cobrar
                     </span>
                     <span className="text-xl font-bold text-blue-950">
                       {formatCurrency(finalTotal)}
@@ -697,10 +632,10 @@ export default function Module5Rentals() {
           {/* COLUMNA DERECHA: 2. CLIENTE Y CARNET */}
           <div className="lg:col-span-6 space-y-4">
             <div className="pb-2 border-b border-slate-200 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                2. Cliente & Respaldo Carnet
+              <span className="text-sm font-bold text-sky-700">
+                Cliente y carnet
               </span>
-              <span className="text-xs font-semibold text-slate-500">
+              <span className="text-sm font-semibold text-slate-600">
                 Obligatorio
               </span>
             </div>
@@ -709,12 +644,12 @@ export default function Module5Rentals() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="rental-customer-name"
-                  className="block text-xs font-semibold uppercase text-slate-700"
+                  className="block text-sm font-semibold text-slate-700"
                 >
                   Nombre Completo *
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
+                  <User aria-hidden="true" className="w-4 h-4 text-slate-600 absolute left-3 top-3.5 pointer-events-none" />
                   <input
                     id="rental-customer-name"
                     type="text"
@@ -722,7 +657,7 @@ export default function Module5Rentals() {
                     placeholder="Ej: Lucas Méndez"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full h-11 pl-9 pr-3 border border-slate-200 bg-white text-sm text-slate-800 focus:border-blue-950 outline-none"
+                    className="w-full h-11 pl-9 pr-3 border border-slate-200 bg-white text-sm text-slate-800 focus:border-blue-950"
                   />
                 </div>
               </div>
@@ -730,20 +665,22 @@ export default function Module5Rentals() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="rental-customer-phone"
-                  className="block text-xs font-semibold uppercase text-slate-700"
+                  className="block text-sm font-semibold text-slate-700"
                 >
                   Teléfono *
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
+                  <Phone aria-hidden="true" className="w-4 h-4 text-slate-600 absolute left-3 top-3.5 pointer-events-none" />
                   <input
                     id="rental-customer-phone"
                     type="tel"
+                      inputMode="tel"
+                      autoComplete="off"
                     required
                     placeholder="+56 9 8765 4321"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full h-11 pl-9 pr-3 border border-slate-200 bg-white text-sm text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                    className="w-full h-11 pl-9 pr-3 border border-slate-200 bg-white text-sm text-slate-800 tabular-nums focus:border-blue-950"
                   />
                 </div>
               </div>
@@ -753,19 +690,21 @@ export default function Module5Rentals() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="rental-customer-email"
-                  className="block text-xs font-semibold uppercase text-slate-700"
+                  className="block text-sm font-semibold text-slate-700"
                 >
                   Correo Electrónico
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
+                  <Mail aria-hidden="true" className="w-4 h-4 text-slate-600 absolute left-3 top-3.5 pointer-events-none" />
                   <input
                     id="rental-customer-email"
                     type="email"
+                      spellCheck={false}
+                      autoComplete="off"
                     placeholder="cliente@correo.cl"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full h-11 pl-9 pr-3 border border-slate-200 bg-white text-sm text-slate-800 focus:border-blue-950 outline-none"
+                    className="w-full h-11 pl-9 pr-3 border border-slate-200 bg-white text-sm text-slate-800 focus:border-blue-950"
                   />
                 </div>
               </div>
@@ -773,7 +712,7 @@ export default function Module5Rentals() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="rental-emergency-contact"
-                  className="block text-xs font-semibold uppercase text-slate-700"
+                  className="block text-sm font-semibold text-slate-700"
                 >
                   Contacto de Emergencia
                 </label>
@@ -783,7 +722,7 @@ export default function Module5Rentals() {
                   placeholder="Nombre y teléfono"
                   value={emergencyContact}
                   onChange={(e) => setEmergencyContact(e.target.value)}
-                  className="w-full h-11 px-3 border border-slate-200 bg-white text-sm text-slate-800 focus:border-blue-950 outline-none"
+                  className="w-full h-11 px-3 border border-slate-200 bg-white text-sm text-slate-800 focus:border-blue-950"
                 />
               </div>
             </div>
@@ -793,24 +732,21 @@ export default function Module5Rentals() {
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="rental-id-photo"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-sky-700"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-sky-700"
                 >
-                  <Camera className="w-4 h-4 text-sky-600" />
+                  <Camera aria-hidden="true" className="w-4 h-4 text-sky-700" />
                   Foto de Carnet de Identidad *
                 </label>
-                <span className="text-xs font-mono text-slate-400">
-                  Compresión 400px
-                </span>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <label
                   htmlFor="rental-id-photo"
-                  className="inline-flex items-center justify-center gap-2 h-10 px-4 border border-slate-200 bg-white hover:bg-slate-50 text-blue-950 text-xs font-semibold uppercase tracking-wider cursor-pointer shadow-sm transition shrink-0"
+                  className="inline-flex items-center justify-center gap-2 h-11 px-4 border border-slate-200 bg-white hover:bg-slate-50 text-blue-950 text-sm font-semibold cursor-pointer transition shrink-0"
                 >
-                  <Camera className="w-4 h-4 text-sky-600" />
+                  <Camera aria-hidden="true" className="w-4 h-4 text-sky-700" />
                   {isCompressingPhoto
-                    ? 'Procesando imagen...'
+                    ? 'Procesando foto…'
                     : idPhotoBase64
                     ? 'Cambiar Fotografía'
                     : 'Subir / Capturar Carnet'}
@@ -829,12 +765,12 @@ export default function Module5Rentals() {
                     <img
                       src={idPhotoBase64}
                       alt="Vista previa Carnet de Identidad"
-                      className="w-20 h-12 object-cover border border-slate-200 bg-white shadow-sm"
+                      className="w-20 h-12 object-cover border border-slate-200 bg-white"
                     />
                     <button
                       type="button"
                       onClick={() => setIdPhotoBase64('')}
-                      className="text-xs font-semibold uppercase tracking-wider text-rose-600 hover:underline cursor-pointer"
+                      className="text-sm font-semibold text-rose-600 hover:underline cursor-pointer"
                     >
                       Quitar
                     </button>
@@ -842,7 +778,7 @@ export default function Module5Rentals() {
                 )}
               </div>
 
-              <p className="text-xs font-light text-slate-500">
+              <p className="text-sm text-slate-600">
                 {isDemoSession
                   ? 'Modo demo: la foto queda guardada solo en este navegador. No uses documentos reales.'
                   : 'La foto se guarda en un bucket privado, solo se ve con un enlace temporal de 60 segundos y se elimina el día siguiente a la devolución.'}
@@ -850,8 +786,8 @@ export default function Module5Rentals() {
             </div>
 
             {formError && (
-              <div className="p-3 border border-rose-300 bg-rose-50 text-xs font-semibold text-rose-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <div role="alert" className="p-3 border border-rose-300 bg-rose-50 text-sm font-semibold text-rose-700 flex items-center gap-2">
+                <AlertCircle aria-hidden="true" className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{formError}</span>
               </div>
             )}
@@ -859,9 +795,9 @@ export default function Module5Rentals() {
             <button
               type="submit"
               disabled={enabledItems.length === 0 || isCompressingPhoto || isSaving || maxHours < 1}
-              className="w-full h-12 bg-blue-950 hover:bg-sky-700 disabled:bg-slate-400 text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+              className="w-full h-12 bg-blue-950 hover:bg-sky-700 disabled:bg-slate-400 text-white text-sm font-semibold transition cursor-pointer flex items-center justify-center gap-2"
             >
-              <Shield className="w-4 h-4 text-sky-400" />
+              <Shield aria-hidden="true" className="w-4 h-4 text-sky-400" />
               {isSaving ? 'Registrando…' : `Registrar Arriendo (${formatCurrency(finalTotal)})`}
             </button>
           </div>
@@ -870,7 +806,7 @@ export default function Module5Rentals() {
 
       {/* SECCIÓN B: MONITOR ACTIVO */}
       {monitorError && (
-        <div className="p-3 border border-rose-300 bg-rose-50 text-sm text-rose-800">{monitorError}</div>
+        <div role="alert" className="p-3 border border-rose-300 bg-rose-50 text-sm text-rose-800">{monitorError}</div>
       )}
       <ActiveRentalsMonitor
         activeRentals={activeRentals}
@@ -883,28 +819,38 @@ export default function Module5Rentals() {
 
       {/* MODAL DE INSPECCIÓN DE CARNET */}
       {inspectedRental && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-lg w-full bg-white border border-slate-200 shadow-2xl overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4"
+          style={{ overscrollBehavior: 'contain' }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setInspectedRental(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setInspectedRental(null);
+          }}
+        >
+          <div role="dialog" aria-modal="true" aria-label="Carnet en garantía" className="max-w-lg w-full bg-white border border-slate-200 rounded-xl overflow-hidden">
             <div className="px-5 py-3.5 bg-blue-950 text-white flex items-center justify-between border-b-2 border-sky-400">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-sky-400" />
-                <span className="text-xs font-bold uppercase tracking-wider">
+                <Shield aria-hidden="true" className="w-4 h-4 text-sky-400" />
+                <span className="text-sm font-bold">
                   Respaldo Carnet de Identidad
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setInspectedRental(null)}
-                className="text-slate-300 hover:text-white cursor-pointer"
+                aria-label="Cerrar"
+                className="w-11 h-11 inline-flex items-center justify-center text-slate-200 hover:text-white cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X aria-hidden="true" className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 border border-slate-200">
+              <div className="grid grid-cols-2 gap-2 text-sm bg-slate-50 p-3 border border-slate-200">
                 <div>
-                  <span className="text-slate-500 uppercase block text-xs">
+                  <span className="text-slate-600 block text-sm">
                     Cliente
                   </span>
                   <strong className="text-blue-950">
@@ -912,26 +858,23 @@ export default function Module5Rentals() {
                   </strong>
                 </div>
                 <div>
-                  <span className="text-slate-500 uppercase block text-xs">
+                  <span className="text-slate-600 block text-sm">
                     Teléfono
                   </span>
-                  <strong className="text-blue-950 tabular-nums font-mono">
+                  <strong className="text-blue-950 tabular-nums">
                     {inspectedRental.customerPhone}
                   </strong>
                 </div>
                 <div>
-                  <span className="text-slate-500 uppercase block text-xs">
-                    Equipamiento
-                  </span>
                   <strong className="text-blue-950">
                     {inspectedRental.quantity}x {inspectedRental.itemLabel}
                   </strong>
                 </div>
                 <div>
-                  <span className="text-slate-500 uppercase block text-xs">
+                  <span className="text-slate-600 block text-sm">
                     Horario
                   </span>
-                  <strong className="text-blue-950 tabular-nums font-mono">
+                  <strong className="text-blue-950 tabular-nums">
                     {inspectedRental.checkInTime} - {inspectedRental.estimatedReturnTime} hrs
                   </strong>
                 </div>
@@ -946,7 +889,7 @@ export default function Module5Rentals() {
                   />
                 </div>
               ) : (
-                <div className="p-6 text-center text-xs text-slate-500 border border-slate-200">
+                <div className="p-6 text-center text-sm text-slate-600 border border-slate-200">
                   {photoLoading ? 'Cargando imagen…' : photoError}
                 </div>
               )}
@@ -955,7 +898,7 @@ export default function Module5Rentals() {
                 <button
                   type="button"
                   onClick={() => setInspectedRental(null)}
-                  className="h-9 px-4 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider cursor-pointer shadow-sm transition"
+                  className="h-11 px-4 bg-blue-950 hover:bg-sky-700 text-white text-sm font-semibold cursor-pointer transition"
                 >
                   Cerrar
                 </button>

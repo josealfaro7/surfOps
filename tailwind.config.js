@@ -9,9 +9,14 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Atkinson Hyperlegible Next: diseñada para máxima legibilidad (formas de letra
+      // inconfundibles: 1/l/I, 0/O), clave para leer al sol en la playa.
+      // Barlow Semi Condensed: la voz de los letreros de playa y tablas de mareas, para
+      // títulos y cifras grandes (horas, montos) que se leen de un vistazo.
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        inter: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Atkinson Hyperlegible Next"', 'system-ui', 'sans-serif'],
+        inter: ['"Atkinson Hyperlegible Next"', 'system-ui', 'sans-serif'],
+        display: ['"Barlow Semi Condensed"', '"Atkinson Hyperlegible Next"', 'system-ui', 'sans-serif'],
       },
       colors: {
         blue: {

@@ -11,9 +11,69 @@
     --brand-accent: #db2777;
   }
 
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button {
+  /* Base de 17 px: se lee a un brazo de distancia y al sol */
+  html {
+    font-size: 106.25%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    touch-action: manipulation; /* sin retardo de doble toque */
+  }
+
+  h1, h2, h3 {
+    font-family: theme('fontFamily.display');
+    letter-spacing: 0;
+    text-wrap: balance;
+  }
+
+  /* Cifras alineadas en montos, horas y tablas */
+  .tabular-nums, td, th {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Foco visible y consistente para teclado (y en campos de texto también al tocar) */
+  :focus-visible {
+    outline: 3px solid var(--brand-secondary);
+    outline-offset: 2px;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline-offset: 0;
+  }
+
+  /* Controles con esquinas suaves y tamaño táctil mínimo */
+  input, select, textarea {
+    border-radius: 6px;
+    min-height: 44px;
+  }
+  button {
+    border-radius: 6px;
+  }
+  input[type='checkbox'], input[type='radio'] {
+    min-height: 0;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Cifra grande tipo letrero de playa */
+  .figure {
+    font-family: theme('fontFamily.display');
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
   }
 }

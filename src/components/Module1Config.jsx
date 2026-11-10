@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, RotateCcw, Lock, Unlock, AlertCircle, Shield, Palette } from 'lucide-react';
 import { useSurfSchool } from '../context/SurfSchoolContext';
+import { useConfirm } from './ui/Dialog';
 import { SCHOOL_THEME_PRESETS, DEFAULT_POISSON_BRANDING } from '../lib/supabaseClient';
 import { DEFAULT_SCHOOL_CONFIG, DEFAULT_RENTAL_RATES } from '../lib/mappers';
 import { formatCurrency, timeToMinutes } from '../utils/calculations';
@@ -19,6 +20,7 @@ export default function Module1Config() {
   // El PIN validado se mantiene solo en memoria mientras el panel está desbloqueado:
   // el servidor lo vuelve a exigir en cada guardado.
   const [unlockedPin, setUnlockedPin] = useState('');
+  const confirm = useConfirm();
   const [isBusy, setIsBusy] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -161,10 +163,12 @@ export default function Module1Config() {
   };
 
   /** Restaura SOLO precios, nómina, horario y arriendos (no toca el nombre ni la paleta) */
-  const handleReset = () => {
-    const ok = window.confirm(
-      '¿Cargar los valores base de precios, nómina, horario y arriendos en el formulario? No se guarda hasta que presiones "Guardar Configuración".'
-    );
+  const handleReset = async () => {
+    const ok = await confirm({
+      title: 'Cargar valores base',
+      message: 'Se cargan en el formulario los precios, pagos, horario y tarifas de arriendo de fábrica. No se guarda nada hasta que presiones "Guardar configuración".',
+      confirmLabel: 'Cargar valores base',
+    });
     if (!ok) return;
     setFormData({ ...DEFAULT_SCHOOL_CONFIG });
     setRentalRatesForm(DEFAULT_RENTAL_RATES.map((r) => ({ ...r })));
@@ -187,30 +191,27 @@ export default function Module1Config() {
   if (!isUnlocked) {
     return (
       <div className="max-w-md mx-auto my-12">
-        <div className="bg-white border border-slate-200 border-t-4 border-t-blue-950 shadow-sm p-6 sm:p-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-6 sm:p-8">
           <div className="flex items-center justify-between pb-6 border-b border-slate-200">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Seguridad Corporativa
-              </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                Acceso a Configuración
+                Configuración protegida
               </h2>
             </div>
-            <Lock className="w-5 h-5 text-sky-600 shrink-0" />
+            <Lock aria-hidden="true" className="w-5 h-5 text-sky-700 shrink-0" />
           </div>
 
           <form onSubmit={handleUnlockSubmit} className="pt-6 space-y-5">
             <div>
-              <p className="text-sm font-light text-slate-600 leading-relaxed">
-                Este módulo modifica los precios de venta en recepción, liquidación a instructores y tarifas de arriendo. Ingresa el PIN maestro.
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Aquí se cambian precios, sueldos y tarifas. Ingresa el PIN del dueño.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="admin-pin-input"
-                className="block text-xs font-bold uppercase tracking-widest text-sky-700"
+                className="block text-sm font-bold text-sky-700"
               >
                 PIN de Seguridad{isDemoSession ? ' (demo: 0000)' : ''}
               </label>
@@ -228,23 +229,23 @@ export default function Module1Config() {
                   if (pinError) setPinError(false);
                   if (saveError) setSaveError('');
                 }}
-                className="w-full h-14 px-4 border border-slate-200 bg-slate-50 text-center text-2xl font-mono font-bold tracking-[0.5em] text-blue-950 focus:bg-white focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                className="w-full h-14 px-4 border border-slate-200 bg-slate-50 text-center text-2xl font-bold tracking-[0.5em] text-blue-950 focus:bg-white focus:border-blue-950 transition"
               />
             </div>
 
             {pinError && (
-              <div className="p-3 border border-rose-300 bg-rose-50 text-xs font-semibold text-rose-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <div role="alert" className="p-3 border border-rose-300 bg-rose-50 text-sm font-semibold text-rose-700 flex items-center gap-2">
+                <AlertCircle aria-hidden="true" className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{saveError || 'PIN incorrecto. Tras 5 intentos fallidos se bloquea 15 minutos.'}</span>
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full h-12 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
+              className="w-full h-12 bg-blue-950 hover:bg-sky-700 text-white text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2"
             >
-              <Unlock className="w-4 h-4 text-sky-400" />
-              Desbloquear Configuración
+              <Unlock aria-hidden="true" className="w-4 h-4 text-sky-400" />
+              Desbloquear
             </button>
           </form>
         </div>
@@ -258,11 +259,11 @@ export default function Module1Config() {
         <label htmlFor={field} className="block text-sm font-semibold text-blue-950">
           {label}
         </label>
-        <p className="text-sm font-light text-slate-600 leading-relaxed">{description}</p>
+        <p className="text-sm text-slate-600 leading-relaxed">{description}</p>
       </div>
 
       <div className="relative w-full md:w-64 shrink-0">
-        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-medium text-slate-400 select-none">
+        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-medium text-slate-600 select-none">
           $
         </span>
         <input
@@ -272,9 +273,9 @@ export default function Module1Config() {
           step="500"
           value={formData[field]}
           onChange={(e) => handleNumberChange(field, e.target.value)}
-          className="w-full h-11 pl-8 pr-24 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+          className="w-full h-11 pl-8 pr-24 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 transition"
         />
-        <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-medium text-sky-700 tabular-nums pointer-events-none">
+        <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-medium text-sky-700 tabular-nums pointer-events-none">
           {formatCurrency(formData[field])}
         </span>
       </div>
@@ -282,18 +283,15 @@ export default function Module1Config() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 font-inter">
+    <div className="max-w-5xl mx-auto space-y-8">
       {/* Cabecera de Módulo */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-            Módulo 01 · Parámetros Financieros & Equipamiento
-          </span>
           <h1 className="text-2xl font-bold tracking-tight text-blue-950 mt-1">
-            Configuración de Precios y Tarifas
+            Precios, sueldos y horario
           </h1>
-          <p className="text-sm font-light text-slate-600 leading-relaxed mt-1">
-            Define los valores de cobro en recepción, las tarifas de liquidación para los instructores y el tarifario por hora de arriendos.
+          <p className="text-sm text-slate-600 leading-relaxed mt-1">
+            Lo que se cobra al alumno, lo que se paga a cada instructor y el horario de atención.
           </p>
         </div>
 
@@ -301,19 +299,19 @@ export default function Module1Config() {
           <button
             type="button"
             onClick={handleReset}
-            className="inline-flex items-center gap-2 h-9 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-2 h-11 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5 text-sky-600" />
+            <RotateCcw aria-hidden="true" className="w-3.5 h-3.5 text-sky-700" />
             Valores Base
           </button>
 
           <button
             type="button"
             onClick={handleLockPanel}
-            className="inline-flex items-center gap-2 h-9 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-2 h-11 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition cursor-pointer"
             title="Bloquear panel con PIN"
           >
-            <Lock className="w-3.5 h-3.5 text-rose-600" />
+            <Lock aria-hidden="true" className="w-3.5 h-3.5 text-rose-600" />
             Bloquear
           </button>
         </div>
@@ -321,29 +319,23 @@ export default function Module1Config() {
 
       <form onSubmit={handleSave} className="space-y-8">
         {/* Bloque Identidad de la Escuela y Tema Visual */}
-        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
+        <section className="bg-white border border-slate-200 rounded-lg p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
             <div className="flex items-center gap-2.5">
-              <Palette className="w-5 h-5 text-sky-600" />
+              <Palette aria-hidden="true" className="w-5 h-5 text-sky-700" />
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                  Branding & Apariencia
-                </span>
                 <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                  Identidad Corporativa y Paleta
+                  Nombre y colores de la escuela
                 </h2>
               </div>
             </div>
-            <span className="text-xs font-mono text-slate-400">
-              public.schools
-            </span>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-1.5">
               <label
                 htmlFor="school-id-readonly"
-                className="block text-xs font-bold uppercase tracking-widest text-sky-700"
+                className="block text-sm font-bold text-sky-700"
               >
                 School ID (UUID · Solo Lectura)
               </label>
@@ -352,7 +344,7 @@ export default function Module1Config() {
                 type="text"
                 readOnly
                 value={brandingForm.schoolId || 'Demo (sin base de datos)'}
-                className="w-full h-11 px-4 border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-600 cursor-not-allowed outline-none"
+                className="w-full h-11 px-4 border border-slate-200 bg-slate-50 text-sm font-medium text-slate-600 cursor-not-allowed"
               />
             </div>
 
@@ -360,7 +352,7 @@ export default function Module1Config() {
               <div className="md:col-span-2 space-y-1.5">
                 <label
                   htmlFor="school-display-name"
-                  className="block text-xs font-bold uppercase tracking-widest text-sky-700"
+                  className="block text-sm font-bold text-sky-700"
                 >
                   Nombre de la Escuela
                 </label>
@@ -380,14 +372,14 @@ export default function Module1Config() {
                     setSaved(false);
                   }}
                   placeholder="Ej. POISSON"
-                  className="w-full h-11 px-4 border border-slate-200 bg-white text-sm font-semibold uppercase text-slate-800 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                  className="w-full h-11 px-4 border border-slate-200 bg-white text-sm font-semibold text-slate-800 focus:border-blue-950 transition"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label
                   htmlFor="school-monogram"
-                  className="block text-xs font-bold uppercase tracking-widest text-sky-700"
+                  className="block text-sm font-bold text-sky-700"
                 >
                   Monograma (1-3 Letras)
                 </label>
@@ -404,7 +396,7 @@ export default function Module1Config() {
                     setSaved(false);
                   }}
                   placeholder="P"
-                  className="w-full h-11 px-4 border border-slate-200 bg-white text-center text-sm font-bold uppercase text-slate-800 focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
+                  className="w-full h-11 px-4 border border-slate-200 bg-white text-center text-sm font-bold text-slate-800 focus:border-blue-950 transition"
                 />
               </div>
             </div>
@@ -412,10 +404,10 @@ export default function Module1Config() {
             {/* Selector de Temas */}
             <div className="space-y-2.5 pt-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                <span className="text-sm font-bold text-sky-700">
                   Paleta de Marca
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-sm text-slate-600">
                   Selecciona uno de los presets de color
                 </span>
               </div>
@@ -433,29 +425,29 @@ export default function Module1Config() {
                       onClick={() => handleThemeSelect(preset)}
                       className={`p-3.5 border text-left transition cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
-                          ? 'border-blue-950 bg-slate-50 shadow-sm ring-1 ring-blue-950'
+                          ? 'border-blue-950 bg-slate-50 ring-1 ring-blue-950'
                           : 'border-slate-200 bg-white hover:bg-slate-50'
                       }`}
                     >
                       <div className="space-y-0.5">
-                        <div className="text-xs font-bold text-blue-950 uppercase tracking-wider">
+                        <div className="text-sm font-bold text-blue-950">
                           {preset.name}
                         </div>
-                        <div className="text-xs font-mono text-slate-500">
+                        <div className="text-sm text-slate-600">
                           {preset.palette.primary} · {preset.palette.secondary}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span
-                          className="w-5 h-5 border border-slate-300 inline-block shadow-sm"
+                          className="w-5 h-5 border border-slate-300 inline-block"
                           style={{ backgroundColor: preset.palette.primary }}
                         />
                         <span
-                          className="w-5 h-5 border border-slate-300 inline-block shadow-sm"
+                          className="w-5 h-5 border border-slate-300 inline-block"
                           style={{ backgroundColor: preset.palette.secondary }}
                         />
                         <span
-                          className="w-5 h-5 border border-slate-300 inline-block shadow-sm"
+                          className="w-5 h-5 border border-slate-300 inline-block"
                           style={{ backgroundColor: preset.palette.accent }}
                         />
                       </div>
@@ -468,41 +460,37 @@ export default function Module1Config() {
         </section>
 
         {/* Bloque 0: Horario de atención */}
-        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
+        <section className="bg-white border border-slate-200 rounded-lg p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Operación
-              </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
                 Horario de Atención y Duración de Clase
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-400">school_configs</span>
           </div>
-          <p className="text-sm font-light text-slate-600 py-2">
+          <p className="text-sm text-slate-600 py-2">
             No se pueden agendar clases ni despachar arriendos que terminen fuera de este horario.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <label className="space-y-1.5 text-xs font-medium text-slate-600">
+            <label className="space-y-1.5 text-sm font-medium text-slate-600">
               Apertura
               <input
                 type="time"
                 value={formData.openTime || '09:00'}
                 onChange={(e) => handleTimeChange('openTime', e.target.value)}
-                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
               />
             </label>
-            <label className="space-y-1.5 text-xs font-medium text-slate-600">
+            <label className="space-y-1.5 text-sm font-medium text-slate-600">
               Cierre
               <input
                 type="time"
                 value={formData.closeTime || '20:00'}
                 onChange={(e) => handleTimeChange('closeTime', e.target.value)}
-                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
               />
             </label>
-            <label className="space-y-1.5 text-xs font-medium text-slate-600">
+            <label className="space-y-1.5 text-sm font-medium text-slate-600">
               Duración de clase (minutos)
               <input
                 type="number"
@@ -513,24 +501,20 @@ export default function Module1Config() {
                 onChange={(e) =>
                   handleTimeChange('classDurationMinutes', Math.min(300, Math.max(15, toSafeNumber(e.target.value) || 75)))
                 }
-                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950"
               />
             </label>
           </div>
         </section>
 
         {/* Bloque A: Precios de Venta */}
-        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
+        <section className="bg-white border border-slate-200 rounded-lg p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Sección A · Ingresos Caja
-              </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                Precios de Venta al Alumno
+                Precios para el alumno
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-400">SchoolConfig.Sales</span>
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -558,17 +542,13 @@ export default function Module1Config() {
         </section>
 
         {/* Bloque B: Tarifas de Instructor */}
-        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
+        <section className="bg-white border border-slate-200 rounded-lg p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Sección B · Nómina Staff
-              </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                Tarifas de Liquidación a Instructores
+                Pago a instructores
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-400">SchoolConfig.Rates</span>
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -596,20 +576,16 @@ export default function Module1Config() {
         </section>
 
         {/* Bloque C: Tarifas de Arriendo (Equipamiento) */}
-        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
+        <section className="bg-white border border-slate-200 rounded-lg p-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
             <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-sky-600" />
+              <Shield aria-hidden="true" className="w-5 h-5 text-sky-700" />
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                  Sección C · Equipamiento
-                </span>
                 <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                  Tarifas de Arriendo por Hora
+                  Arriendo de equipo por hora
                 </h2>
               </div>
             </div>
-            <span className="text-xs font-mono text-slate-400">rental_rates</span>
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -625,28 +601,28 @@ export default function Module1Config() {
                     <span className="text-sm font-semibold text-blue-950">
                       {item.label}
                     </span>
-                    <span className="px-2 py-0.5 text-xs font-mono bg-slate-100 border border-slate-200 text-slate-600">
+                    <span className="px-2 py-0.5 text-sm bg-slate-100 border border-slate-200 text-slate-600">
                       {item.id}
                     </span>
                     <span
-                      className={`px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${
+                      className={`px-2 py-0.5 text-sm font-semibold ${
                         item.enabled
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}
                     >
                       {item.enabled ? 'Habilitado' : 'Deshabilitado'}
                     </span>
                   </div>
-                  <p className="text-sm font-light text-slate-600 leading-relaxed">
-                    Precio base cobrado por cada hora de arriendo en el Módulo 05.
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Precio base cobrado por cada hora de arriendo en Arriendos.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
                   <label
                     htmlFor={`toggle-${item.id}`}
-                    className="inline-flex items-center gap-2.5 cursor-pointer select-none px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 shadow-sm"
+                    className="inline-flex items-center gap-2.5 cursor-pointer select-none px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50"
                   >
                     <input
                       id={`toggle-${item.id}`}
@@ -655,13 +631,13 @@ export default function Module1Config() {
                       onChange={() => handleRentalRateToggle(item.id)}
                       className="w-4 h-4 accent-blue-950 cursor-pointer"
                     />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    <span className="text-sm font-semibold text-slate-700">
                       {item.enabled ? 'Activo' : 'Pausado'}
                     </span>
                   </label>
 
                   <div className="relative w-full sm:w-64">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-medium text-slate-400 select-none">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-medium text-slate-600 select-none">
                       $
                     </span>
                     <input
@@ -675,13 +651,13 @@ export default function Module1Config() {
                         handleRentalRatePriceChange(item.id, e.target.value)
                       }
                       aria-label={`Precio por Hora para ${item.label}`}
-                      className={`w-full h-11 pl-8 pr-28 border border-slate-200 text-sm font-medium tabular-nums outline-none transition ${
+                      className={`w-full h-11 pl-8 pr-28 border border-slate-200 text-sm font-medium tabular-nums transition ${
                         item.enabled
-                          ? 'bg-white text-slate-800 focus:border-blue-950 focus:ring-1 focus:ring-blue-950'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          ? 'bg-white text-slate-800 focus:border-blue-950'
+                          : 'bg-slate-100 text-slate-600 cursor-not-allowed'
                       }`}
                     />
-                    <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-medium text-sky-700 tabular-nums pointer-events-none">
+                    <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-medium text-sky-700 tabular-nums pointer-events-none">
                       {formatCurrency(item.pricePerHour)} / hr
                     </span>
                   </div>
@@ -693,9 +669,9 @@ export default function Module1Config() {
 
         {/* Cambio de PIN (solo modo real) */}
         {isLive && (
-          <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-3">
+          <section className="bg-white border border-slate-200 rounded-lg p-6 space-y-3">
             <h2 className="text-lg font-bold tracking-tight text-blue-950">Cambiar PIN de Administrador</h2>
-            <p className="text-sm font-light text-slate-600">
+            <p className="text-sm text-slate-600">
               El PIN se valida en el servidor. Tras 5 intentos fallidos se bloquea 15 minutos.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -706,13 +682,13 @@ export default function Module1Config() {
                 placeholder="Nuevo PIN (4 a 8 dígitos)"
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                className="h-11 px-3 border border-slate-200 bg-white text-sm font-mono tracking-widest focus:border-blue-950 outline-none"
+                className="h-11 px-3 border border-slate-200 bg-white text-sm focus:border-blue-950"
               />
               <button
                 type="button"
                 onClick={handleChangePin}
                 disabled={newPin.length < 4}
-                className="h-11 px-5 bg-white border border-slate-300 text-xs font-semibold uppercase tracking-wider text-blue-950 disabled:opacity-50 cursor-pointer"
+                className="h-11 px-5 bg-white border border-slate-300 text-sm font-semibold text-blue-950 disabled:opacity-50 cursor-pointer"
               >
                 Cambiar PIN
               </button>
@@ -725,20 +701,20 @@ export default function Module1Config() {
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-4">
           {saveError && (
             <span className="inline-flex items-center gap-2 text-sm font-medium text-rose-800 bg-rose-50 px-4 py-2 border border-rose-300">
-              <AlertCircle className="w-4 h-4 text-rose-600" />
+              <AlertCircle aria-hidden="true" className="w-4 h-4 text-rose-600" />
               {saveError}
             </span>
           )}
           {saved && (
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-950 bg-emerald-50 px-4 py-2 border border-emerald-300 border-l-4 border-l-emerald-600 shadow-sm">
-              <Check className="w-4 h-4 text-emerald-600" />
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-950 bg-emerald-50 px-4 py-2 border border-emerald-300 border-l-4 border-l-emerald-600">
+              <Check aria-hidden="true" className="w-4 h-4 text-emerald-600" />
               Parámetros y tarifas guardados con éxito
             </span>
           )}
           <button
             type="submit"
             disabled={isBusy}
-            className="w-full sm:w-auto h-11 px-8 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-60"
+            className="w-full sm:w-auto h-11 px-8 bg-blue-950 hover:bg-sky-700 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60"
           >
             {isBusy ? 'Guardando…' : 'Guardar Configuración'}
           </button>

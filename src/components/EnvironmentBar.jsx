@@ -152,14 +152,14 @@ export default function EnvironmentBar() {
     };
   }, [lat, lng, place, todayIso, timezone, isLive, refreshTick, setSunsetInfo]);
 
-  const chip = 'tabular-nums font-medium text-slate-800 text-xs bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200';
+  const chip = 'tabular-nums font-medium text-slate-800 text-sm bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200';
 
   return (
-    <div className="w-full bg-white border-b border-slate-200 shadow-sm">
+    <aside aria-label="Condiciones del mar" className="w-full bg-white border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
         {loading ? (
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 animate-pulse">
-            Sincronizando condiciones del mar y luz solar...
+          <span className="text-sm font-semibold text-slate-600 animate-pulse">
+            Cargando condiciones del mar…
           </span>
         ) : (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -167,10 +167,10 @@ export default function EnvironmentBar() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-sky-700">
                 <Waves className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest">Mareas</span>
+                <span className="text-sm font-bold">Mareas</span>
               </div>
               {tides.items.length === 0 ? (
-                <span className="text-xs text-slate-400">
+                <span className="text-sm text-slate-600">
                   {isLive ? 'No disponibles' : 'No disponibles en demo'}
                 </span>
               ) : (
@@ -178,15 +178,15 @@ export default function EnvironmentBar() {
                   {tides.items.map((t, idx) => (
                     <span
                       key={`${t.type}-${t.time}-${idx}`}
-                      className="inline-flex items-center gap-0.5 bg-slate-50 px-1.5 py-0.5 rounded-sm border border-slate-200 text-xs"
+                      className="inline-flex items-center gap-0.5 bg-slate-50 px-1.5 py-0.5 rounded-sm border border-slate-200 text-sm"
                     >
                       {t.type === 'high' ? (
-                        <ArrowUpRight className="w-3 h-3 text-sky-600" />
+                        <ArrowUpRight className="w-3 h-3 text-sky-700" />
                       ) : (
-                        <ArrowDownRight className="w-3 h-3 text-slate-500" />
+                        <ArrowDownRight className="w-3 h-3 text-slate-600" />
                       )}
                       <span className="font-semibold text-slate-900">{t.time}</span>
-                      <span className="text-slate-500 font-light">({t.height}m)</span>
+                      <span className="text-slate-600">({t.height}m)</span>
                     </span>
                   ))}
                 </div>
@@ -201,11 +201,11 @@ export default function EnvironmentBar() {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5 text-sky-700">
                     <Compass className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Oleaje</span>
+                    <span className="text-sm font-bold">Oleaje</span>
                   </div>
                   <div className={chip}>
                     <span className="font-semibold text-slate-900">{swell.waveHeight}m</span>
-                    <span className="text-slate-500 font-light ml-1">· {swell.wavePeriod}s</span>
+                    <span className="text-slate-600 ml-1">· {swell.wavePeriod}s</span>
                   </div>
                 </div>
 
@@ -214,17 +214,17 @@ export default function EnvironmentBar() {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5 text-sky-700">
                     <Wind className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Viento</span>
+                    <span className="text-sm font-bold">Viento</span>
                   </div>
                   <div className={chip}>
                     <span className="font-semibold text-slate-900">{swell.windSpeedKts} kts</span>
-                    <span className="text-slate-500 font-light ml-1">· {swell.windDirectionLabel}</span>
+                    <span className="text-slate-600 ml-1">· {swell.windDirectionLabel}</span>
                   </div>
-                  <span className="text-xs text-slate-400">act. {swell.observedAt}</span>
+                  <span className="text-sm text-slate-600">act. {swell.observedAt}</span>
                 </div>
               </>
             ) : (
-              <span className="text-xs text-slate-400">Oleaje y viento no disponibles (sin conexión)</span>
+              <span className="text-sm text-slate-600">Oleaje y viento no disponibles (sin conexión)</span>
             )}
 
             <span className="text-slate-200 hidden sm:inline" aria-hidden="true">|</span>
@@ -233,15 +233,15 @@ export default function EnvironmentBar() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-sky-700">
                 <Sun className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest">Luz Operativa</span>
+                <span className="text-sm font-bold">Luz</span>
               </div>
               <div className={chip}>
                 <span className="font-semibold text-slate-900">{sun.sunrise}</span>
-                <span className="text-slate-400 mx-1">→</span>
+                <span className="text-slate-600 mx-1">→</span>
                 <span className="font-semibold text-slate-900">{sun.sunset}</span>
               </div>
               {sun.isFallback && (
-                <span className="inline-flex items-center gap-1 text-xs text-amber-700" title="Sin conexión al servicio solar">
+                <span className="inline-flex items-center gap-1 text-sm text-amber-700" title="Sin conexión al servicio solar">
                   <AlertTriangle className="w-3 h-3" /> referencial
                 </span>
               )}
@@ -249,6 +249,6 @@ export default function EnvironmentBar() {
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 }
