@@ -19,14 +19,15 @@
 -- la sección "MIGRAR DESDE EL BORRADOR" al final antes de ejecutar.
 -- ============================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA extensions;
 
 -- Fecha y hora "de la playa" (America/Santiago por defecto)
 CREATE OR REPLACE FUNCTION public.local_today(p_tz TEXT DEFAULT 'America/Santiago')
 RETURNS DATE
 LANGUAGE sql
 STABLE
+SET search_path = ''
 AS $$ SELECT (now() AT TIME ZONE p_tz)::date $$;
 
 -- ============================================================================
@@ -48,7 +49,7 @@ CREATE TABLE public.schools (
     latitude NUMERIC(8,5) NOT NULL DEFAULT -29.97800,
     longitude NUMERIC(8,5) NOT NULL DEFAULT -71.36000,
     timezone TEXT NOT NULL DEFAULT 'America/Santiago',
-    admin_pin_hash TEXT NOT NULL DEFAULT crypt('0000', gen_salt('bf')),
+    admin_pin_hash TEXT NOT NULL DEFAULT extensions.crypt('0000', extensions.gen_salt('bf')),
     pin_failed_attempts INTEGER NOT NULL DEFAULT 0,
     pin_locked_until TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -258,6 +259,7 @@ CREATE INDEX idx_equipment_rentals_active_monitor
     ON public.equipment_rentals (school_id, estimated_return_at) WHERE status = 'active';
 CREATE INDEX idx_equipment_rentals_school_date
     ON public.equipment_rentals (school_id, operation_date, status);
+CREATE INDEX idx_equipment_rentals_rate ON public.equipment_rentals (school_id, rental_rate_id);
 
 -- Borrado de fotos de carnet (minimización de datos personales):
 -- la foto se elimina el día siguiente (hora local de la escuela) a la devolución.
@@ -305,21 +307,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- Programación diaria (03:15 de Chile ≈ 06:15 UTC en horario de verano). Requiere las
--- extensiones pg_cron y pg_net, y guardar en Vault la URL del proyecto y el secreto:
---   SELECT vault.create_secret('https://<ref>.supabase.co', 'project_url');
---   SELECT vault.create_secret('<mismo valor que PURGE_CRON_SECRET>', 'purge_cron_secret');
---   SELECT cron.schedule('purge-id-photos', '15 6 * * *', $cron$
---     SELECT net.http_post(
---       url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'project_url')
---              || '/functions/v1/purge-id-photos',
---       headers := jsonb_build_object(
---         'Content-Type', 'application/json',
---         'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'purge_cron_secret')
---       ),
---       body := '{}'::jsonb
---     );
---   $cron$);
+-- La programación diaria está en 20261110000000_surfops_cron.sql
 
 -- ============================================================================
 -- 7. VALIDACIÓN DE HORARIO DE ATENCIÓN (trigger)
@@ -360,6 +348,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.enforce_school_hours() FROM PUBLIC, anon, authenticated;
+
 CREATE TRIGGER trg_surf_classes_hours
     BEFORE INSERT OR UPDATE OF start_time, end_time, status ON public.surf_classes
     FOR EACH ROW EXECUTE FUNCTION public.enforce_school_hours();
@@ -387,26 +377,26 @@ GRANT SELECT (
 ) ON public.schools TO authenticated;
 
 CREATE POLICY "schools_select_own" ON public.schools
-    FOR SELECT TO authenticated USING (id = auth.uid());
+    FOR SELECT TO authenticated USING (id = (select auth.uid()));
 
 -- 8.2 school_configs y rental_rates: lectura propia, escritura solo vía RPC admin
 REVOKE INSERT, UPDATE, DELETE ON public.school_configs FROM anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON public.rental_rates FROM anon, authenticated;
 
 CREATE POLICY "school_configs_select_own" ON public.school_configs
-    FOR SELECT TO authenticated USING (school_id = auth.uid());
+    FOR SELECT TO authenticated USING (school_id = (select auth.uid()));
 CREATE POLICY "rental_rates_select_own" ON public.rental_rates
-    FOR SELECT TO authenticated USING (school_id = auth.uid());
+    FOR SELECT TO authenticated USING (school_id = (select auth.uid()));
 
 -- 8.3 Tablas operativas: CRUD propio
 CREATE POLICY "instructors_all_own" ON public.instructors
-    FOR ALL TO authenticated USING (school_id = auth.uid()) WITH CHECK (school_id = auth.uid());
+    FOR ALL TO authenticated USING (school_id = (select auth.uid())) WITH CHECK (school_id = (select auth.uid()));
 CREATE POLICY "instructor_attendance_all_own" ON public.instructor_attendance
-    FOR ALL TO authenticated USING (school_id = auth.uid()) WITH CHECK (school_id = auth.uid());
+    FOR ALL TO authenticated USING (school_id = (select auth.uid())) WITH CHECK (school_id = (select auth.uid()));
 CREATE POLICY "surf_classes_all_own" ON public.surf_classes
-    FOR ALL TO authenticated USING (school_id = auth.uid()) WITH CHECK (school_id = auth.uid());
+    FOR ALL TO authenticated USING (school_id = (select auth.uid())) WITH CHECK (school_id = (select auth.uid()));
 CREATE POLICY "equipment_rentals_all_own" ON public.equipment_rentals
-    FOR ALL TO authenticated USING (school_id = auth.uid()) WITH CHECK (school_id = auth.uid());
+    FOR ALL TO authenticated USING (school_id = (select auth.uid())) WITH CHECK (school_id = (select auth.uid()));
 
 -- 8.4 Storage: bucket privado de carnets, carpeta = school_id
 INSERT INTO storage.buckets (id, name, public)
@@ -415,17 +405,17 @@ ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "id_cards_select_own" ON storage.objects
     FOR SELECT TO authenticated
-    USING (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = auth.uid()::text);
+    USING (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = (select auth.uid())::text);
 CREATE POLICY "id_cards_insert_own" ON storage.objects
     FOR INSERT TO authenticated
-    WITH CHECK (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = auth.uid()::text);
+    WITH CHECK (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = (select auth.uid())::text);
 CREATE POLICY "id_cards_update_own" ON storage.objects
     FOR UPDATE TO authenticated
-    USING (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = auth.uid()::text)
-    WITH CHECK (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = auth.uid()::text);
+    USING (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = (select auth.uid())::text)
+    WITH CHECK (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = (select auth.uid())::text);
 CREATE POLICY "id_cards_delete_own" ON storage.objects
     FOR DELETE TO authenticated
-    USING (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = auth.uid()::text);
+    USING (bucket_id = 'id-cards' AND (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- ============================================================================
 -- 9. PIN DE ADMINISTRADOR Y GUARDADO DE CONFIGURACIÓN (RPC SECURITY DEFINER)
@@ -666,7 +656,12 @@ AS $$
     ORDER BY d.operation_date;
 $$;
 
+REVOKE ALL ON FUNCTION public.get_closing_range(DATE, DATE) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_closing_range(DATE, DATE) TO authenticated;
+
+-- Nota: el linter de Supabase avisa que verify_admin_pin, admin_save_settings y
+-- admin_change_pin son SECURITY DEFINER ejecutables por authenticated. Es intencional:
+-- son la única puerta para cambiar configuración y exigen el PIN de la escuela.
 
 -- ============================================================================
 -- MIGRAR DESDE EL BORRADOR (solo si ya ejecutaste db_schema_draft.md)

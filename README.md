@@ -105,11 +105,10 @@ La API key de Stormglass **ya no va en el frontend** (quedaba publicada en GitHu
 supabase secrets set STORMGLASS_API_KEY=...        # usa una key NUEVA: la anterior quedó pública
 supabase functions deploy tides
 
-supabase secrets set PURGE_CRON_SECRET=...         # valor largo y aleatorio
 supabase functions deploy purge-id-photos --no-verify-jwt
 ```
 
-Luego programa la purga diaria de fotos con `pg_cron` + `pg_net` (instrucciones comentadas en la migración, junto a `rentals_pending_photo_purge`).
+Luego ejecuta `supabase/migrations/20261110000000_surfops_cron.sql` (reemplazando `<ref>`): activa `pg_cron` y `pg_net`, genera dentro de Vault el secreto que usa la purga y programa las tareas diarias (fotos de carnet y asistencia de 60 días).
 
 ### Base de datos
 
