@@ -107,17 +107,19 @@ export function getInstructorConflicts(
 /**
  * Fila de rotación estricta (round-robin) del día.
  *
- * Orden inicial = hora de check-in. Cada vez que un instructor recibe una clase del
- * día (sugerida, manual o una sesión de curso agendada para hoy), pasa al final de la
- * fila. Si el primero está ocupado en el bloque pedido se salta, pero conserva su
- * lugar porque su "última asignación" no cambia.
+ * Orden inicial = hora de check-in. Cada vez que un instructor recibe una CLASE ÚNICA
+ * del día (sugerida por la fila o asignada a mano), pasa al final de la fila.
  *
- * Orden: sin asignaciones hoy primero (por check-in); luego por última asignación ↑.
+ * Las sesiones de curso NO mueven la fila: pertenecen al instructor que tomó el curso
+ * (regla de la escuela). Si ese instructor está en una sesión de curso a la hora pedida,
+ * se salta para ese bloque pero conserva su lugar, porque su "última asignación" no cambia.
+ *
+ * Orden: sin clases únicas hoy primero (por check-in); luego por última asignación ↑.
  */
 export function buildRotationQueue(instructors, classesToday) {
   const lastAssignedById = new Map();
   (classesToday || []).forEach((cls) => {
-    if (!cls.instructorId || !isOccupyingClass(cls)) return;
+    if (!cls.instructorId || !isOccupyingClass(cls) || cls.category === 'curso') return;
     const ts = Number(cls.assignedAtMs) || 0;
     const prev = lastAssignedById.get(cls.instructorId);
     if (prev === undefined || ts > prev) {

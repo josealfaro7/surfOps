@@ -589,9 +589,18 @@ export function SurfSchoolProvider({ children }) {
     const packSessions = classes.filter((c) => c.courseGroupId === courseGroupId);
     if (packSessions.length === 0) fail('No se encontró el curso.');
     if (packSessions.length >= MAX_COURSE_PACK_SESSIONS) fail(`El pack ya tiene ${MAX_COURSE_PACK_SESSIONS} sesiones.`);
-    const ref = packSessions[0];
+    const ref = packSessions.find((c) => c.sessionIndex === 1) || packSessions[0];
     const endTime = addMinutesToTime(session.startTime, duration);
-    const instructorId = session.instructorId || null;
+    // Regla de la escuela: el curso pertenece al instructor que lo tomó (sesión #1).
+    // Si no se indica otro y ese instructor está libre, se le asigna; si no, queda "Por definir".
+    let instructorId = session.instructorId === undefined ? ref.instructorId || null : session.instructorId || null;
+    if (
+      session.instructorId === undefined &&
+      instructorId &&
+      getInstructorConflicts(instructorId, session.startTime, endTime, classes, session.operationDate).length > 0
+    ) {
+      instructorId = null;
+    }
     validateSessionOrThrow(
       { operationDate: session.operationDate, startTime: session.startTime, endTime, instructorId },
       classes,
@@ -799,15 +808,18 @@ export function SurfSchoolProvider({ children }) {
     }
     commitDemo((prev) => ({
       ...prev,
-      rentals: prev.rentals.map((r) => (r.id === rentalId ? { ...r, status: 'completed', returnedAt } : r)),
+      rentals: prev.rentals.map((r) =>
+        r.id === rentalId ? { ...r, status: 'completed', returnedAt, returnedOn: todayIso } : r
+      ),
     }));
     return null;
   };
 
   /** URL para ver el carnet: firmada (60 s) en modo real, data URL en demo */
   const getIdPhotoUrl = async (rental) => {
-    if (!rental) return null;
+    if (!rental || rental.idPhotoPurged) return null;
     if (!isLive) return rental.idPhotoDataUrl || null;
+    if (!rental.idPhotoStoragePath) return null;
     return getSignedIdCardUrl(rental.idPhotoStoragePath, 60);
   };
 

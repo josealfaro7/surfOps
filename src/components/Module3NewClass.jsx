@@ -202,6 +202,7 @@ export default function Module3NewClass() {
           operationDate: addDaysToIsoDate(todayIso, 1),
           startTime: startTime || '10:30',
           instructorId: '',
+          followsMain: true,
         },
       ]);
     }
@@ -227,9 +228,16 @@ export default function Module3NewClass() {
 
   const handleUpdateFutureSession = (tempId, field, value) => {
     setExtraCourseSessions((prev) =>
-      prev.map((s) => (s.tempId === tempId ? { ...s, [field]: value } : s))
+      prev.map((s) =>
+        s.tempId === tempId
+          ? { ...s, [field]: value, ...(field === 'instructorId' ? { followsMain: false } : {}) }
+          : s
+      )
     );
   };
+
+  /** Las sesiones del curso son del instructor de la sesión #1, salvo que se cambien a mano */
+  const sessionInstructorId = (ses) => (ses.followsMain ? selectedInstructorId : ses.instructorId);
 
   const handleRemoveFutureSession = (tempId) => {
     setExtraCourseSessions((prev) => prev.filter((s) => s.tempId !== tempId));
@@ -245,12 +253,21 @@ export default function Module3NewClass() {
       closeTime: schoolConfig.closeTime,
     });
     if (!ses.operationDate || ses.operationDate < todayIso) issues.push('Fecha pasada.');
-    if (ses.instructorId) {
-      const c = getInstructorConflicts(ses.instructorId, ses.startTime, sesEnd, classes, ses.operationDate);
-      if (c.length > 0) issues.push(`${getInstructorName(ses.instructorId)} ocupado ${c[0].startTime}–${c[0].endTime}.`);
+    const instId = sessionInstructorId(ses);
+    if (instId) {
+      const c = getInstructorConflicts(instId, ses.startTime, sesEnd, classes, ses.operationDate);
+      if (c.length > 0) issues.push(`${getInstructorName(instId)} ocupado ${c[0].startTime}–${c[0].endTime}.`);
     }
     return issues;
   };
+
+  const futureSessionBlockers =
+    category === 'curso'
+      ? extraCourseSessions.flatMap((ses, idx) =>
+          getFutureSessionIssues(ses).length > 0 ? [`Revisa la sesión #${idx + 2}.`] : []
+        )
+      : [];
+  const allBlockers = [...submitBlockers, ...futureSessionBlockers];
 
   const handleInstructorChange = (e) => {
     const newId = e.target.value;
@@ -316,8 +333,8 @@ export default function Module3NewClass() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    if (submitBlockers.length > 0) {
-      setFormError(submitBlockers.join(' '));
+    if (allBlockers.length > 0) {
+      setFormError(allBlockers.join(' '));
       return;
     }
 
@@ -350,7 +367,7 @@ export default function Module3NewClass() {
             ...extraCourseSessions.map((s) => ({
               operationDate: s.operationDate,
               startTime: s.startTime || '10:30',
-              instructorId: s.instructorId || null,
+              instructorId: sessionInstructorId(s) || null,
             })),
           ],
         });
@@ -416,8 +433,9 @@ export default function Module3NewClass() {
     if (!date) return;
     const time = window.prompt('Hora de inicio (HH:MM):', last.startTime);
     if (!time) return;
+    // Por defecto, el instructor dueño del curso (sesión #1); si está ocupado queda "Por definir"
     runRowAction(() =>
-      addSessionToPack(cls.courseGroupId, { operationDate: date.trim(), startTime: time.trim(), instructorId: null })
+      addSessionToPack(cls.courseGroupId, { operationDate: date.trim(), startTime: time.trim() })
     );
   };
 
@@ -956,7 +974,7 @@ export default function Module3NewClass() {
                       </span>
                     </div>
                     <p className="text-xs font-light text-slate-600">
-                      Todas las sesiones compartirán el identificador de grupo. La Sesión #1 percibe el valor total en caja; las siguientes se reservan con costo $0.
+                      Las sesiones quedan con el instructor del curso (el de la Sesión #1) salvo que lo cambies. La Sesión #1 percibe el valor total en caja; las siguientes quedan en $0 y no mueven la fila de turnos.
                     </p>
                   </div>
 
@@ -1016,7 +1034,7 @@ export default function Module3NewClass() {
                                 Pack Pagado ($0 Caja)
                               </span>
                               <span className="text-xs font-mono text-slate-400">
-                                {ses.instructorId ? 'scheduled' : 'pending_instructor'}
+                                {sessionInstructorId(ses) ? 'Agendada' : 'Sin instructor'}
                               </span>
                             </div>
 
@@ -1077,7 +1095,7 @@ export default function Module3NewClass() {
                                 Instructor
                               </label>
                               <select
-                                value={ses.instructorId}
+                                value={sessionInstructorId(ses) || ''}
                                 onChange={(e) =>
                                   handleUpdateFutureSession(
                                     ses.tempId,
@@ -1222,8 +1240,8 @@ export default function Module3NewClass() {
         )}
         <button
           type="submit"
-          disabled={isSaving || submitBlockers.length > 0}
-          title={submitBlockers.join(' ')}
+          disabled={isSaving || allBlockers.length > 0}
+          title={allBlockers.join(' ')}
           className="w-full h-14 bg-blue-950 hover:bg-sky-700 text-white text-sm font-semibold uppercase tracking-wider shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span>

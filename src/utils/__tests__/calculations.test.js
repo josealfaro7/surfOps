@@ -111,14 +111,26 @@ describe('fila de rotación estricta', () => {
     expect(counts).toEqual({ diego: 2, jose: 2, vitoco: 2 });
   });
 
-  it('si el primero está ocupado se salta pero conserva su turno', () => {
-    // Diego tiene una sesión de curso pre-agendada a las 10:30 (asignada antes de hoy)
-    const classes = [cls({ instructorId: 'diego', startTime: '10:30', endTime: '11:45', assignedAtMs: 0 })];
+  it('las sesiones de curso no mueven la fila; si está ocupado se salta y conserva su turno', () => {
+    // Diego tiene una sesión de curso suya a las 10:30
+    const classes = [
+      cls({ instructorId: 'diego', category: 'curso', courseGroupId: 'p1', startTime: '10:30', endTime: '11:45', assignedAtMs: 0 }),
+    ];
     const q1 = buildRotationQueue(instructors, classes);
-    // Diego quedó atrás por su sesión agendada → jose primero
-    expect(q1[0].id).toBe('jose');
-    const s = suggestInstructorForSlot(q1, '10:30', '11:45', classes, TODAY);
-    expect(s.suggestedInstructor.id).toBe('jose');
+    expect(q1[0].id).toBe('diego'); // sigue primero
+    // Para 10:30 está ocupado → se salta a Jose
+    expect(suggestInstructorForSlot(q1, '10:30', '11:45', classes, TODAY).suggestedInstructor.id).toBe('jose');
+    // Para 12:00 vuelve a ser Diego (conservó su turno)
+    expect(suggestInstructorForSlot(q1, '12:00', '13:15', classes, TODAY).suggestedInstructor.id).toBe('diego');
+  });
+
+  it('una clase única asignada a mano también rota', () => {
+    const q = buildRotationQueue(instructors, [
+      cls({ instructorId: 'vitoco', wasSuggestedByQueue: false, assignedAtMs: 50 }),
+    ]);
+    expect(q.map((i) => i.id)).toEqual(['diego', 'jose', 'vitoco']);
+    const q2 = buildRotationQueue(instructors, [cls({ instructorId: 'diego', wasSuggestedByQueue: false, assignedAtMs: 50 })]);
+    expect(q2[q2.length - 1].id).toBe('diego');
   });
 
   it('ignora instructores sin check-in', () => {
@@ -238,4 +250,18 @@ describe('buildCsv', () => {
     const csv = buildCsv(['a', 'b'], [['x;y', 'z']]);
     expect(csv).toBe('﻿a;b\r\n"x;y";z');
   });
+});
+
+import { purgeReturnedIdPhotos } from '../../lib/demoStore';
+
+describe('borrado de foto de carnet (demo)', () => {
+  const rentals = [
+    { id: 'ayer', status: 'completed', returnedOn: '2026-11-08', operationDate: '2026-11-08', idPhotoDataUrl: 'data:x' },
+    { id: 'hoy', status: 'completed', returnedOn: TODAY, operationDate: TODAY, idPhotoDataUrl: 'data:x' },
+    { id: 'activo', status: 'active', operationDate: '2026-11-07', idPhotoDataUrl: 'data:x' },
+  ];
+  const out = Object.fromEntries(purgeReturnedIdPhotos(rentals, TODAY).map((r) => [r.id, r]));
+  it('borra la foto devuelta ayer', () => expect(out.ayer.idPhotoDataUrl).toBeNull());
+  it('conserva la devuelta hoy', () => expect(out.hoy.idPhotoDataUrl).toBe('data:x'));
+  it('conserva la de un arriendo activo aunque sea antiguo', () => expect(out.activo.idPhotoDataUrl).toBe('data:x'));
 });
