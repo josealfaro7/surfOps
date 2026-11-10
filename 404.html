@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SurfOps</title>
+    <script>
+      // GitHub Pages no conoce las rutas del cliente: al recargar en /surfOps/app
+      // devuelve este 404. Guardamos la ruta pedida en la query y volvemos a la
+      // raíz del sitio, donde index.html la restaura.
+      (function () {
+        var tramosDelSitio = 1; // el sitio vive en /surfOps/
+        var l = window.location;
+        var ruta = l.pathname.split('/').slice(1 + tramosDelSitio).join('/');
+        var base = l.pathname.split('/').slice(0, 1 + tramosDelSitio).join('/');
+        l.replace(
+          l.protocol +
+            '//' +
+            l.hostname +
+            (l.port ? ':' + l.port : '') +
+            base +
+            '/?ruta=/' +
+            ruta.replace(/&/g, '~and~') +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+        );
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
