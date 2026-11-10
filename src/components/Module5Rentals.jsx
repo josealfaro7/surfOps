@@ -269,6 +269,7 @@ export default function Module5Rentals() {
   const [monitorError, setMonitorError] = useState('');
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoLoading, setPhotoLoading] = useState(false);
 
   const enabledItems = useMemo(
     () => rentalRates.filter((item) => Boolean(item.enabled)),
@@ -337,12 +338,24 @@ export default function Module5Rentals() {
     setPhotoUrl(null);
     setPhotoError('');
     if (!inspectedRental) return undefined;
+    setPhotoLoading(true);
     getIdPhotoUrl(inspectedRental)
       .then((url) => {
-        if (!cancelled) setPhotoUrl(url);
+        if (cancelled) return;
+        setPhotoUrl(url);
+        if (!url) {
+          setPhotoError(
+            inspectedRental.idPhotoPurged
+              ? 'La foto se eliminó el día siguiente a la devolución (política de privacidad).'
+              : 'Este registro no tiene foto disponible.'
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setPhotoError('No se pudo obtener la imagen del carnet.');
+      })
+      .finally(() => {
+        if (!cancelled) setPhotoLoading(false);
       });
     return () => {
       cancelled = true;
@@ -832,7 +845,7 @@ export default function Module5Rentals() {
               <p className="text-xs font-light text-slate-500">
                 {isDemoSession
                   ? 'Modo demo: la foto queda guardada solo en este navegador. No uses documentos reales.'
-                  : 'La foto se guarda en un bucket privado y solo se ve con un enlace temporal de 60 segundos.'}
+                  : 'La foto se guarda en un bucket privado, solo se ve con un enlace temporal de 60 segundos y se elimina el día siguiente a la devolución.'}
               </p>
             </div>
 
@@ -934,7 +947,7 @@ export default function Module5Rentals() {
                 </div>
               ) : (
                 <div className="p-6 text-center text-xs text-slate-500 border border-slate-200">
-                  {photoError || 'Cargando imagen…'}
+                  {photoLoading ? 'Cargando imagen…' : photoError}
                 </div>
               )}
 

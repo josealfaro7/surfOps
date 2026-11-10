@@ -237,7 +237,10 @@ CREATE TABLE public.equipment_rentals (
     customer_phone TEXT NOT NULL,
     customer_email TEXT NOT NULL DEFAULT '',
     emergency_contact TEXT NOT NULL DEFAULT '',
-    id_photo_storage_path TEXT NOT NULL,
+    -- Foto del carnet: se borra del bucket el día siguiente a la devolución
+    -- (Edge Function purge-id-photos). Mientras el arriendo está activo es obligatoria.
+    id_photo_storage_path TEXT,
+    id_photo_purged_at TIMESTAMPTZ,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_rental_rate FOREIGN KEY (school_id, rental_rate_id)
@@ -245,6 +248,7 @@ CREATE TABLE public.equipment_rentals (
     CONSTRAINT chk_rental_subtotal CHECK (subtotal = unit_price_per_hour * quantity * hours),
     CONSTRAINT chk_rental_final_total CHECK (final_total = GREATEST(0, subtotal - discount)),
     CONSTRAINT chk_rental_return_after_checkin CHECK (estimated_return_time > check_in_time),
+    CONSTRAINT chk_rental_photo_while_active CHECK (status <> 'active' OR id_photo_storage_path IS NOT NULL),
     CONSTRAINT chk_rental_returned CHECK (
         (status = 'active' AND returned_at IS NULL) OR (status = 'completed' AND returned_at IS NOT NULL)
     )
@@ -254,6 +258,68 @@ CREATE INDEX idx_equipment_rentals_active_monitor
     ON public.equipment_rentals (school_id, estimated_return_at) WHERE status = 'active';
 CREATE INDEX idx_equipment_rentals_school_date
     ON public.equipment_rentals (school_id, operation_date, status);
+
+-- Borrado de fotos de carnet (minimización de datos personales):
+-- la foto se elimina el día siguiente (hora local de la escuela) a la devolución.
+-- Estas dos funciones las usa SOLO la Edge Function purge-id-photos con service_role.
+CREATE OR REPLACE FUNCTION public.rentals_pending_photo_purge(p_limit INTEGER DEFAULT 500)
+RETURNS TABLE (rental_id UUID, storage_path TEXT)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT er.id, er.id_photo_storage_path
+    FROM public.equipment_rentals er
+    JOIN public.schools s ON s.id = er.school_id
+    WHERE er.status = 'completed'
+      AND er.id_photo_storage_path IS NOT NULL
+      AND (er.returned_at AT TIME ZONE s.timezone)::date < (now() AT TIME ZONE s.timezone)::date
+    ORDER BY er.returned_at
+    LIMIT p_limit;
+$$;
+
+CREATE OR REPLACE FUNCTION public.mark_id_photos_purged(p_rental_ids UUID[])
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    n INTEGER;
+BEGIN
+    UPDATE public.equipment_rentals
+    SET id_photo_storage_path = NULL, id_photo_purged_at = now()
+    WHERE id = ANY(p_rental_ids) AND status = 'completed';
+    GET DIAGNOSTICS n = ROW_COUNT;
+    RETURN n;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.rentals_pending_photo_purge(INTEGER) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.mark_id_photos_purged(UUID[]) FROM PUBLIC, anon, authenticated;
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+        GRANT EXECUTE ON FUNCTION public.rentals_pending_photo_purge(INTEGER) TO service_role;
+        GRANT EXECUTE ON FUNCTION public.mark_id_photos_purged(UUID[]) TO service_role;
+    END IF;
+END $$;
+
+-- Programación diaria (03:15 de Chile ≈ 06:15 UTC en horario de verano). Requiere las
+-- extensiones pg_cron y pg_net, y guardar en Vault la URL del proyecto y el secreto:
+--   SELECT vault.create_secret('https://<ref>.supabase.co', 'project_url');
+--   SELECT vault.create_secret('<mismo valor que PURGE_CRON_SECRET>', 'purge_cron_secret');
+--   SELECT cron.schedule('purge-id-photos', '15 6 * * *', $cron$
+--     SELECT net.http_post(
+--       url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'project_url')
+--              || '/functions/v1/purge-id-photos',
+--       headers := jsonb_build_object(
+--         'Content-Type', 'application/json',
+--         'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'purge_cron_secret')
+--       ),
+--       body := '{}'::jsonb
+--     );
+--   $cron$);
 
 -- ============================================================================
 -- 7. VALIDACIÓN DE HORARIO DE ATENCIÓN (trigger)

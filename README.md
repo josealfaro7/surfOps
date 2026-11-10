@@ -21,7 +21,8 @@ En modo real **nada se marca como guardado si la base de datos no lo confirma**:
 ## 2. Reglas de negocio
 
 ### Fila de instructores (Módulo 02 → Módulo 03)
-- **Rotación estricta (round-robin):** el orden inicial es la hora de check-in. Cada vez que un instructor recibe una clase del día (sugerida, manual o una sesión de curso agendada para hoy) pasa al final de la fila.
+- **Rotación estricta (round-robin):** el orden inicial es la hora de check-in. Cada vez que un instructor recibe una **clase única** del día (sugerida por la fila o asignada a mano) pasa al final de la fila.
+- **Las sesiones de curso no mueven la fila:** el curso pertenece al instructor que lo tomó. Si ese instructor está en una sesión de curso a la hora pedida, se salta para ese bloque y conserva su lugar.
 - Si el primero de la fila está ocupado en ese bloque, se salta **pero conserva su turno** para la siguiente clase.
 - Quitar el check-in pide confirmación: al volver a marcar, el instructor toma la nueva hora de llegada.
 
@@ -35,6 +36,7 @@ En modo real **nada se marca como guardado si la base de datos no lo confirma**:
 ### Cursos (Pack)
 - El alumno **paga el pack completo al inscribirse**: el ingreso entra a caja en la fecha de la sesión #1. Las sesiones 2..N quedan en $0 ("Pack Pagado").
 - Al instructor se le paga **cada sesión el día que la dicta**.
+- Todas las sesiones quedan asignadas por defecto al instructor de la sesión #1 (el dueño del curso). Las excepciones se cambian a mano en la bitácora.
 - Si el alumno **no asiste** ("No asistió"), el instructor no cobra esa sesión. El ingreso del pack se mantiene.
 - Se pueden agregar sesiones a un pack existente (hasta 8) desde la bitácora.
 - Eliminar la sesión #1 elimina el pack completo (pide confirmación), para no dejar sesiones "pagadas" sin ingreso.
@@ -44,6 +46,8 @@ En modo real **nada se marca como guardado si la base de datos no lo confirma**:
 - Cada arriendo registra su **medio de pago** (entra a la cuadratura de caja).
 - Un arriendo activo de un día anterior aparece como "No devuelto (día anterior)".
 - La foto del carnet se sube a un bucket privado y solo se ve con una URL firmada de 60 segundos. En modo real nunca se guarda en el navegador.
+- **La foto se elimina el día siguiente a la devolución** (Edge Function `purge-id-photos`, diaria). Mientras el arriendo está activo la foto es obligatoria.
+- Sin cobro por atraso: el sistema solo marca el arriendo como "Atrasado".
 
 ### Cierre diario (Módulo 04)
 - Todo se filtra por la fecha de hoy (hora de la escuela, no UTC).
@@ -98,9 +102,14 @@ VITE_SUPABASE_ANON_KEY=...
 La API key de Stormglass **ya no va en el frontend** (quedaba publicada en GitHub Pages). Se configura como secreto de la Edge Function:
 
 ```bash
-supabase secrets set STORMGLASS_API_KEY=...
+supabase secrets set STORMGLASS_API_KEY=...        # usa una key NUEVA: la anterior quedó pública
 supabase functions deploy tides
+
+supabase secrets set PURGE_CRON_SECRET=...         # valor largo y aleatorio
+supabase functions deploy purge-id-photos --no-verify-jwt
 ```
+
+Luego programa la purga diaria de fotos con `pg_cron` + `pg_net` (instrucciones comentadas en la migración, junto a `rentals_pending_photo_purge`).
 
 ### Base de datos
 
@@ -120,7 +129,7 @@ supabase functions deploy tides
 
 ## 5. Pendientes conocidos
 
-- **Roles separados (admin / recepción):** hoy hay un solo login por escuela; el PIN protege la configuración, pero no hay registro de qué persona hizo cada cambio.
-- **Retención de fotos de carnet:** falta una tarea programada que borre las fotos del bucket después de la devolución (relevante para la Ley 21.719 de datos personales).
-- **Cobro por atraso en arriendos** y **control de stock** por equipo: no implementados.
-- **Sincronización en vivo entre equipos:** si dos recepciones trabajan a la vez, cada una ve los cambios de la otra al recargar (la base sí impide choques).
+- **Control de stock por equipo:** descartado por ahora; hoy no se valida cuántas tablas/trajes hay disponibles.
+- **Roles separados (admin / recepción):** no se necesitan mientras el dueño esté presente; el PIN protege la configuración.
+- **Sincronización en vivo entre equipos:** se opera con un solo equipo. Si se suman más, cada uno ve los cambios del otro al recargar (la base sí impide choques).
+- **Datos personales (Ley 21.719):** aviso de privacidad en recepción, cláusula de encargado de tratamiento en el contrato (Supabase en São Paulo = transferencia internacional) y procedimiento para borrar los datos de un alumno que lo pida.

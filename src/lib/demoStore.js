@@ -65,14 +65,14 @@ export function buildDemoSeed(todayIso, timeZone) {
     // Curso Pack: se paga completo en la sesión #1; el instructor cobra cada sesión el día que la dicta
     { ...base, id: 'demo-cls-4', operationDate: todayIso, courseGroupId: packId, sessionIndex: 1, modality: 'individual', pax: 1, category: 'curso', subtotal: 160000, finalTotal: 160000, paymentMethod: 'Transferencia', startTime: '15:00', endTime: '16:15', instructorId: 'demo-diego', instructorPay: 6000, wasSuggestedByQueue: false, assignedAtMs: ts('10:00'), studentName: 'Ignacio Zúñiga', studentPhone: '+56 9 5119 8844', studentEmail: 'ignacio@correo.cl', emergencyContactName: 'Marcela Ríos', emergencyContactPhone: '+56 9 7788 9900' },
     { ...base, id: 'demo-cls-5', operationDate: addDaysToIsoDate(todayIso, 1), courseGroupId: packId, sessionIndex: 2, isPaidInPack: true, modality: 'individual', pax: 1, category: 'curso', subtotal: 0, finalTotal: 0, paymentMethod: 'Transferencia', startTime: '15:00', endTime: '16:15', instructorId: 'demo-diego', instructorPay: 6000, wasSuggestedByQueue: false, assignedAtMs: ts('10:00'), studentName: 'Ignacio Zúñiga', studentPhone: '+56 9 5119 8844', studentEmail: 'ignacio@correo.cl', emergencyContactName: 'Marcela Ríos', emergencyContactPhone: '+56 9 7788 9900' },
-    { ...base, id: 'demo-cls-6', operationDate: addDaysToIsoDate(todayIso, 2), courseGroupId: packId, sessionIndex: 3, isPaidInPack: true, status: 'pending_instructor', modality: 'individual', pax: 1, category: 'curso', subtotal: 0, finalTotal: 0, paymentMethod: 'Transferencia', startTime: '15:00', endTime: '16:15', instructorId: null, instructorPay: 0, wasSuggestedByQueue: false, assignedAtMs: null, studentName: 'Ignacio Zúñiga', studentPhone: '+56 9 5119 8844', studentEmail: 'ignacio@correo.cl', emergencyContactName: 'Marcela Ríos', emergencyContactPhone: '+56 9 7788 9900' },
+    { ...base, id: 'demo-cls-6', operationDate: addDaysToIsoDate(todayIso, 2), courseGroupId: packId, sessionIndex: 3, isPaidInPack: true, modality: 'individual', pax: 1, category: 'curso', subtotal: 0, finalTotal: 0, paymentMethod: 'Transferencia', startTime: '15:00', endTime: '16:15', instructorId: 'demo-diego', instructorPay: 6000, wasSuggestedByQueue: false, assignedAtMs: ts('10:00'), studentName: 'Ignacio Zúñiga', studentPhone: '+56 9 5119 8844', studentEmail: 'ignacio@correo.cl', emergencyContactName: 'Marcela Ríos', emergencyContactPhone: '+56 9 7788 9900' },
   ];
 
   const rentalBase = { operationDate: todayIso, idPhotoStoragePath: null, idPhotoDataUrl: DEMO_ID_PHOTO_SVG, discount: 0 };
   const rentals = [
     { ...rentalBase, id: 'demo-rnt-1', itemId: 'tabla_surf', itemLabel: 'Tabla de Surf', unitPricePerHour: 8000, quantity: 2, hours: 2, checkInTime: '10:30', estimatedReturnTime: '12:30', returnedAt: null, paymentMethod: 'Efectivo', subtotal: 32000, discount: 2000, finalTotal: 30000, customerName: 'Lucas Valenzuela', customerEmail: 'lucas@correo.cl', customerPhone: '+56 9 8412 3390', emergencyContact: 'Andrea Valenzuela · +56 9 8412 0011', status: 'active' },
     { ...rentalBase, id: 'demo-rnt-2', itemId: 'traje_surf', itemLabel: 'Traje de Surf', unitPricePerHour: 5000, quantity: 1, hours: 2, checkInTime: '09:00', estimatedReturnTime: '11:00', returnedAt: null, paymentMethod: 'Tarjeta', subtotal: 10000, finalTotal: 10000, customerName: 'Martina Gómez', customerEmail: 'martina@correo.cl', customerPhone: '+56 9 7621 4410', emergencyContact: 'Rodrigo Gómez · +56 9 7621 9988', status: 'active' },
-    { ...rentalBase, id: 'demo-rnt-3', itemId: 'bodyboard', itemLabel: 'Bodyboard', unitPricePerHour: 5000, quantity: 2, hours: 1, checkInTime: '09:15', estimatedReturnTime: '10:15', returnedAt: '10:12', paymentMethod: 'Efectivo', subtotal: 10000, finalTotal: 10000, customerName: 'Cristóbal Pizarro', customerEmail: 'cpizarro@correo.cl', customerPhone: '+56 9 6334 1122', emergencyContact: 'Claudia Pizarro · +56 9 6334 8877', status: 'completed' },
+    { ...rentalBase, id: 'demo-rnt-3', itemId: 'bodyboard', itemLabel: 'Bodyboard', unitPricePerHour: 5000, quantity: 2, hours: 1, checkInTime: '09:15', estimatedReturnTime: '10:15', returnedAt: '10:12', returnedOn: todayIso, paymentMethod: 'Efectivo', subtotal: 10000, finalTotal: 10000, customerName: 'Cristóbal Pizarro', customerEmail: 'cpizarro@correo.cl', customerPhone: '+56 9 6334 1122', emergencyContact: 'Claudia Pizarro · +56 9 6334 8877', status: 'completed' },
   ];
 
   return {
@@ -87,12 +87,25 @@ export function buildDemoSeed(todayIso, timeZone) {
   };
 }
 
+/**
+ * Misma regla que en producción: la foto del carnet se elimina el día siguiente
+ * a la devolución del equipo.
+ */
+export function purgeReturnedIdPhotos(rentals, todayIso) {
+  return (rentals || []).map((r) =>
+    r.status === 'completed' && r.idPhotoDataUrl && (r.returnedOn || r.operationDate) < todayIso
+      ? { ...r, idPhotoDataUrl: null, idPhotoPurged: true }
+      : r
+  );
+}
+
 export function loadDemoState(todayIso, timeZone) {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.version === 2) {
+        parsed.rentals = purgeReturnedIdPhotos(parsed.rentals, todayIso);
         // Nuevo día: la asistencia se reinicia (clases y arriendos históricos se conservan con su fecha)
         if (parsed.attendanceDate !== todayIso) {
           parsed.instructors = parsed.instructors.map((i) => ({

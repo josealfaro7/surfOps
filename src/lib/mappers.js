@@ -184,8 +184,9 @@ export function rentalFromRow(row) {
     customerEmail: row.customer_email || '',
     customerPhone: row.customer_phone || '',
     emergencyContact: row.emergency_contact || '',
-    idPhotoStoragePath: row.id_photo_storage_path,
+    idPhotoStoragePath: row.id_photo_storage_path || null,
     idPhotoDataUrl: null, // en modo real la foto nunca vive en el navegador
+    idPhotoPurged: Boolean(row.id_photo_purged_at),
     status: row.status,
   };
 }
