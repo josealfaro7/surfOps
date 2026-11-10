@@ -365,8 +365,12 @@ CREATE POLICY "id_cards_delete_own" ON storage.objects
 -- 9. PIN DE ADMINISTRADOR Y GUARDADO DE CONFIGURACIÓN (RPC SECURITY DEFINER)
 -- ============================================================================
 -- Valida el PIN contra el hash con bloqueo de 15 min tras 5 intentos fallidos.
-CREATE OR REPLACE FUNCTION public._assert_admin_pin(p_pin TEXT)
-RETURNS VOID
+-- IMPORTANTE: no lanza excepciones. Una excepción revertiría también el contador de
+-- intentos (misma transacción) y permitiría probar PINs sin límite. Por eso devuelve
+-- NULL si el PIN es válido o un mensaje de error, y las RPC que lo usan retornan ese
+-- mensaje en vez de hacer RAISE.
+CREATE OR REPLACE FUNCTION public._check_admin_pin(p_pin TEXT)
+RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, extensions
@@ -375,17 +379,16 @@ DECLARE
     v_school public.schools%ROWTYPE;
 BEGIN
     IF auth.uid() IS NULL THEN
-        RAISE EXCEPTION 'Sesión requerida.' USING ERRCODE = 'insufficient_privilege';
+        RETURN 'Sesión requerida.';
     END IF;
 
     SELECT * INTO v_school FROM public.schools WHERE id = auth.uid() FOR UPDATE;
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Escuela no encontrada.' USING ERRCODE = 'insufficient_privilege';
+        RETURN 'Escuela no encontrada.';
     END IF;
 
     IF v_school.pin_locked_until IS NOT NULL AND v_school.pin_locked_until > now() THEN
-        RAISE EXCEPTION 'PIN bloqueado por intentos fallidos. Intenta nuevamente más tarde.'
-            USING ERRCODE = 'insufficient_privilege';
+        RETURN 'PIN bloqueado por intentos fallidos. Intenta nuevamente en unos minutos.';
     END IF;
 
     IF v_school.admin_pin_hash <> crypt(COALESCE(p_pin, ''), v_school.admin_pin_hash) THEN
@@ -394,45 +397,26 @@ BEGIN
             pin_locked_until = CASE WHEN pin_failed_attempts + 1 >= 5
                                     THEN now() + INTERVAL '15 minutes' ELSE NULL END
         WHERE id = v_school.id;
-        RAISE EXCEPTION 'PIN incorrecto.' USING ERRCODE = 'insufficient_privilege';
+        RETURN 'PIN incorrecto.';
     END IF;
 
     UPDATE public.schools
     SET pin_failed_attempts = 0, pin_locked_until = NULL
     WHERE id = v_school.id;
+    RETURN NULL;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public._assert_admin_pin(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public._check_admin_pin(TEXT) FROM PUBLIC, anon, authenticated;
 
--- Nota: una excepción revierte también el contador de intentos dentro de la misma
--- transacción. Por eso verify_admin_pin captura el error y lo devuelve como boolean.
 CREATE OR REPLACE FUNCTION public.verify_admin_pin(p_pin TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
-DECLARE
-    v_school public.schools%ROWTYPE;
 BEGIN
-    SELECT * INTO v_school FROM public.schools WHERE id = auth.uid() FOR UPDATE;
-    IF NOT FOUND THEN
-        RETURN FALSE;
-    END IF;
-    IF v_school.pin_locked_until IS NOT NULL AND v_school.pin_locked_until > now() THEN
-        RETURN FALSE;
-    END IF;
-    IF v_school.admin_pin_hash = crypt(COALESCE(p_pin, ''), v_school.admin_pin_hash) THEN
-        UPDATE public.schools SET pin_failed_attempts = 0, pin_locked_until = NULL WHERE id = v_school.id;
-        RETURN TRUE;
-    END IF;
-    UPDATE public.schools
-    SET pin_failed_attempts = pin_failed_attempts + 1,
-        pin_locked_until = CASE WHEN pin_failed_attempts + 1 >= 5
-                                THEN now() + INTERVAL '15 minutes' ELSE NULL END
-    WHERE id = v_school.id;
-    RETURN FALSE;
+    RETURN public._check_admin_pin(p_pin) IS NULL;
 END;
 $$;
 
@@ -441,21 +425,26 @@ GRANT EXECUTE ON FUNCTION public.verify_admin_pin(TEXT) TO authenticated;
 
 -- Guarda configuración, tarifas de arriendo y branding en una sola transacción.
 -- Cada parámetro jsonb es opcional (NULL = no tocar).
+-- Retorna NULL si guardó, o el mensaje de error del PIN (ver _check_admin_pin).
 CREATE OR REPLACE FUNCTION public.admin_save_settings(
     p_pin TEXT,
     p_config JSONB DEFAULT NULL,
     p_rates JSONB DEFAULT NULL,
     p_branding JSONB DEFAULT NULL
 )
-RETURNS VOID
+RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
 DECLARE
     v_rate JSONB;
+    v_pin_error TEXT;
 BEGIN
-    PERFORM public._assert_admin_pin(p_pin);
+    v_pin_error := public._check_admin_pin(p_pin);
+    IF v_pin_error IS NOT NULL THEN
+        RETURN v_pin_error;
+    END IF;
 
     IF p_config IS NOT NULL THEN
         INSERT INTO public.school_configs AS sc (
@@ -520,6 +509,7 @@ BEGIN
             updated_at = now()
         WHERE id = auth.uid();
     END IF;
+    RETURN NULL;
 END;
 $$;
 
@@ -527,19 +517,25 @@ REVOKE ALL ON FUNCTION public.admin_save_settings(TEXT, JSONB, JSONB, JSONB) FRO
 GRANT EXECUTE ON FUNCTION public.admin_save_settings(TEXT, JSONB, JSONB, JSONB) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.admin_change_pin(p_current_pin TEXT, p_new_pin TEXT)
-RETURNS VOID
+RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
+DECLARE
+    v_pin_error TEXT;
 BEGIN
-    IF p_new_pin !~ '^[0-9]{4,8}$' THEN
-        RAISE EXCEPTION 'El nuevo PIN debe tener entre 4 y 8 dígitos.' USING ERRCODE = 'check_violation';
+    IF COALESCE(p_new_pin, '') !~ '^[0-9]{4,8}$' THEN
+        RETURN 'El nuevo PIN debe tener entre 4 y 8 dígitos.';
     END IF;
-    PERFORM public._assert_admin_pin(p_current_pin);
+    v_pin_error := public._check_admin_pin(p_current_pin);
+    IF v_pin_error IS NOT NULL THEN
+        RETURN v_pin_error;
+    END IF;
     UPDATE public.schools
     SET admin_pin_hash = crypt(p_new_pin, gen_salt('bf')), updated_at = now()
     WHERE id = auth.uid();
+    RETURN NULL;
 END;
 $$;
 
