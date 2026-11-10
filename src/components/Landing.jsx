@@ -36,6 +36,7 @@ const MODULOS = [
 ];
 
 const INTERVALO_MS = 3800;
+const ESPERA_ENTRADA_MS = 1700;
 
 const estiloLamina = (activa) => ({
   flex: '0 0 100%',
@@ -209,9 +210,9 @@ function LaminaCaja() {
 
 const LAMINAS = [LaminaInstructores, LaminaClases, LaminaArriendos, LaminaCaja];
 
-function Ventaja({ icono: Icono, children }) {
+function Ventaja({ icono: Icono, clase, children }) {
   return (
-    <li style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+    <li className={clase} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
       <Icono size={23} strokeWidth={1.8} color={MARCA.celesteClaro} style={{ flex: 'none' }} aria-hidden="true" />
       <span style={{ fontSize: 17.5, color: MARCA.textoFuerte }}>{children}</span>
     </li>
@@ -228,10 +229,18 @@ export default function Landing() {
 
   useEffect(() => {
     if (sinMovimiento) return undefined;
-    const reloj = setInterval(() => {
-      setIndice((previo) => (previo + 1) % LAMINAS.length);
-    }, INTERVALO_MS);
-    return () => clearInterval(reloj);
+    // Arranca después de la secuencia de entrada: dos movimientos a la vez se
+    // leen como ruido.
+    let reloj;
+    const espera = setTimeout(() => {
+      reloj = setInterval(() => {
+        setIndice((previo) => (previo + 1) % LAMINAS.length);
+      }, INTERVALO_MS);
+    }, ESPERA_ENTRADA_MS);
+    return () => {
+      clearTimeout(espera);
+      if (reloj) clearInterval(reloj);
+    };
   }, [sinMovimiento]);
 
   const irA = useCallback((n) => () => setIndice(n), []);
@@ -272,7 +281,7 @@ export default function Landing() {
         }}
         className="landing-col-izq"
       >
-        <header style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+        <header className="ent-logo" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
           <svg width="44" height="44" viewBox="0 0 40 40" aria-hidden="true" style={{ display: 'block', flex: 'none' }}>
             <rect x="0" y="0" width="40" height="40" rx="10" fill={MARCA.celeste} />
             <path
@@ -305,14 +314,16 @@ export default function Landing() {
               justifyContent: 'flex-start',
             }}
           >
-            <h1
-              className="landing-titulo"
-              style={{ margin: '0 0 20px', fontFamily: DISPLAY, lineHeight: 1.02, fontWeight: 700 }}
-            >
-              Ordena el día de tu escuela de surf desde la arena.
-            </h1>
+            <div style={{ overflow: 'hidden', margin: '0 0 20px' }}>
+              <h1
+                className="landing-titulo ent-titulo"
+                style={{ margin: 0, fontFamily: DISPLAY, lineHeight: 1.02, fontWeight: 700 }}
+              >
+                Ordena el día de tu escuela de surf desde la arena.
+              </h1>
+            </div>
 
-            <p style={{ margin: '0 0 36px', fontSize: 19, lineHeight: 1.55, color: MARCA.texto }}>
+            <p className="ent-sub" style={{ margin: '0 0 36px', fontSize: 19, lineHeight: 1.55, color: MARCA.texto }}>
               SurfOps reparte los turnos entre los instructores, registra las clases y los arriendos, y cierra la caja
               al final de la jornada.
             </p>
@@ -327,12 +338,12 @@ export default function Landing() {
                 gap: 16,
               }}
             >
-              <Ventaja icono={Users}>La fila de instructores rota sola, por turno</Ventaja>
-              <Ventaja icono={Calendar}>Clases, cursos y arriendos en un solo registro</Ventaja>
-              <Ventaja icono={Wallet}>El cierre de caja sale al terminar el día</Ventaja>
+              <Ventaja clase="ent-f1" icono={Users}>La fila de instructores rota sola, por turno</Ventaja>
+              <Ventaja clase="ent-f2" icono={Calendar}>Clases, cursos y arriendos en un solo registro</Ventaja>
+              <Ventaja clase="ent-f3" icono={Wallet}>El cierre de caja sale al terminar el día</Ventaja>
             </ul>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+            <div className="ent-botones" style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
               <Link to="/app" style={{ ...botonBase, background: '#ffffff', color: MARCA.fondo }}>
                 Iniciar sesión
               </Link>
@@ -377,7 +388,7 @@ export default function Landing() {
             }}
           >
             <div
-              className="landing-marco"
+              className="landing-marco ent-tarjeta"
               style={{
                 flex: 'none',
                 borderRadius: 12,
@@ -404,7 +415,7 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="landing-leyenda" style={{ position: 'relative', flex: 'none' }}>
+            <div className="landing-leyenda ent-leyenda" style={{ position: 'relative', flex: 'none' }}>
               {MODULOS.map((modulo, i) => (
                 <p
                   key={modulo.id}
@@ -428,7 +439,7 @@ export default function Landing() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 48, flex: 'none' }}>
+            <div className="ent-puntos" style={{ display: 'flex', alignItems: 'center', gap: 5, height: 48, flex: 'none' }}>
               {MODULOS.map((modulo, i) => (
                 <button
                   key={modulo.id}
