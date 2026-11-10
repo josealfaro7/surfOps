@@ -1,3 +1,5 @@
+> **Nota (fix/auditoria):** este borrador quedó reemplazado por `supabase/migrations/20261109000000_surfops_schema_v2.sql`. Se conserva como referencia histórica; los nombres de columnas y reglas vigentes están en la migración y en el README.
+
 # Diseño de Esquema Relacional PostgreSQL (Supabase) para SurfOps ERP
 
 *   **Autor:** josealfaro7

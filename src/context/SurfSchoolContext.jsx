@@ -836,7 +836,8 @@ export function SurfSchoolProvider({ children }) {
             }
           : null,
       });
-      check(res, 'No se pudo guardar la configuración.');
+      const pinError = check(res, 'No se pudo guardar la configuración.');
+      if (pinError) fail(pinError);
       await hydrateLive(schoolId);
       return;
     }
@@ -854,7 +855,8 @@ export function SurfSchoolProvider({ children }) {
   const changeAdminPin = async (currentPin, newPin) => {
     if (!isLive) fail('En modo demo el PIN es siempre 0000.');
     const res = await supabase.rpc('admin_change_pin', { p_current_pin: currentPin, p_new_pin: newPin });
-    check(res, 'No se pudo cambiar el PIN.');
+    const pinError = check(res, 'No se pudo cambiar el PIN.');
+    if (pinError) fail(pinError);
   };
 
   // Mantener la caché de branding de la escuela real al día

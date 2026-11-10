@@ -1,143 +1,126 @@
-# POISSON SurfOps — ERP de Gestión Operativa y Liquidación para Escuela de Surf
+# SurfOps ERP — Gestión Operativa y Liquidación para Escuelas de Surf
 
-**Demo en vivo:** [https://josealfaro7.github.io/surfOps/](https://josealfaro7.github.io/surfOps/)  
+**Demo en vivo:** [https://josealfaro7.github.io/surfOps/](https://josealfaro7.github.io/surfOps/)
 **Repositorio:** [https://github.com/josealfaro7/surfOps](https://github.com/josealfaro7/surfOps)
 
----
-
-## 1. Descripción General
-
-**POISSON SurfOps** es un sistema de planificación y gestión operativa interna (*Frontend ERP*) diseñado en **React + Tailwind CSS** para resolver la operación diaria en playa de una escuela de surf:
-
-1. **Parametrización dinámica (*White-canvas*)** protegida por PIN administrativo (`0000`).
-2. **Control de asistencia por orden de llegada** que construye una **Fila Virtual** automática de instructores.
-3. **Registro secuencial de clases** con cálculo automático de cobro, asignación inteligente de instructores sin choque de horario, cálculo silencioso (*background*) de honorarios de staff, ficha de contacto de emergencia y envío directo de comprobante por **WhatsApp (`wa.me`)** al teléfono del alumno.
-4. **Cierre diario de caja y nómina** con **Leaderboard de instructores**, gráficos de distribución diaria, evolución semanal en tiempo real y exportación estructurada a **CSV (`caja_diaria_poisson.csv`)**.
+Aplicación React + Tailwind (Vite) con backend Supabase (PostgreSQL + Auth + Storage) para la operación diaria en playa de una escuela de surf: fila de instructores por turno, ingreso de clases y cursos, arriendos con carnet en garantía y cierre diario de caja y nómina.
 
 ---
 
-## 2. Arquitectura de Estado Global en Memoria (`SurfSchoolContext`)
+## 1. Dos modos de uso
 
-El sistema opera 100% en memoria mediante React Context (`src/context/SurfSchoolContext.jsx`) manteniendo tres entidades maestras sincronizadas en tiempo real e inspeccionables desde el botón **"Inspeccionar Memoria"** en la barra superior:
-
-| Objeto de Estado | Descripción | Propiedades Clave |
+| Modo | Cómo se entra | Dónde viven los datos |
 | :--- | :--- | :--- |
-| **`SchoolConfig`** | Matriz comercial y de nómina configurable por el administrador. | `priceIndividual`, `priceGroupBase`, `priceGroupExtraPax`, `priceCoursePack8`, `payIndividual`, `payGroupBase`, `payGroupExtraPax`, `payCourseSingleClass` |
-| **`Instructors`** | Lista de instructores del staff (**Diego, Jose, Vitoco, Caco, Alfred**) y su estado de asistencia. | `id`, `name`, `checkedIn`, `checkInTime`, `checkInTimestamp` |
-| **`DailyClasses`** | Registro operativo, financiero y de contacto de todas las clases agendadas en la jornada. | `id`, `date`, `startTime`, `endTime`, `modality`, `pax`, `category`, `subtotal`, `discount`, `paymentMethod`, `finalTotal`, `instructorId`, `wasSuggestedByQueue`, `studentName`, `studentPhone`, `studentEmail`, `emergencyContactName`, `emergencyContactPhone`, `instructorPay` |
+| **Demo** | Botón "Cargar Sesión Demo" en el login | Solo en este navegador (`localStorage`, clave `surfops_demo_v2_state`). PIN de configuración: `0000`. |
+| **Real** | Correo y contraseña de la escuela (Supabase Auth) | Supabase. En el navegador solo se guarda el branding (nombre y colores) por escuela. |
+
+En modo real **nada se marca como guardado si la base de datos no lo confirma**: los errores se muestran en pantalla.
 
 ---
 
-## 3. Módulos y Funcionalidades del Sistema
+## 2. Reglas de negocio
 
-### Módulo 01 · Configuración de Precios y Tarifas (`Module1Config.jsx`)
-* **Bloqueo de Seguridad por PIN (`0000`):** Al ingresar al módulo, solicita un PIN numérico de 4 dígitos (`0000`) antes de permitir ver o editar las reglas financieras. Incluye botón **"Bloquear"** para volver a proteger la vista manualmente.
-* **A. Precios de Venta al Alumno (Ingresos Caja):**
-  * Precio Clase Individual (1 pax).
-  * Precio Clase Grupal (Base para 2 pax).
-  * Adicional por alumno extra en grupo (a partir del 3er integrante).
-  * Precio Curso Completo (Pack 8 clases).
-* **B. Tarifas de Pago a Instructores (Nómina Staff):**
-  * Pago por Clase Individual.
-  * Pago por Clase Grupal (Base 2 pax).
-  * Bono por cada alumno extra sobre 2 pax.
-  * Pago por 1 clase perteneciente a un Curso (Pack 8).
-* **Recálculo Sincronizado:** Al guardar cambios en `SchoolConfig`, el sistema actualiza automáticamente las liquidaciones de las clases registradas en la jornada.
+### Fila de instructores (Módulo 02 → Módulo 03)
+- **Rotación estricta (round-robin):** el orden inicial es la hora de check-in. Cada vez que un instructor recibe una clase del día (sugerida, manual o una sesión de curso agendada para hoy) pasa al final de la fila.
+- Si el primero de la fila está ocupado en ese bloque, se salta **pero conserva su turno** para la siguiente clase.
+- Quitar el check-in pide confirmación: al volver a marcar, el instructor toma la nueva hora de llegada.
 
----
+### Clases (Módulo 03)
+- Duración configurable (por defecto 75 min). No se puede guardar una clase que:
+  - choque con otra clase del mismo instructor **el mismo día**,
+  - quede fuera del **horario de atención** (por defecto 09:00–20:00),
+  - termine después del **ocaso** (solo para hoy y solo si el dato solar viene del servicio en línea).
+- La base de datos repite estas validaciones (restricción de exclusión + trigger), así que dos recepciones simultáneas no pueden duplicar a un instructor.
 
-### Módulo 02 · Control de Asistencia y Fila Virtual (`Module2Attendance.jsx`)
-* **Panel de Check-in Rápido:** Bloques rectangulares interactivos para el staff (**Diego, Jose, Vitoco, Caco y Alfred**).
-* **Timestamp de Llegada:** Al activar un instructor, el sistema captura su hora exacta de entrada y lo incorpora a la **Fila Virtual (`virtualQueue`)**.
-* **Ordenamiento Automático:** La fila se ordena estrictamente desde el instructor que llegó más temprano (`#1 [Prioridad #1]`) hasta el que llegó más tarde, mostrando en tiempo real cuántas clases y qué bloques horarios tiene asignados cada uno.
+### Cursos (Pack)
+- El alumno **paga el pack completo al inscribirse**: el ingreso entra a caja en la fecha de la sesión #1. Las sesiones 2..N quedan en $0 ("Pack Pagado").
+- Al instructor se le paga **cada sesión el día que la dicta**.
+- Si el alumno **no asiste** ("No asistió"), el instructor no cobra esa sesión. El ingreso del pack se mantiene.
+- Se pueden agregar sesiones a un pack existente (hasta 8) desde la bitácora.
+- Eliminar la sesión #1 elimina el pack completo (pide confirmación), para no dejar sesiones "pagadas" sin ingreso.
 
----
+### Arriendos (Módulo 05)
+- Las horas de arriendo se limitan a lo que queda hasta el cierre.
+- Cada arriendo registra su **medio de pago** (entra a la cuadratura de caja).
+- Un arriendo activo de un día anterior aparece como "No devuelto (día anterior)".
+- La foto del carnet se sube a un bucket privado y solo se ve con una URL firmada de 60 segundos. En modo real nunca se guarda en el navegador.
 
-### Módulo 03 · Flujo de Ingreso de Nueva Clase (`Module3NewClass.jsx`)
-Diseñado bajo una estructura de **columna vertical única** dividida en 3 pasos secuenciales:
+### Cierre diario (Módulo 04)
+- Todo se filtra por la fecha de hoy (hora de la escuela, no UTC).
+- **Caja clases** = total de clases de hoy (excepto canceladas). **Nómina** = sesiones de hoy agendadas o realizadas. **Arriendos** = 100 % escuela.
+- **Medios de pago** suman clases + arriendos.
+- La semana (lunes a domingo) viene de la base (`get_closing_range`); los días futuros se muestran como agenda y no suman a los totales.
+- Exportación CSV con separador `;` (Excel en español), incluye clases y arriendos.
 
-1. **Paso 01 — Naturaleza de la Clase:**
-   * Selección de **Modalidad**: `Individual (1 PAX)` o `Grupal (2+ PAX)`. Si se elige Grupal, despliega un selector numérico con botones `−` / `+` para indicar la cantidad de personas (mínimo 2).
-   * Selección de **Categoría**: `Clase Única (1 SESIÓN)` o `Curso (PACK 8 CLASES)`.
-2. **Paso 02 — Finanzas y Cobro:**
-   * **Subtotal Automático:** Calculado en vivo según `SchoolConfig`, modalidad, cantidad de alumnos y categoría.
-   * **Descuento Manual:** Campo numérico opcional para aplicar rebajas a grupos o familias.
-   * **Selector de Medio de Pago:** Bloques de selección rápida entre `Transferencia`, `Efectivo` y `Tarjeta`.
-   * **Total Final (Ingreso a Caja):** `Subtotal Automático − Descuento`.
-3. **Paso 03 — Asignación, Ficha del Alumno y Contacto de Emergencia:**
-   * **Cálculo Automático de Duración (+1h 15m):** Al ingresar o seleccionar la **Hora de Inicio** (ej. `10:30`), el sistema calcula automáticamente la **Hora de Término sumando 75 minutos (`11:45`)** sin requerir cálculo manual. Incluye botones de bloques rápidos (`09:00–10:15`, `10:30–11:45`, `12:00–13:15`, `15:00–16:15`, `16:30–17:45`).
-   * **Asignación Inteligente de Instructor:** El selector sugiere por defecto al **Instructor `#1` de la Fila Virtual que no tenga choque de horario** en ese bloque (`getSuggestedInstructorForSlot`). Si el `#1` está ocupado en ese horario, sugiere automáticamente al `#2` libre e informa el motivo. Permite selección manual para alumnos de curso o agendados, alertando si existe colisión horaria.
-   * **Ficha del Alumno y Emergencia:**
-     * Nombre Completo del Alumno.
-     * Teléfono / WhatsApp del Alumno.
-     * Correo Electrónico.
-     * Nombre y Teléfono de Contacto de Emergencia.
-4. **Cálculo en Segundo Plano (*Background Math*) y Confirmación por WhatsApp:**
-   * Al guardar la clase, el sistema calcula internamente cuánto gana el instructor (`instructorPay`) sin mostrarlo en pantalla para proteger la privacidad frente al cliente.
-   * Despliega un **Banner de Éxito** en la parte superior con el botón **"Enviar Confirmación por WhatsApp"**, el cual normaliza el número telefónico del alumno y abre `https://wa.me/<telefono_alumno>?text=` con el mensaje precompilado:
-     ```text
-     🏄‍♂️ *Confirmación de Clase - Poisson Surf School*
-     👤 Alumno: [Nombre]
-     📅 Horario: [Inicio] - [Fin]
-     👨‍🏫 Instructor: [Nombre]
-     💰 Total a pagar: $[Total]
-     ```
-   * También permite reenviar la confirmación en cualquier momento desde la tabla **Registro Operativo del Día**.
+### Configuración (Módulo 01)
+- El PIN se valida **en el servidor** (`verify_admin_pin`). Tras 5 intentos fallidos se bloquea 15 minutos.
+- Precios, nómina, horario, tarifas de arriendo y branding solo se pueden guardar a través de la RPC `admin_save_settings`, que exige el PIN. La recepción no puede cambiarlos llamando a la API directamente.
+- Las 4 paletas cambian toda la interfaz (variables CSS conectadas en `tailwind.config.js`).
 
 ---
 
-### Módulo 04 · Cierre Diario, Leaderboard y Reportes (`Module4ClosingDashboard.jsx`)
-* **Resumen Ejecutivo del Día:**
-  * **Caja Total Escuela:** Suma del `Total Final` de todas las clases impartidas hoy.
-  * **Total a Repartir (Staff):** Suma total de honorarios generados por los instructores hoy.
-  * **Ganancia Neta Escuela:** `Caja Total Escuela − Total a Repartir (Staff)`.
-* **Leaderboard de Instructores (Liquidación Diaria):**
-  * Tabla corporativa con *zebra striping* ordenada de mayor a menor rendimiento diario (`#1 Líder Día`, `#2`, `#3`...).
-  * Muestra barra de participación, recaudación generada para la escuela, cantidad de clases dictadas, desglose por tipo (ej. `3 Individuales, 1 Grupal [3 pax], 1 de Curso`) y el **Monto Exacto a Pagar Hoy**.
-  * Al hacer clic sobre cualquier instructor, despliega el detalle horario clase por clase para auditoría.
-* **Gráficos Operativos del Día y de la Semana:**
-  * **Distribución por Medio de Pago (Hoy):** Barras comparativas y porcentajes de ingresos en `Transferencia`, `Tarjeta` y `Efectivo`.
-  * **Distribución por Tipo de Clase (Hoy):** Comparativa entre `Individual`, `Grupal` y `Curso Pack 8`.
-  * **Rendimiento Semanal (Lunes a Domingo):** Gráfico de columnas apiladas que compara facturación diaria, nómina de instructores y ganancia neta, sincronizando la barra del día actual (**HOY**) en vivo con las clases registradas.
-* **Exportación Estructurada a CSV (`⬇ Exportar Caja (CSV)`):**
-  * Genera y descarga en el navegador el archivo **`caja_diaria_poisson.csv`** (con codificación UTF-8 BOM compatible con Microsoft Excel) incluyendo las 17 columnas operativas y financieras:
-    `ID Clase, Fecha, Hora Inicio, Hora Término, Horario Clase, Modalidad, Instructor, Alumno, Teléfono Alumno, Correo Alumno, Contacto Emergencia, Teléfono Emergencia, Medio de Pago, Subtotal, Descuento, Total Caja, Pago Instructor`.
+## 3. Estructura
+
+```
+src/
+  context/SurfSchoolContext.jsx   Estado global, modos demo/real, escrituras a Supabase
+  lib/mappers.js                  Mapeo único columnas SQL ↔ modelo React
+  lib/demoStore.js                Datos y persistencia del modo demo
+  lib/supabaseClient.js           Cliente, branding y Storage
+  utils/calculations.js           Reglas de negocio puras (con tests)
+  utils/dates.js                  Fechas en la zona horaria de la escuela
+  components/                     Módulos 01–05, barra ambiental y login
+supabase/
+  migrations/                     Esquema v2 (tablas, RLS, RPC, triggers)
+  functions/tides/                Edge Function de mareas (Stormglass)
+  tests/                          Pruebas SQL del esquema
+```
 
 ---
 
-## 4. Lógica Matemática (`src/utils/calculations.js`)
-
-### Cobro al Alumno (`calculateStudentSubtotal`)
-* **Clase Única Individual (1 pax):** `priceIndividual`
-* **Clase Única Grupal ($N \ge 2$ pax):** `priceGroupBase + (N - 2) * priceGroupExtraPax`
-* **Curso Completo (Pack 8 clases):** `priceCoursePack8 * N`
-
-### Pago al Instructor en Background (`calculateInstructorPayment`)
-* **Clase Individual (1 pax):** `payIndividual`
-* **Clase Grupal ($N \ge 2$ pax):** `payGroupBase + (N - 2) * payGroupExtraPax`
-* **Clase de Curso (Pack 8):** `payCourseSingleClass` (más bono por alumno extra si es grupal con $N > 2$)
-
----
-
-## 5. Stack Tecnológico y Ejecución Local
-
-* **Frontend Framework:** React 18 + Vite 6
-* **Estilos:** Tailwind CSS 3 (Diseño ERP plano, geometría rectangular `rounded-none` / `rounded-sm`, paleta Azul Marino `blue-950`, Celeste `sky-500` y acento complementario Rosado `pink-600`)
-* **Iconografía:** `lucide-react`
-* **Despliegue:** `gh-pages`
-
-### Comandos Disponibles
+## 4. Puesta en marcha
 
 ```bash
-# 1. Instalar dependencias
 npm install
-
-# 2. Iniciar servidor de desarrollo local
-npm run dev
-
-# 3. Compilar versión de producción
-npm run build
-
-# 4. Publicar en GitHub Pages (rama gh-pages)
-npm run deploy
+npm run dev        # desarrollo
+npm test           # tests de reglas de negocio (vitest)
+npm run build      # producción
+npm run deploy     # GitHub Pages
 ```
+
+### Variables de entorno (`.env`, no se sube al repo)
+
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+La API key de Stormglass **ya no va en el frontend** (quedaba publicada en GitHub Pages). Se configura como secreto de la Edge Function:
+
+```bash
+supabase secrets set STORMGLASS_API_KEY=...
+supabase functions deploy tides
+```
+
+### Base de datos
+
+1. Ejecuta `supabase/migrations/20261109000000_surfops_schema_v2.sql` en el SQL Editor (lee la nota final si ya habías corrido el borrador anterior).
+2. Crea el usuario de la escuela en Authentication y luego su fila:
+   ```sql
+   INSERT INTO public.schools (id, slug, display_name, monogram)
+   VALUES ('<uuid del usuario>', 'poisson', 'POISSON', 'P');
+   INSERT INTO public.school_configs (school_id) VALUES ('<uuid del usuario>');
+   INSERT INTO public.instructors (school_id, name, sort_order) VALUES
+     ('<uuid>', 'Diego', 1), ('<uuid>', 'Jose', 2), ('<uuid>', 'Vitoco', 3);
+   ```
+3. Entra a la app, desbloquea el Módulo 01 con `0000` y **cambia el PIN**.
+4. Opcional: activa `pg_cron` y programa `purge_expired_instructor_attendance()` (retención de 60 días).
+
+---
+
+## 5. Pendientes conocidos
+
+- **Roles separados (admin / recepción):** hoy hay un solo login por escuela; el PIN protege la configuración, pero no hay registro de qué persona hizo cada cambio.
+- **Retención de fotos de carnet:** falta una tarea programada que borre las fotos del bucket después de la devolución (relevante para la Ley 21.719 de datos personales).
+- **Cobro por atraso en arriendos** y **control de stock** por equipo: no implementados.
+- **Sincronización en vivo entre equipos:** si dos recepciones trabajan a la vez, cada una ve los cambios de la otra al recargar (la base sí impide choques).

@@ -51,7 +51,7 @@ export default function Module2Attendance({ onGoToNewClass }) {
             Asistencia y Fila Virtual de Instructores
           </h1>
           <p className="text-sm font-light text-slate-600 leading-relaxed mt-1">
-            Haz clic sobre la tarjeta de cada instructor para registrar su ingreso (Check-in) y mantener la cola FIFO de asignación equitativa.
+            Haz clic sobre la tarjeta de cada instructor para registrar su ingreso (Check-in) y entrar a la fila de turnos: quien recibe una clase pasa al final.
           </p>
         </div>
 

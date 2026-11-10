@@ -442,7 +442,7 @@ export default function Module3NewClass() {
           Ingreso de Nueva Clase
         </h1>
         <p className="text-sm font-light text-slate-600 leading-relaxed mt-1">
-          Flujo guiado de admisión. El término (+1h 15m), la liquidación del instructor y la rotación FIFO se computan automáticamente.
+          Flujo guiado de admisión. El término (+1h 15m), la liquidación del instructor y el turno de la fila se calculan automáticamente.
         </p>
       </div>
 

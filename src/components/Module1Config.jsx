@@ -389,12 +389,12 @@ export default function Module1Config() {
                   htmlFor="school-monogram"
                   className="block text-xs font-bold uppercase tracking-widest text-sky-700"
                 >
-                  Monograma (1-2 Letras)
+                  Monograma (1-3 Letras)
                 </label>
                 <input
                   id="school-monogram"
                   type="text"
-                  maxLength={2}
+                  maxLength={3}
                   value={brandingForm.monogram}
                   onChange={(e) => {
                     setBrandingForm((prev) => ({
@@ -609,7 +609,7 @@ export default function Module1Config() {
                 </h2>
               </div>
             </div>
-            <span className="text-xs font-mono text-slate-400">surfops_rental_rates</span>
+            <span className="text-xs font-mono text-slate-400">rental_rates</span>
           </div>
 
           <div className="divide-y divide-slate-100">
