@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  /* Paleta por defecto (POISSON). applySchoolThemeToDOM la reemplaza por la de cada escuela. */
+  :root {
+    --brand-primary: #172554;
+    --brand-primary-hover: #1e3a8a;
+    --brand-secondary: #0284c7;
+    --brand-accent: #db2777;
+  }
+
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;

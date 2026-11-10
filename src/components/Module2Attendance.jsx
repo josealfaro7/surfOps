@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Clock, ArrowRight, UserCheck, Users } from 'lucide-react';
 import { useSurfSchool } from '../context/SurfSchoolContext';
 
@@ -8,19 +8,36 @@ export default function Module2Attendance({ onGoToNewClass }) {
     virtualQueue,
     checkInInstructor,
     checkOutInstructor,
-    dailyClasses,
+    todayClasses,
+    isLive,
   } = useSurfSchool();
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState('');
 
-  const handleToggleCheckIn = (inst) => {
+  const handleToggleCheckIn = async (inst) => {
+    setError('');
     if (inst.checkedIn) {
-      checkOutInstructor(inst.id);
-    } else {
-      checkInInstructor(inst.id);
+      // Quitar el check-in pierde el turno: pedir confirmación para evitar clics accidentales
+      const ok = window.confirm(
+        `¿Quitar el check-in de ${inst.name}? Saldrá de la fila y, si vuelve a marcar, quedará con la nueva hora de llegada.`
+      );
+      if (!ok) return;
+    }
+    setBusyId(inst.id);
+    try {
+      if (inst.checkedIn) await checkOutInstructor(inst.id);
+      else await checkInInstructor(inst.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId(null);
     }
   };
 
   const getInstructorClasses = (instructorId) =>
-    dailyClasses.filter((c) => c.instructorId === instructorId);
+    todayClasses.filter(
+      (c) => c.instructorId === instructorId && ['scheduled', 'completed'].includes(c.status)
+    );
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 font-inter">
@@ -69,6 +86,15 @@ export default function Module2Attendance({ onGoToNewClass }) {
           </span>
         </div>
 
+        {error && (
+          <div className="p-3 border border-rose-300 bg-rose-50 text-sm text-rose-800">{error}</div>
+        )}
+        {isLive && instructors.length === 0 && (
+          <div className="p-3 border border-amber-300 bg-amber-50 text-sm text-amber-900">
+            Esta escuela aún no tiene instructores cargados en la base de datos (tabla instructors).
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
           {instructors.map((inst) => {
             const queueItem = virtualQueue.find((q) => q.id === inst.id);
@@ -80,7 +106,8 @@ export default function Module2Attendance({ onGoToNewClass }) {
                 key={inst.id}
                 type="button"
                 onClick={() => handleToggleCheckIn(inst)}
-                className={`h-24 p-4 border text-left transition flex flex-col justify-between cursor-pointer shadow-sm ${
+                disabled={busyId === inst.id}
+                className={`h-24 disabled:opacity-60 p-4 border text-left transition flex flex-col justify-between cursor-pointer shadow-sm ${
                   isCheckedIn
                     ? 'bg-blue-950 hover:bg-blue-900 text-white border-blue-950 border-t-4 border-t-sky-400'
                     : 'bg-white hover:bg-slate-50 text-slate-900 border-slate-200'
@@ -129,12 +156,12 @@ export default function Module2Attendance({ onGoToNewClass }) {
                 Paso 02
               </span>
               <h2 className="text-lg font-bold tracking-tight text-blue-950">
-                Orden Vigente en Fila Virtual (FIFO)
+                Orden Vigente en Fila (Rotación por Turno)
               </h2>
             </div>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            Regla: Equidad en Rotación
+            Regla: quien recibe clase pasa al final
           </span>
         </div>
 

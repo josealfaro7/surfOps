@@ -24,54 +24,52 @@ function SurfSchoolWorkspace() {
   const [showStateInspector, setShowStateInspector] = useState(false);
 
   const {
-    session,
-    authLoading,
+    mode,
     isDemoSession,
+    loadError,
+    reload,
     signOutSchool,
     schoolBranding,
     schoolConfig,
     rentalRates,
     activeRentals,
-    rentalsTotalRevenue,
+    rentalsTodayRevenue,
     instructors,
     virtualQueue,
-    dailyClasses,
-    resetDayEmpty,
+    todayClasses,
+    resetDemoDay,
     restoreDemoData,
   } = useSurfSchool();
 
-  const brandPrimary = schoolBranding?.themePalette?.primary || '#172554';
-  const brandSecondary = schoolBranding?.themePalette?.secondary || '#0284c7';
-  const brandAccent = schoolBranding?.themePalette?.accent || '#0284c7';
-
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.style.setProperty('--brand-primary', brandPrimary);
-      document.documentElement.style.setProperty('--brand-secondary', brandSecondary);
-      document.documentElement.style.setProperty('--brand-accent', brandAccent);
-    }
-  }, [brandPrimary, brandSecondary, brandAccent]);
-
+  // El inspector solo existe en demo: en modo real mostraría datos personales de alumnos
   const sanitizedRentalsForInspector = useMemo(
     () =>
       activeRentals.map((r) => ({
         ...r,
-        idPhotoBase64: r.idPhotoBase64 ? '[IMAGE DATA TRUNCATED]' : null,
+        idPhotoDataUrl: r.idPhotoDataUrl ? '[IMAGEN OMITIDA]' : null,
       })),
     [activeRentals]
   );
 
-  if (authLoading) {
+  useEffect(() => {
+    if (!isDemoSession) setShowStateInspector(false);
+  }, [isDemoSession]);
+
+  if (mode === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 text-blue-950 text-xs font-semibold uppercase tracking-widest">
-        Verificando sesión de escuela en Supabase...
+        Cargando datos de la escuela...
       </div>
     );
   }
 
-  if (!session && !isDemoSession) {
+  if (mode === 'login') {
     return <Login />;
   }
+
+  const confirmAndRun = (message, fn) => {
+    if (window.confirm(message)) fn();
+  };
 
   const tabs = [
     {
@@ -95,7 +93,7 @@ function SurfSchoolWorkspace() {
     {
       id: 'mod4',
       code: '04',
-      label: `Cierre Diario (${dailyClasses.length})`,
+      label: `Cierre Diario (${todayClasses.length})`,
       icon: BarChart2,
     },
     {
@@ -135,45 +133,59 @@ function SurfSchoolWorkspace() {
 
             {/* Acciones de Cabecera B2B */}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowStateInspector((v) => !v)}
-                className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm ${
-                  showStateInspector
-                    ? 'bg-blue-950 text-white border-blue-950'
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                }`}
-              >
-                <Database className="w-3.5 h-3.5 text-sky-600" />
-                {showStateInspector ? 'Ocultar Estado' : 'Inspeccionar Memoria'}
-              </button>
+              {isDemoSession && (
+                <>
+                  <span className="inline-flex items-center h-9 px-3 rounded-sm border border-amber-300 bg-amber-50 text-xs font-bold uppercase tracking-wider text-amber-800">
+                    Modo Demo · datos solo en este navegador
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowStateInspector((v) => !v)}
+                    className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm ${
+                      showStateInspector
+                        ? 'bg-blue-950 text-white border-blue-950'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5 text-sky-600" />
+                    {showStateInspector ? 'Ocultar Estado' : 'Inspeccionar Memoria'}
+                  </button>
 
-              <button
-                type="button"
-                onClick={resetDayEmpty}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-700 transition cursor-pointer shadow-sm"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                Reiniciar Día
-              </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirmAndRun(
+                        '¿Vaciar el día de hoy en la demo? Se borran clases, arriendos y check-ins de hoy.',
+                        resetDemoDay
+                      )
+                    }
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-700 transition cursor-pointer shadow-sm"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    Vaciar Hoy
+                  </button>
 
-              <button
-                type="button"
-                onClick={restoreDemoData}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-700 transition cursor-pointer shadow-sm"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-sky-600" />
-                Cargar Demo
-              </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirmAndRun('¿Restaurar los datos de ejemplo? Se pierde todo lo registrado en la demo.', restoreDemoData)
+                    }
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-700 transition cursor-pointer shadow-sm"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-sky-600" />
+                    Reiniciar Demo
+                  </button>
+                </>
+              )}
 
               <button
                 type="button"
                 onClick={signOutSchool}
-                title={session ? 'Cerrar sesión de Supabase Auth' : 'Ir a Login de Escuela'}
+                title={isDemoSession ? 'Salir de la demo' : 'Cerrar sesión'}
                 className="inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-700 transition cursor-pointer shadow-sm"
               >
                 <LogOut className="w-3.5 h-3.5 text-slate-600" />
-                {session ? 'Salir' : 'Login'}
+                Salir
               </button>
             </div>
           </div>
@@ -219,8 +231,23 @@ function SurfSchoolWorkspace() {
       {/* Barra de Condiciones Ambientales Persistente */}
       <EnvironmentBar />
 
-      {/* Inspector de Memoria B2B */}
-      {showStateInspector && (
+      {loadError && (
+        <div className="bg-rose-50 border-b border-rose-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 text-sm text-rose-800">
+            <span>{loadError}</span>
+            <button
+              type="button"
+              onClick={() => reload().catch(() => {})}
+              className="h-8 px-3 border border-rose-300 bg-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Inspector de Memoria (solo demo) */}
+      {isDemoSession && showStateInspector && (
         <div className="bg-slate-900 text-slate-100 border-b border-slate-800 shadow-inner">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
             <div className="p-3 bg-slate-950 border border-slate-800 rounded-sm overflow-auto max-h-52">
@@ -241,15 +268,15 @@ function SurfSchoolWorkspace() {
             </div>
             <div className="p-3 bg-slate-950 border border-slate-800 rounded-sm overflow-auto max-h-52">
               <div className="font-semibold text-sky-400 mb-1.5 uppercase tracking-wider text-xs">
-                3. Clases Diarias ({dailyClasses.length})
+                3. Clases de Hoy ({todayClasses.length})
               </div>
               <pre className="text-xs text-slate-300">
-                {JSON.stringify(dailyClasses, null, 2)}
+                {JSON.stringify(todayClasses, null, 2)}
               </pre>
             </div>
             <div className="p-3 bg-slate-950 border border-slate-800 rounded-sm overflow-auto max-h-52">
               <div className="font-semibold text-sky-400 mb-1.5 uppercase tracking-wider text-xs">
-                4. Arriendos ({activeRentals.length}) · Caja: ${rentalsTotalRevenue}
+                4. Arriendos activos ({activeRentals.length}) · Caja hoy: ${rentalsTodayRevenue}
               </div>
               <pre className="text-xs text-slate-300">
                 {JSON.stringify(sanitizedRentalsForInspector, null, 2)}
@@ -279,7 +306,7 @@ function SurfSchoolWorkspace() {
             <span>Estándar Operativo B2B para Escuelas de Surf</span>
           </div>
           <div className="flex items-center gap-2 font-mono tabular-nums text-slate-400">
-            <span>v3.0.0-enterprise</span>
+            <span>v3.1.0</span>
           </div>
         </div>
       </footer>

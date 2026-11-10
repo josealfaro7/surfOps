@@ -15,18 +15,14 @@ import {
 import { useSurfSchool } from '../context/SurfSchoolContext';
 import {
   formatCurrency,
-  timeToMinutes,
   addMinutesToTime,
   calculateRentalTotals,
+  getMaxRentalHours,
+  isRentalOverdue,
+  PAYMENT_METHODS,
 } from '../utils/calculations';
+import { formatIsoToDisplayDate } from '../utils/dates';
 import { compressImageFileToBase64 } from '../utils/imageUtils';
-
-function getCurrentHHMM() {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(
-    now.getMinutes()
-  ).padStart(2, '0')}`;
-}
 
 /**
  * Subcomponente para el Monitor de Arriendos Activos (reloj aislado)
@@ -36,17 +32,9 @@ function ActiveRentalsMonitor({
   completedRentals,
   onCompleteRental,
   onInspectPhoto,
+  currentHHMM,
+  todayIso,
 }) {
-  const [currentHHMM, setCurrentHHMM] = useState(getCurrentHHMM);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentHHMM(getCurrentHHMM());
-    }, 15000);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const currentMinutes = timeToMinutes(currentHHMM);
 
   return (
     <div className="space-y-8">
@@ -96,8 +84,8 @@ function ActiveRentalsMonitor({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {activeRentals.map((rental) => {
-                  const returnMinutes = timeToMinutes(rental.estimatedReturnTime);
-                  const isOverdue = currentMinutes > returnMinutes;
+                  const isOverdue = isRentalOverdue(rental, currentHHMM, todayIso);
+                  const isFromPreviousDay = rental.operationDate && rental.operationDate < todayIso;
 
                   return (
                     <tr
@@ -148,16 +136,18 @@ function ActiveRentalsMonitor({
                           }`}
                         >
                           Entrega: {rental.estimatedReturnTime} hrs
+                          {isFromPreviousDay && ` · salió el ${formatIsoToDisplayDate(rental.operationDate)}`}
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-right font-semibold text-blue-950">
                         {formatCurrency(rental.finalTotal)}
+                        <div className="text-xs font-normal text-slate-400">{rental.paymentMethod}</div>
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {isOverdue ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white text-xs font-bold uppercase tracking-wider animate-pulse">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Atrasado
+                            {isFromPreviousDay ? 'No devuelto (día anterior)' : 'Atrasado'}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold uppercase tracking-wider">
@@ -211,7 +201,7 @@ function ActiveRentalsMonitor({
               </div>
             </div>
             <span className="text-xs font-mono text-slate-400">
-              surfops_completed_rentals
+              Hoy
             </span>
           </div>
 
@@ -264,11 +254,21 @@ export default function Module5Rentals() {
   const {
     rentalRates,
     activeRentals,
-    completedRentals,
-    rentalsTotalRevenue,
+    completedRentalsToday: completedRentals,
+    rentalsTodayRevenue: rentalsTotalRevenue,
     addRental,
     completeRental,
+    getIdPhotoUrl,
+    schoolConfig,
+    nowHHMM,
+    todayIso,
+    isDemoSession,
   } = useSurfSchool();
+  const [paymentMethod, setPaymentMethod] = useState('Efectivo');
+  const [isSaving, setIsSaving] = useState(false);
+  const [monitorError, setMonitorError] = useState('');
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [photoError, setPhotoError] = useState('');
 
   const enabledItems = useMemo(
     () => rentalRates.filter((item) => Boolean(item.enabled)),
@@ -280,7 +280,7 @@ export default function Module5Rentals() {
   );
   const [quantity, setQuantity] = useState(1);
   const [hours, setHours] = useState(1);
-  const [checkInTime, setCheckInTime] = useState(getCurrentHHMM);
+  const [checkInTime, setCheckInTime] = useState(nowHHMM);
   const [discount, setDiscount] = useState(0);
 
   const [customerName, setCustomerName] = useState('');
@@ -322,13 +322,40 @@ export default function Module5Rentals() {
     [checkInTime, hours]
   );
 
+  // Horas disponibles hasta el cierre de la escuela
+  const maxHours = useMemo(
+    () => getMaxRentalHours(checkInTime, schoolConfig.closeTime),
+    [checkInTime, schoolConfig.closeTime]
+  );
+  useEffect(() => {
+    if (maxHours >= 1 && hours > maxHours) setHours(maxHours);
+  }, [maxHours, hours]);
+
+  // URL del carnet: firmada (60 s) en modo real; se pide al abrir el modal
+  useEffect(() => {
+    let cancelled = false;
+    setPhotoUrl(null);
+    setPhotoError('');
+    if (!inspectedRental) return undefined;
+    getIdPhotoUrl(inspectedRental)
+      .then((url) => {
+        if (!cancelled) setPhotoUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setPhotoError('No se pudo obtener la imagen del carnet.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [inspectedRental]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFormError('');
     setIsCompressingPhoto(true);
     try {
-      const base64 = await compressImageFileToBase64(file, 400, 0.5);
+      const base64 = await compressImageFileToBase64(file, 800, 0.6);
       setIdPhotoBase64(base64);
     } catch {
       setFormError('No se pudo procesar la fotografía del Carnet de Identidad.');
@@ -337,14 +364,12 @@ export default function Module5Rentals() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
 
     if (!selectedRateItem) {
-      setFormError(
-        'No hay equipamiento habilitado. Habilita al menos un ítem en el Módulo 01 (Configuración).'
-      );
+      setFormError('No hay equipamiento habilitado. Habilita al menos un ítem en el Módulo 01 (Configuración).');
       return;
     }
     if (!customerName.trim() || !customerPhone.trim()) {
@@ -352,30 +377,30 @@ export default function Module5Rentals() {
       return;
     }
     if (!idPhotoBase64) {
-      setFormError(
-        'Debes adjuntar la Foto del Carnet de Identidad antes de despachar el arriendo.'
-      );
+      setFormError('Debes adjuntar la Foto del Carnet de Identidad antes de despachar el arriendo.');
       return;
     }
 
-    const created = addRental({
-      itemId: selectedRateItem.id,
-      quantity,
-      hours,
-      checkInTime,
-      discount: validDiscount,
-      customerName,
-      customerEmail,
-      customerPhone,
-      emergencyContact,
-      idPhotoBase64,
-    });
-
-    if (created) {
+    setIsSaving(true);
+    try {
+      await addRental({
+        itemId: selectedRateItem.id,
+        quantity,
+        hours,
+        checkInTime,
+        discount: validDiscount,
+        paymentMethod,
+        customerName,
+        customerEmail,
+        customerPhone,
+        emergencyContact,
+        photoDataUrl: idPhotoBase64,
+      });
       setQuantity(1);
       setHours(1);
-      setCheckInTime(getCurrentHHMM());
+      setCheckInTime(nowHHMM);
       setDiscount(0);
+      setPaymentMethod('Efectivo');
       setCustomerName('');
       setCustomerEmail('');
       setCustomerPhone('');
@@ -383,6 +408,19 @@ export default function Module5Rentals() {
       setIdPhotoBase64('');
       setSuccessMessage(true);
       setTimeout(() => setSuccessMessage(false), 3500);
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCompleteRental = async (rentalId) => {
+    setMonitorError('');
+    try {
+      await completeRental(rentalId);
+    } catch (err) {
+      setMonitorError(err.message);
     }
   };
 
@@ -452,7 +490,7 @@ export default function Module5Rentals() {
             </div>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            surfops_active_rentals
+            Atención {schoolConfig.openTime}–{schoolConfig.closeTime}
           </span>
         </div>
 
@@ -522,7 +560,7 @@ export default function Module5Rentals() {
                       htmlFor="rental-hours-select"
                       className="block text-xs font-semibold uppercase text-slate-700"
                     >
-                      Horas (1 a 12 hrs)
+                      Horas (máx. {Math.max(0, maxHours)} hasta el cierre)
                     </label>
                     <select
                       id="rental-hours-select"
@@ -530,7 +568,7 @@ export default function Module5Rentals() {
                       onChange={(e) => setHours(Number(e.target.value) || 1)}
                       className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
                     >
-                      {Array.from({ length: 12 }, (_, idx) => idx + 1).map(
+                      {Array.from({ length: Math.max(1, maxHours) }, (_, idx) => idx + 1).map(
                         (h) => (
                           <option key={h} value={h}>
                             {h} {h === 1 ? 'Hora' : 'Horas'}
@@ -557,8 +595,10 @@ export default function Module5Rentals() {
                       onChange={(e) => setCheckInTime(e.target.value)}
                       className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
                     />
-                    <p className="text-xs font-medium text-sky-700 tabular-nums">
-                      Devolución estimada: {estimatedReturnTime} hrs
+                    <p className={`text-xs font-medium tabular-nums ${maxHours < 1 ? 'text-rose-700' : 'text-sky-700'}`}>
+                      {maxHours < 1
+                        ? `Sin horas disponibles antes del cierre (${schoolConfig.closeTime}).`
+                        : `Devolución estimada: ${estimatedReturnTime} hrs`}
                     </p>
                   </div>
 
@@ -589,6 +629,26 @@ export default function Module5Rentals() {
                         className="w-full h-11 pl-7 pr-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase text-slate-700">Medio de Pago</span>
+                  <div className="grid grid-cols-3 gap-2" role="radiogroup">
+                    {PAYMENT_METHODS.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setPaymentMethod(m)}
+                        className={`h-10 border text-xs font-semibold uppercase tracking-wider cursor-pointer ${
+                          paymentMethod === m
+                            ? 'bg-blue-950 text-white border-blue-950'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -770,7 +830,9 @@ export default function Module5Rentals() {
               </div>
 
               <p className="text-xs font-light text-slate-500">
-                Respaldo de garantía para control de inventario y seguridad del equipamiento.
+                {isDemoSession
+                  ? 'Modo demo: la foto queda guardada solo en este navegador. No uses documentos reales.'
+                  : 'La foto se guarda en un bucket privado y solo se ve con un enlace temporal de 60 segundos.'}
               </p>
             </div>
 
@@ -783,22 +845,27 @@ export default function Module5Rentals() {
 
             <button
               type="submit"
-              disabled={enabledItems.length === 0 || isCompressingPhoto}
+              disabled={enabledItems.length === 0 || isCompressingPhoto || isSaving || maxHours < 1}
               className="w-full h-12 bg-blue-950 hover:bg-sky-700 disabled:bg-slate-400 text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2 shadow-sm"
             >
               <Shield className="w-4 h-4 text-sky-400" />
-              Registrar Arriendo ({formatCurrency(finalTotal)})
+              {isSaving ? 'Registrando…' : `Registrar Arriendo (${formatCurrency(finalTotal)})`}
             </button>
           </div>
         </div>
       </form>
 
       {/* SECCIÓN B: MONITOR ACTIVO */}
+      {monitorError && (
+        <div className="p-3 border border-rose-300 bg-rose-50 text-sm text-rose-800">{monitorError}</div>
+      )}
       <ActiveRentalsMonitor
         activeRentals={activeRentals}
         completedRentals={completedRentals}
-        onCompleteRental={completeRental}
+        onCompleteRental={handleCompleteRental}
         onInspectPhoto={(rental) => setInspectedRental(rental)}
+        currentHHMM={nowHHMM}
+        todayIso={todayIso}
       />
 
       {/* MODAL DE INSPECCIÓN DE CARNET */}
@@ -857,17 +924,17 @@ export default function Module5Rentals() {
                 </div>
               </div>
 
-              {inspectedRental.idPhotoBase64 ? (
+              {photoUrl ? (
                 <div className="border border-slate-200 bg-slate-50 p-2 flex items-center justify-center">
                   <img
-                    src={inspectedRental.idPhotoBase64}
+                    src={photoUrl}
                     alt={`Carnet de ${inspectedRental.customerName}`}
                     className="max-h-80 w-auto object-contain"
                   />
                 </div>
               ) : (
                 <div className="p-6 text-center text-xs text-slate-500 border border-slate-200">
-                  Sin imagen disponible en este registro.
+                  {photoError || 'Cargando imagen…'}
                 </div>
               )}
 

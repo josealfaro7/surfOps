@@ -1,19 +1,10 @@
 import React, { useState } from 'react';
 import { Lock, Mail, KeyRound, AlertCircle, ArrowRight, Play } from 'lucide-react';
-import {
-  supabase,
-  isSupabaseConfigured,
-  loadSchoolBranding,
-  applySchoolThemeToDOM,
-} from '../../lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
 import { useSurfSchool } from '../../context/SurfSchoolContext';
 
 export default function Login() {
-  const {
-    schoolBranding,
-    setSchoolBrandingState,
-    enterDemoSession,
-  } = useSurfSchool();
+  const { schoolBranding, enterDemoSession } = useSurfSchool();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,14 +33,10 @@ export default function Login() {
         throw error;
       }
 
-      const authUid = data?.user?.id;
-      if (!authUid) {
-        throw new Error('No se pudo obtener el auth.uid() de la sesión.');
+      if (!data?.user?.id) {
+        throw new Error('No se pudo obtener la sesión de la escuela.');
       }
-
-      const branding = await loadSchoolBranding(authUid);
-      applySchoolThemeToDOM(branding);
-      setSchoolBrandingState(branding);
+      // El listener de SurfSchoolContext carga branding y datos operativos.
     } catch (err) {
       setErrorMessage(
         err?.message === 'Invalid login credentials'

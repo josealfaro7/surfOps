@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -11,294 +11,267 @@ import {
   Waves,
   Download,
 } from 'lucide-react';
-import { useSurfSchool, getTodayDateString } from '../context/SurfSchoolContext';
+import { useSurfSchool } from '../context/SurfSchoolContext';
 import {
   formatCurrency,
   buildInstructorBreakdownSummary,
+  summarizeClosing,
+  getPayableInstructorPay,
+  buildCsv,
 } from '../utils/calculations';
+import { getWeekRange, getWeekdayLabels, formatIsoToDisplayDate } from '../utils/dates';
 
-const BASE_WEEK_DAYS = [
-  { dayShort: 'LUN', dayName: 'Lunes', classes: 5, revenue: 195000, staffPay: 41000, isToday: false },
-  { dayShort: 'MAR', dayName: 'Martes', classes: 4, revenue: 148000, staffPay: 32000, isToday: false },
-  { dayShort: 'MIÉ', dayName: 'Miércoles', classes: 7, revenue: 285000, staffPay: 56000, isToday: false },
-  { dayShort: 'JUE', dayName: 'Jueves (HOY)', classes: 0, revenue: 0, staffPay: 0, isToday: true },
-  { dayShort: 'VIE', dayName: 'Viernes (Proy.)', classes: 8, revenue: 310000, staffPay: 64000, isToday: false, isProjected: true },
-  { dayShort: 'SÁB', dayName: 'Sábado (Proy.)', classes: 12, revenue: 465000, staffPay: 98000, isToday: false, isProjected: true },
-  { dayShort: 'DOM', dayName: 'Domingo (Proy.)', classes: 10, revenue: 390000, staffPay: 82000, isToday: false, isProjected: true },
-];
+const STATUS_LABELS = {
+  scheduled: 'Agendada',
+  pending_instructor: 'Sin instructor',
+  completed: 'Realizada',
+  no_show: 'No asistió',
+  cancelled: 'Cancelada',
+};
 
 export default function Module4ClosingDashboard() {
   const {
     instructors,
-    dailyClasses,
-    activeRentals = [],
-    completedRentals = [],
-    rentalsTotalRevenue = 0,
+    getInstructorName,
+    classes,
+    rentals,
     rentalRates = [],
+    todayIso,
+    fetchClosingRange,
+    schoolBranding,
   } = useSurfSchool();
   const [expandedId, setExpandedId] = useState(null);
+  const [weekRows, setWeekRows] = useState([]);
+  const [weekError, setWeekError] = useState('');
 
-  // 1. Resumen General del Día
-  const summary = useMemo(() => {
-    const totalClasses = dailyClasses.length;
-    const totalRevenue = dailyClasses.reduce((acc, c) => acc + (Number(c.finalTotal) || 0), 0);
-    const totalInstructorPayout = dailyClasses.reduce(
-      (acc, c) => acc + (Number(c.instructorPay) || 0),
-      0
-    );
-    const netProfit = totalRevenue - totalInstructorPayout;
-    const combinedRevenue = totalRevenue + rentalsTotalRevenue;
-    const combinedNetProfit = netProfit + rentalsTotalRevenue;
+  // 1. Resumen del día (todo filtrado por fecha en summarizeClosing)
+  const closing = useMemo(() => summarizeClosing(classes, rentals, todayIso), [classes, rentals, todayIso]);
 
-    return {
-      totalClasses,
-      totalRevenue,
-      totalInstructorPayout,
-      netProfit,
-      combinedRevenue,
-      combinedNetProfit,
-    };
-  }, [dailyClasses, rentalsTotalRevenue]);
+  const summary = useMemo(
+    () => ({
+      totalClasses: closing.totalClasses,
+      totalRevenue: closing.classesRevenue,
+      totalInstructorPayout: closing.payroll,
+      netProfit: closing.classesNetProfit,
+      combinedRevenue: closing.combinedRevenue,
+      combinedNetProfit: closing.combinedNetProfit,
+    }),
+    [closing]
+  );
 
-  // 1B. Resumen y Distribución de Arriendos del Día
+  // 1B. Arriendos del día
   const rentalSummary = useMemo(() => {
-    const allRentals = [...activeRentals, ...completedRentals];
-    const activeCount = activeRentals.length;
-    const completedCount = completedRentals.length;
-    const totalRentals = allRentals.length;
-    const totalUnits = allRentals.reduce((acc, r) => acc + (Number(r.quantity) || 1), 0);
-    const totalHours = allRentals.reduce((acc, r) => acc + (Number(r.hours) || 1), 0);
-
+    const dayRentals = closing.dayRentals;
     const itemColors = {
       tabla_surf: 'bg-blue-950',
       traje_surf: 'bg-sky-600',
       bodyboard: 'bg-sky-400',
       aletas: 'bg-slate-500',
     };
-
     const byItemMap = {};
-    rentalRates.forEach((rate) => {
-      byItemMap[rate.id] = {
-        id: rate.id,
-        label: rate.label,
-        count: 0,
-        units: 0,
-        hours: 0,
-        amount: 0,
-        color: itemColors[rate.id] || 'bg-sky-600',
-      };
-    });
-
-    allRentals.forEach((r) => {
-      const key = r.itemId || 'tabla_surf';
+    const ensure = (key, label) => {
       if (!byItemMap[key]) {
-        byItemMap[key] = {
-          id: key,
-          label: r.itemLabel || 'Equipamiento',
-          count: 0,
-          units: 0,
-          hours: 0,
-          amount: 0,
-          color: itemColors[key] || 'bg-sky-600',
-        };
+        byItemMap[key] = { id: key, label, count: 0, units: 0, hours: 0, amount: 0, color: itemColors[key] || 'bg-sky-600' };
       }
-      byItemMap[key].count += 1;
-      byItemMap[key].units += Number(r.quantity) || 1;
-      byItemMap[key].hours += Number(r.hours) || 1;
-      byItemMap[key].amount += Number(r.finalTotal) || 0;
+      return byItemMap[key];
+    };
+    rentalRates.forEach((rate) => ensure(rate.id, rate.label));
+    dayRentals.forEach((r) => {
+      const item = ensure(r.itemId || 'otro', r.itemLabel || 'Equipamiento');
+      item.count += 1;
+      item.units += Number(r.quantity) || 1;
+      item.hours += Number(r.hours) || 1;
+      item.amount += Number(r.finalTotal) || 0;
     });
-
     return {
-      activeCount,
-      completedCount,
-      totalRentals,
-      totalUnits,
-      totalHours,
-      totalRevenue: rentalsTotalRevenue,
+      activeCount: dayRentals.filter((r) => r.status === 'active').length,
+      completedCount: dayRentals.filter((r) => r.status === 'completed').length,
+      totalRentals: dayRentals.length,
+      totalUnits: dayRentals.reduce((acc, r) => acc + (Number(r.quantity) || 1), 0),
+      totalHours: dayRentals.reduce((acc, r) => acc + (Number(r.hours) || 1), 0),
+      totalRevenue: closing.rentalsRevenue,
       byItem: Object.values(byItemMap),
     };
-  }, [activeRentals, completedRentals, rentalRates, rentalsTotalRevenue]);
+  }, [closing, rentalRates]);
 
-  // 2. Leaderboard de Instructores
+  // 2. Leaderboard: nómina por sesión dictada HOY (no-show = $0).
+  //    Incluye instructores inactivos que tengan clases hoy, para que el total cuadre.
   const leaderboardSettlements = useMemo(() => {
-    const rows = instructors.map((inst) => {
-      const classes = dailyClasses.filter((c) => c.instructorId === inst.id);
-      const totalToTransfer = classes.reduce(
-        (acc, c) => acc + (Number(c.instructorPay) || 0),
-        0
-      );
-      const revenueGenerated = classes.reduce(
-        (acc, c) => acc + (Number(c.finalTotal) || 0),
-        0
-      );
-      const breakdown = buildInstructorBreakdownSummary(classes);
-
+    const payableToday = closing.dayClasses.filter((c) => c.instructorId);
+    const ids = new Set([...instructors.map((i) => i.id), ...payableToday.map((c) => c.instructorId)]);
+    const rows = [...ids].map((id) => {
+      const inst = instructors.find((i) => i.id === id) || { id, name: `${getInstructorName(id)} (inactivo)` };
+      const instClasses = payableToday.filter((c) => c.instructorId === id);
+      const dictated = instClasses.filter((c) => c.status !== 'no_show' && c.status !== 'cancelled');
       return {
         instructor: inst,
-        classes,
-        classCount: classes.length,
-        breakdown,
-        totalToTransfer,
-        revenueGenerated,
+        classes: instClasses,
+        classCount: dictated.length,
+        breakdown: buildInstructorBreakdownSummary(dictated),
+        totalToTransfer: instClasses.reduce((acc, c) => acc + getPayableInstructorPay(c), 0),
+        revenueGenerated: instClasses.reduce((acc, c) => acc + (Number(c.finalTotal) || 0), 0),
       };
     });
-
-    return rows.sort((a, b) => {
-      if (b.totalToTransfer !== a.totalToTransfer) {
-        return b.totalToTransfer - a.totalToTransfer;
-      }
-      return b.classCount - a.classCount;
-    });
-  }, [instructors, dailyClasses]);
-
-  const maxInstructorPayout = useMemo(() => {
-    return Math.max(...leaderboardSettlements.map((r) => r.totalToTransfer), 1);
-  }, [leaderboardSettlements]);
-
-  // 3. Datos Semanales
-  const weeklyData = useMemo(() => {
-    return BASE_WEEK_DAYS.map((d) => {
-      if (d.isToday) {
-        return {
-          ...d,
-          classes: summary.totalClasses,
-          rentals: rentalSummary.totalRentals,
-          revenue: summary.combinedRevenue,
-          staffPay: summary.totalInstructorPayout,
-          netProfit: summary.combinedNetProfit,
-        };
-      }
-      return {
-        ...d,
-        rentals: 0,
-        netProfit: d.revenue - d.staffPay,
-      };
-    });
-  }, [summary, rentalSummary.totalRentals]);
-
-  const maxWeeklyRevenue = useMemo(() => {
-    return Math.max(...weeklyData.map((d) => d.revenue), 100000);
-  }, [weeklyData]);
-
-  const weeklyTotals = useMemo(() => {
-    return weeklyData.reduce(
-      (acc, d) => ({
-        classes: acc.classes + d.classes,
-        revenue: acc.revenue + d.revenue,
-        staffPay: acc.staffPay + d.staffPay,
-        netProfit: acc.netProfit + d.netProfit,
-      }),
-      { classes: 0, revenue: 0, staffPay: 0, netProfit: 0 }
+    return rows.sort((a, b) =>
+      b.totalToTransfer !== a.totalToTransfer ? b.totalToTransfer - a.totalToTransfer : b.classCount - a.classCount
     );
-  }, [weeklyData]);
+  }, [closing, instructors, getInstructorName]);
 
-  // 4. Desglose Diario para Gráficos
-  const dailyBreakdowns = useMemo(() => {
-    const byPayment = {
-      Transferencia: { count: 0, amount: 0, color: 'bg-blue-950' },
-      Tarjeta: { count: 0, amount: 0, color: 'bg-sky-600' },
-      Efectivo: { count: 0, amount: 0, color: 'bg-sky-400' },
+  const maxInstructorPayout = useMemo(
+    () => Math.max(...leaderboardSettlements.map((r) => r.totalToTransfer), 1),
+    [leaderboardSettlements]
+  );
+
+  // 3. Semana real (lunes a domingo). En modo real viene de la RPC get_closing_range.
+  const week = useMemo(() => getWeekRange(todayIso), [todayIso]);
+  useEffect(() => {
+    let cancelled = false;
+    setWeekError('');
+    fetchClosingRange(week.from, week.to)
+      .then((rows) => {
+        if (!cancelled) setWeekRows(rows);
+      })
+      .catch((err) => {
+        if (!cancelled) setWeekError(err.message);
+      });
+    return () => {
+      cancelled = true;
     };
+    // Se recalcula cuando cambian las clases/arriendos de hoy
+  }, [week.from, week.to, classes, rentals]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const weeklyData = useMemo(() => {
+    return weekRows.map((r) => {
+      const isToday = r.operationDate === todayIso;
+      const labels = getWeekdayLabels(r.operationDate);
+      // Hoy siempre se muestra con el cálculo local (en vivo)
+      const src = isToday
+        ? {
+            totalClasses: closing.totalClasses,
+            combinedRevenue: closing.combinedRevenue,
+            payroll: closing.payroll,
+            combinedNetProfit: closing.combinedNetProfit,
+          }
+        : r;
+      return {
+        date: r.operationDate,
+        dayShort: labels.short,
+        dayName: `${labels.long} ${formatIsoToDisplayDate(r.operationDate)}${isToday ? ' (HOY)' : ''}`,
+        isToday,
+        isProjected: r.operationDate > todayIso,
+        classes: src.totalClasses,
+        revenue: src.combinedRevenue,
+        staffPay: src.payroll,
+        netProfit: src.combinedNetProfit,
+      };
+    });
+  }, [weekRows, todayIso, closing]);
+
+  const maxWeeklyRevenue = useMemo(() => Math.max(...weeklyData.map((d) => d.revenue), 100000), [weeklyData]);
+
+  // Totales de la semana: solo días ya ocurridos + hoy (lo futuro es agenda, no caja)
+  const weeklyTotals = useMemo(
+    () =>
+      weeklyData
+        .filter((d) => !d.isProjected)
+        .reduce(
+          (acc, d) => ({
+            classes: acc.classes + d.classes,
+            revenue: acc.revenue + d.revenue,
+            staffPay: acc.staffPay + d.staffPay,
+            netProfit: acc.netProfit + d.netProfit,
+          }),
+          { classes: 0, revenue: 0, staffPay: 0, netProfit: 0 }
+        ),
+    [weeklyData]
+  );
+
+  // 4. Desgloses del día
+  const dailyBreakdowns = useMemo(() => {
+    const colors = { Transferencia: 'bg-blue-950', Tarjeta: 'bg-sky-600', Efectivo: 'bg-sky-400' };
+    const byPayment = {};
+    Object.entries(closing.byPayment).forEach(([m, info]) => {
+      byPayment[m] = { ...info, color: colors[m] || 'bg-sky-600' };
+    });
 
     const byType = {
       Individual: { count: 0, amount: 0, color: 'bg-sky-600' },
       Grupal: { count: 0, amount: 0, color: 'bg-blue-950' },
-      'Curso Pack 8': { count: 0, amount: 0, color: 'bg-slate-700' },
+      'Curso Pack': { count: 0, amount: 0, color: 'bg-slate-700' },
     };
-
-    dailyClasses.forEach((cls) => {
-      const method = byPayment[cls.paymentMethod] ? cls.paymentMethod : 'Transferencia';
-      byPayment[method].count += 1;
-      byPayment[method].amount += Number(cls.finalTotal) || 0;
-
-      if (cls.category === 'curso') {
-        byType['Curso Pack 8'].count += 1;
-        byType['Curso Pack 8'].amount += Number(cls.finalTotal) || 0;
-      } else if (cls.modality === 'grupal') {
-        byType.Grupal.count += 1;
-        byType.Grupal.amount += Number(cls.finalTotal) || 0;
-      } else {
-        byType.Individual.count += 1;
-        byType.Individual.amount += Number(cls.finalTotal) || 0;
-      }
-    });
-
+    closing.dayClasses
+      .filter((c) => c.status !== 'cancelled')
+      .forEach((cls) => {
+        const key = cls.category === 'curso' ? 'Curso Pack' : cls.modality === 'grupal' ? 'Grupal' : 'Individual';
+        byType[key].count += 1;
+        byType[key].amount += Number(cls.finalTotal) || 0;
+      });
     return { byPayment, byType };
-  }, [dailyClasses]);
+  }, [closing]);
 
   const toggleExpand = (id) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
   const handleExportCSV = () => {
-    const todayStr = getTodayDateString();
     const headers = [
-      'ID Clase',
-      'Fecha',
-      'Hora Inicio',
-      'Hora Término',
-      'Horario Clase',
-      'Modalidad',
-      'Instructor',
-      'Alumno',
-      'Teléfono Alumno',
-      'Correo Alumno',
-      'Contacto Emergencia',
-      'Teléfono Emergencia',
-      'Medio de Pago',
-      'Subtotal',
-      'Descuento',
-      'Total Caja',
-      'Pago Instructor',
+      'Tipo', 'ID', 'Fecha', 'Hora Inicio', 'Hora Término', 'Detalle', 'Estado', 'Instructor',
+      'Cliente / Alumno', 'Teléfono', 'Correo', 'Contacto Emergencia', 'Teléfono Emergencia',
+      'Medio de Pago', 'Subtotal', 'Descuento', 'Total Caja', 'Pago Instructor',
     ];
 
-    const escapeCsvField = (value) => {
-      const str = String(value ?? '');
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    };
+    const classRows = closing.dayClasses.map((cls) => [
+      'Clase',
+      cls.id,
+      formatIsoToDisplayDate(cls.operationDate),
+      cls.startTime,
+      cls.endTime,
+      cls.category === 'curso'
+        ? `Curso sesión ${cls.sessionIndex}${cls.isPaidInPack ? ' (pack pagado)' : ''}`
+        : cls.modality === 'grupal'
+        ? `Grupal (${cls.pax} pax)`
+        : 'Individual',
+      STATUS_LABELS[cls.status] || cls.status,
+      getInstructorName(cls.instructorId),
+      cls.studentName,
+      cls.studentPhone,
+      cls.studentEmail,
+      cls.emergencyContactName,
+      cls.emergencyContactPhone,
+      cls.isPaidInPack ? 'Pack pagado' : cls.paymentMethod,
+      cls.subtotal,
+      cls.discount,
+      cls.finalTotal,
+      getPayableInstructorPay(cls),
+    ]);
 
-    const rows = dailyClasses.map((cls) => {
-      const inst = instructors.find((i) => i.id === cls.instructorId);
-      const modalityLabel =
-        cls.category === 'curso'
-          ? 'Curso'
-          : cls.modality === 'grupal'
-          ? `Grupal (${cls.pax} pax)`
-          : 'Individual';
+    const rentalRows = closing.dayRentals.map((r) => [
+      'Arriendo',
+      r.id,
+      formatIsoToDisplayDate(r.operationDate),
+      r.checkInTime,
+      r.returnedAt || r.estimatedReturnTime,
+      `${r.quantity}x ${r.itemLabel} (${r.hours} h)`,
+      r.status === 'completed' ? 'Devuelto' : 'En uso',
+      '',
+      r.customerName,
+      r.customerPhone,
+      r.customerEmail,
+      r.emergencyContact,
+      '',
+      r.paymentMethod,
+      r.subtotal,
+      r.discount,
+      r.finalTotal,
+      0,
+    ]);
 
-      return [
-        cls.id,
-        cls.date || todayStr,
-        cls.startTime || '',
-        cls.endTime || '',
-        `${cls.startTime} - ${cls.endTime}`,
-        modalityLabel,
-        inst ? inst.name : 'Sin Instructor',
-        cls.studentName,
-        cls.studentPhone || '',
-        cls.studentEmail || '',
-        cls.emergencyContactName || '',
-        cls.emergencyContactPhone || '',
-        cls.paymentMethod || 'Transferencia',
-        cls.subtotal,
-        cls.discount,
-        cls.finalTotal,
-        cls.instructorPay,
-      ]
-        .map(escapeCsvField)
-        .join(',');
-    });
-
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const csvContent = buildCsv(headers, [...classRows, ...rentalRows]);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `caja_diaria_${todayStr}.csv`);
+    link.setAttribute('download', `caja_diaria_${schoolBranding?.slug || 'escuela'}_${todayIso}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -514,14 +487,14 @@ export default function Module4ClosingDashboard() {
                                   </span>
                                   <span className="text-slate-500 font-light">
                                     {cls.category === 'curso'
-                                      ? 'Curso Pack 8'
+                                      ? `Curso · sesión ${cls.sessionIndex}`
                                       : cls.modality === 'grupal'
                                       ? `Grupal (${cls.pax} pax)`
                                       : 'Individual'}
                                   </span>
                                 </div>
                                 <span className="font-mono font-semibold tabular-nums text-blue-950">
-                                  +{formatCurrency(cls.instructorPay)}
+                                  +{formatCurrency(getPayableInstructorPay(cls))}{cls.status === 'no_show' ? ' (no asistió)' : ''}
                                 </span>
                               </div>
                             ))}
@@ -556,7 +529,7 @@ export default function Module4ClosingDashboard() {
         <div className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
-              Medios de Pago (Hoy)
+              Medios de Pago (Hoy · Clases + Arriendos)
             </span>
             <BarChart2 className="w-4 h-4 text-sky-600" />
           </div>
@@ -564,8 +537,8 @@ export default function Module4ClosingDashboard() {
           <div className="space-y-4 pt-1">
             {Object.entries(dailyBreakdowns.byPayment).map(([method, info]) => {
               const pct =
-                summary.totalRevenue > 0
-                  ? Math.round((info.amount / summary.totalRevenue) * 100)
+                summary.combinedRevenue > 0
+                  ? Math.round((info.amount / summary.combinedRevenue) * 100)
                   : 0;
               return (
                 <div key={method} className="space-y-1.5">
@@ -766,16 +739,19 @@ export default function Module4ClosingDashboard() {
             </span>
             <span className="inline-flex items-center gap-1.5 text-slate-700">
               <span className="w-3 h-3 bg-sky-600 inline-block" />
-              Cerrados
+              Días anteriores
             </span>
             <span className="inline-flex items-center gap-1.5 text-slate-700">
               <span className="w-3 h-3 bg-slate-300 inline-block" />
-              Proyectados
+              Agendado (futuro)
             </span>
           </div>
         </div>
 
         <div className="space-y-6">
+          {weekError && (
+            <div className="p-3 border border-rose-300 bg-rose-50 text-sm text-rose-800">{weekError}</div>
+          )}
           <div className="grid grid-cols-7 gap-3 sm:gap-5 items-end h-64 pt-6 pb-2 px-2 border-b border-slate-200">
             {weeklyData.map((day) => {
               const heightPercent = Math.max(
@@ -787,7 +763,7 @@ export default function Module4ClosingDashboard() {
 
               return (
                 <div
-                  key={day.dayShort}
+                  key={day.date}
                   className="h-full flex flex-col items-center justify-end"
                 >
                   <div
@@ -813,7 +789,7 @@ export default function Module4ClosingDashboard() {
                       )} | Neta ${formatCurrency(day.netProfit)}`}
                     >
                       <div
-                        className="w-full bg-sky-400/80 border-t border-white/20"
+                        className="w-full bg-sky-400 opacity-80 border-t border-white/20"
                         style={{ height: `${staffPercentOfBar}%` }}
                       />
                     </div>
@@ -840,7 +816,7 @@ export default function Module4ClosingDashboard() {
             <div className="p-4 border border-slate-200 bg-slate-50 flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                  Facturación Semanal
+                  Facturación Semana (hasta hoy)
                 </div>
                 <div className="text-xl font-mono font-bold tabular-nums text-blue-950 mt-1">
                   {formatCurrency(weeklyTotals.revenue)}
@@ -853,7 +829,7 @@ export default function Module4ClosingDashboard() {
 
             <div className="p-4 border border-slate-200 bg-slate-50">
               <div className="text-xs font-bold uppercase tracking-widest text-sky-700">
-                Nómina Semanal Staff
+                Nómina Semana (hasta hoy)
               </div>
               <div className="text-xl font-mono font-bold tabular-nums text-sky-700 mt-1">
                 {formatCurrency(weeklyTotals.staffPay)}
@@ -862,7 +838,7 @@ export default function Module4ClosingDashboard() {
 
             <div className="p-4 border border-slate-200 bg-blue-950 text-white">
               <div className="text-xs font-bold uppercase tracking-widest text-sky-400">
-                Ganancia Neta Semanal
+                Ganancia Neta Semana (hasta hoy)
               </div>
               <div className="text-xl font-mono font-bold tabular-nums text-white mt-1">
                 {formatCurrency(weeklyTotals.netProfit)}

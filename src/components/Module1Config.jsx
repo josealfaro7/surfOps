@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Check, RotateCcw, Lock, Unlock, AlertCircle, Shield, Palette } from 'lucide-react';
-import {
-  useSurfSchool,
-  INITIAL_SCHOOL_CONFIG,
-  INITIAL_RENTAL_RATES,
-} from '../context/SurfSchoolContext';
-import {
-  SCHOOL_THEME_PRESETS,
-  DEFAULT_POISSON_BRANDING,
-} from '../lib/supabaseClient';
-import { formatCurrency } from '../utils/calculations';
-
-const ADMIN_PIN = '0000';
+import { useSurfSchool } from '../context/SurfSchoolContext';
+import { SCHOOL_THEME_PRESETS, DEFAULT_POISSON_BRANDING } from '../lib/supabaseClient';
+import { DEFAULT_SCHOOL_CONFIG, DEFAULT_RENTAL_RATES } from '../lib/mappers';
+import { formatCurrency, timeToMinutes } from '../utils/calculations';
 
 export default function Module1Config() {
   const {
+    isLive,
+    isDemoSession,
     schoolBranding,
-    updateSchoolBranding,
     schoolConfig,
-    updateSchoolConfig,
     rentalRates,
-    updateRentalRates,
+    verifyAdminPin,
+    saveAdminSettings,
+    changeAdminPin,
   } = useSurfSchool();
+  // El PIN validado se mantiene solo en memoria mientras el panel está desbloqueado:
+  // el servidor lo vuelve a exigir en cada guardado.
+  const [unlockedPin, setUnlockedPin] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [pinMessage, setPinMessage] = useState('');
 
   const [brandingForm, setBrandingForm] = useState(() => ({
     schoolId: schoolBranding?.schoolId || DEFAULT_POISSON_BRANDING.schoolId,
@@ -64,32 +65,50 @@ export default function Module1Config() {
     setRentalRatesForm(rentalRates);
   }, [rentalRates]);
 
-  const handleUnlockSubmit = (e) => {
+  const handleUnlockSubmit = async (e) => {
     e.preventDefault();
-    if (pinInput.trim() === ADMIN_PIN) {
-      setIsUnlocked(true);
-      setPinError(false);
-      setPinInput('');
-    } else {
+    const pin = pinInput.trim();
+    setPinInput('');
+    try {
+      const ok = await verifyAdminPin(pin);
+      if (ok) {
+        setUnlockedPin(pin);
+        setIsUnlocked(true);
+        setPinError(false);
+      } else {
+        setPinError(true);
+      }
+    } catch (err) {
       setPinError(true);
-      setPinInput('');
+      setSaveError(err.message);
     }
   };
 
   const handleLockPanel = () => {
     setIsUnlocked(false);
+    setUnlockedPin('');
     setPinInput('');
     setPinError(false);
   };
 
+  const toSafeNumber = (rawValue) => {
+    const n = Number(rawValue);
+    return rawValue === '' || !Number.isFinite(n) ? 0 : Math.max(0, n);
+  };
+
+  const handleTimeChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setSaved(false);
+  };
+
   const handleNumberChange = (field, rawValue) => {
-    const num = rawValue === '' ? 0 : Math.max(0, Number(rawValue));
+    const num = toSafeNumber(rawValue);
     setFormData((prev) => ({ ...prev, [field]: num }));
     setSaved(false);
   };
 
   const handleRentalRatePriceChange = (itemId, rawValue) => {
-    const num = rawValue === '' ? 0 : Math.max(0, Number(rawValue));
+    const num = toSafeNumber(rawValue);
     setRentalRatesForm((prev) =>
       prev.map((item) =>
         item.id === itemId ? { ...item, pricePerHour: num } : item
@@ -118,32 +137,50 @@ export default function Module1Config() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    try {
-      await updateSchoolBranding(brandingForm);
-    } catch {
-      // Ignorar fallas de red aisladas
+    setSaveError('');
+    setSaved(false);
+    if (timeToMinutes(formData.closeTime) <= timeToMinutes(formData.openTime)) {
+      setSaveError('La hora de cierre debe ser posterior a la de apertura.');
+      return;
     }
-    await updateSchoolConfig(formData);
-    await updateRentalRates(rentalRatesForm);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setIsBusy(true);
+    try {
+      await saveAdminSettings({
+        pin: unlockedPin,
+        config: formData,
+        rates: rentalRatesForm,
+        branding: brandingForm,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleReset = async () => {
-    setFormData(INITIAL_SCHOOL_CONFIG);
-    setRentalRatesForm(INITIAL_RENTAL_RATES);
+  /** Restaura SOLO precios, nómina, horario y arriendos (no toca el nombre ni la paleta) */
+  const handleReset = () => {
+    const ok = window.confirm(
+      '¿Cargar los valores base de precios, nómina, horario y arriendos en el formulario? No se guarda hasta que presiones "Guardar Configuración".'
+    );
+    if (!ok) return;
+    setFormData({ ...DEFAULT_SCHOOL_CONFIG });
+    setRentalRatesForm(DEFAULT_RENTAL_RATES.map((r) => ({ ...r })));
+    setSaved(false);
+  };
+
+  const handleChangePin = async () => {
+    setPinMessage('');
     try {
-      await updateSchoolBranding({
-        ...DEFAULT_POISSON_BRANDING,
-        schoolId: schoolBranding?.schoolId || DEFAULT_POISSON_BRANDING.schoolId,
-      });
-    } catch {
-      // Ignorar error de red en reset demo
+      await changeAdminPin(unlockedPin, newPin.trim());
+      setUnlockedPin(newPin.trim());
+      setNewPin('');
+      setPinMessage('PIN actualizado.');
+    } catch (err) {
+      setPinMessage(err.message);
     }
-    await updateSchoolConfig(INITIAL_SCHOOL_CONFIG);
-    await updateRentalRates(INITIAL_RENTAL_RATES);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   };
 
   // Pantalla de bloqueo por PIN si aún no se ha desbloqueado
@@ -175,13 +212,13 @@ export default function Module1Config() {
                 htmlFor="admin-pin-input"
                 className="block text-xs font-bold uppercase tracking-widest text-sky-700"
               >
-                PIN de Seguridad (4 dígitos)
+                PIN de Seguridad{isDemoSession ? ' (demo: 0000)' : ''}
               </label>
               <input
                 id="admin-pin-input"
                 type="password"
                 inputMode="numeric"
-                maxLength={4}
+                maxLength={8}
                 autoFocus
                 required
                 placeholder="••••"
@@ -189,6 +226,7 @@ export default function Module1Config() {
                 onChange={(e) => {
                   setPinInput(e.target.value);
                   if (pinError) setPinError(false);
+                  if (saveError) setSaveError('');
                 }}
                 className="w-full h-14 px-4 border border-slate-200 bg-slate-50 text-center text-2xl font-mono font-bold tracking-[0.5em] text-blue-950 focus:bg-white focus:border-blue-950 focus:ring-1 focus:ring-blue-950 outline-none transition"
               />
@@ -197,7 +235,7 @@ export default function Module1Config() {
             {pinError && (
               <div className="p-3 border border-rose-300 bg-rose-50 text-xs font-semibold text-rose-700 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                <span>PIN incorrecto. Inténtalo nuevamente.</span>
+                <span>{saveError || 'PIN incorrecto. Tras 5 intentos fallidos se bloquea 15 minutos.'}</span>
               </div>
             )}
 
@@ -266,7 +304,7 @@ export default function Module1Config() {
             className="inline-flex items-center gap-2 h-9 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold uppercase tracking-wider transition cursor-pointer shadow-sm"
           >
             <RotateCcw className="w-3.5 h-3.5 text-sky-600" />
-            Restaurar Base
+            Valores Base
           </button>
 
           <button
@@ -313,7 +351,7 @@ export default function Module1Config() {
                 id="school-id-readonly"
                 type="text"
                 readOnly
-                value={brandingForm.schoolId}
+                value={brandingForm.schoolId || 'Demo (sin base de datos)'}
                 className="w-full h-11 px-4 border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-600 cursor-not-allowed outline-none"
               />
             </div>
@@ -426,6 +464,58 @@ export default function Module1Config() {
                 })}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Bloque 0: Horario de atención */}
+        <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-2">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-sky-700">
+                Operación
+              </span>
+              <h2 className="text-lg font-bold tracking-tight text-blue-950">
+                Horario de Atención y Duración de Clase
+              </h2>
+            </div>
+            <span className="text-xs font-mono text-slate-400">school_configs</span>
+          </div>
+          <p className="text-sm font-light text-slate-600 py-2">
+            No se pueden agendar clases ni despachar arriendos que terminen fuera de este horario.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <label className="space-y-1.5 text-xs font-medium text-slate-600">
+              Apertura
+              <input
+                type="time"
+                value={formData.openTime || '09:00'}
+                onChange={(e) => handleTimeChange('openTime', e.target.value)}
+                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+              />
+            </label>
+            <label className="space-y-1.5 text-xs font-medium text-slate-600">
+              Cierre
+              <input
+                type="time"
+                value={formData.closeTime || '20:00'}
+                onChange={(e) => handleTimeChange('closeTime', e.target.value)}
+                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+              />
+            </label>
+            <label className="space-y-1.5 text-xs font-medium text-slate-600">
+              Duración de clase (minutos)
+              <input
+                type="number"
+                min="15"
+                max="300"
+                step="5"
+                value={formData.classDurationMinutes ?? 75}
+                onChange={(e) =>
+                  handleTimeChange('classDurationMinutes', Math.min(300, Math.max(15, toSafeNumber(e.target.value) || 75)))
+                }
+                className="w-full h-11 px-3 border border-slate-200 bg-white text-sm font-medium text-slate-800 tabular-nums focus:border-blue-950 outline-none"
+              />
+            </label>
           </div>
         </section>
 
@@ -601,8 +691,44 @@ export default function Module1Config() {
           </div>
         </section>
 
+        {/* Cambio de PIN (solo modo real) */}
+        {isLive && (
+          <section className="bg-white border border-slate-200 border-t-4 border-blue-950 shadow-sm p-6 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight text-blue-950">Cambiar PIN de Administrador</h2>
+            <p className="text-sm font-light text-slate-600">
+              El PIN se valida en el servidor. Tras 5 intentos fallidos se bloquea 15 minutos.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={8}
+                placeholder="Nuevo PIN (4 a 8 dígitos)"
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                className="h-11 px-3 border border-slate-200 bg-white text-sm font-mono tracking-widest focus:border-blue-950 outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleChangePin}
+                disabled={newPin.length < 4}
+                className="h-11 px-5 bg-white border border-slate-300 text-xs font-semibold uppercase tracking-wider text-blue-950 disabled:opacity-50 cursor-pointer"
+              >
+                Cambiar PIN
+              </button>
+            </div>
+            {pinMessage && <p className="text-sm text-slate-700">{pinMessage}</p>}
+          </section>
+        )}
+
         {/* Barra de acción */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-4">
+          {saveError && (
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-rose-800 bg-rose-50 px-4 py-2 border border-rose-300">
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+              {saveError}
+            </span>
+          )}
           {saved && (
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-950 bg-emerald-50 px-4 py-2 border border-emerald-300 border-l-4 border-l-emerald-600 shadow-sm">
               <Check className="w-4 h-4 text-emerald-600" />
@@ -611,9 +737,10 @@ export default function Module1Config() {
           )}
           <button
             type="submit"
-            className="w-full sm:w-auto h-11 px-8 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider shadow-sm transition-colors cursor-pointer"
+            disabled={isBusy}
+            className="w-full sm:w-auto h-11 px-8 bg-blue-950 hover:bg-sky-700 text-white text-xs font-semibold uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-60"
           >
-            Guardar Configuración
+            {isBusy ? 'Guardando…' : 'Guardar Configuración'}
           </button>
         </div>
       </form>
