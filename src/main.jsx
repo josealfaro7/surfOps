@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './components/Landing.jsx';
+import { haySesionGuardada } from './lib/sesion.js';
 // Fuentes alojadas en la app (sin depender de Google Fonts con mala señal)
 import '@fontsource/atkinson-hyperlegible-next/latin-400.css';
 import '@fontsource/atkinson-hyperlegible-next/latin-600.css';
@@ -18,11 +19,20 @@ const App = lazy(() => import('./App.jsx'));
 // trabaja con ese mismo prefijo.
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
+// La raíz recibe con la portada, salvo que la escuela ya tenga sesión abierta:
+// en ese caso no tiene sentido mostrarle publicidad de lo que ya compró.
+function Entrada() {
+  if (haySesionGuardada()) {
+    return <Navigate to="/app" replace />;
+  }
+  return <Landing />;
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter basename={BASE}>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Entrada />} />
         <Route
           path="/app/*"
           element={
