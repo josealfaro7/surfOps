@@ -77,3 +77,35 @@
     letter-spacing: 0;
   }
 }
+
+/* ---------------------------------------------------------------
+   Portada pública (src/components/Landing.jsx)
+   Las medidas fijas solo valen cuando las dos columnas van lado a
+   lado: ahí el bloque de la derecha usa una caja de referencia de
+   520px igual que la del texto, para que el cuadro arranque en la
+   misma línea que el titular y su contenido desborde hacia abajo.
+   Apiladas, todo vuelve a ser fluido.
+   --------------------------------------------------------------- */
+.landing-col-izq { padding: 44px 48px 48px 56px; }
+.landing-col-der { padding: 44px 48px 48px 20px; }
+.landing-hueco { height: 44px; }
+.landing-centro { padding: 40px 0; }
+.landing-texto { min-height: 520px; }
+.landing-titulo { font-size: 58px; }
+.landing-bloque { height: 520px; transform: translate(4px, 8px); }
+.landing-marco { width: 489px; height: 489px; }
+.landing-escala { width: 362px; height: 362px; transform: scale(1.35); transform-origin: top left; }
+.landing-leyenda { width: 489px; height: 72px; }
+
+@media (max-width: 1060px) {
+  .landing-col-izq { padding: 32px 24px 0; }
+  .landing-col-der { padding: 24px 24px 40px; }
+  .landing-hueco { height: 0; }
+  .landing-centro { padding: 12px 0; }
+  .landing-texto { min-height: 0; }
+  .landing-titulo { font-size: 40px; }
+  .landing-bloque { height: auto; transform: none; }
+  .landing-marco { width: 100%; max-width: 440px; height: auto; aspect-ratio: 1 / 1; }
+  .landing-escala { width: 100%; height: 100%; transform: none; }
+  .landing-leyenda { width: 100%; max-width: 440px; height: auto; min-height: 92px; }
+}

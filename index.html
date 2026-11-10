@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SurfOps — Gestión de escuela de surf</title>
     <meta name="theme-color" content="#f3f5f7" />
+    <script>
+      // Devuelve la ruta que 404.html guardó en la query, antes de que arranque
+      // el router. Sin esto, recargar en /surfOps/app en GitHub Pages pierde la ruta.
+      (function () {
+        var q = window.location.search;
+        if (q.indexOf('?ruta=') !== 0 && q.indexOf('&ruta=') < 0) return;
+        var partes = q.slice(1).split('&');
+        var ruta = '';
+        var resto = [];
+        partes.forEach(function (parte) {
+          if (parte.indexOf('ruta=') === 0) ruta = parte.slice(5).replace(/~and~/g, '&');
+          else resto.push(parte);
+        });
+        window.history.replaceState(
+          null,
+          null,
+          window.location.pathname.replace(/\/$/, '') +
+            ruta +
+            (resto.length ? '?' + resto.join('&') : '') +
+            window.location.hash
+        );
+      })();
+    </script>
   </head>
   <body class="bg-slate-100 text-slate-900 font-sans antialiased">
     <div id="root"></div>
